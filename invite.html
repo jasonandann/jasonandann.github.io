@@ -1,0 +1,47 @@
+<html>
+<head>
+	<script src="./sjcl.js"></script>
+	<script src="./URI.min.js"></script>
+	<script src="./URI.fragmentQuery.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+</head>
+<body style="text-align: center;">
+	<h1>Welcome <span id="guestname"></span></h1>
+	<img id="guestpic"/>
+	<h2><span id="guestnum"></span> Guest(s)</h2>
+	<span id="ciper"></span>
+	<script>
+		uri = new URI(document.location);
+		fragment = uri.fragment();
+		uri = new URI("?" + uri.fragment());
+		data = uri.search(true);
+		id = data["id"];
+		pw = data["pw"];
+		
+		var request = $.ajax({
+			url: "http://www.jasonandann.net/test.js",
+			method: "GET",
+			dataType: "json"
+		});
+
+		request.done(function( msg ) {
+			console.log( msg );
+			decrypted = sjcl.decrypt(pw, msg, {}, {} );
+			setup( $.parseJSON(decrypted) );
+		});
+
+		request.fail(function( jqXHR, textStatus ) {
+			alert( "Request failed: " + textStatus );
+		});
+		
+		
+		function setup( jsonObj ) {
+			
+			$("#guestname").text(jsonObj["name"]);
+			$("#guestnum").text(jsonObj["guests"]);
+			
+			$("#guestpic").attr("src", "data:image/png;base64," + jsonObj["pic"]);
+		}
+	</script>
+</body>
+</html>
