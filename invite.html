@@ -7,13 +7,13 @@
 	<link rel="stylesheet" media="all and (orientation:landscape)" href="landscape.css">
 	<meta name=viewport content="width=device-width, initial-scale=1">
 </head>
-<body style="text-align: center;">
+<body>
 	<div id="invite">
 		<img id="guestpic" src="./loading.gif"/>
 		<div id="guestinfo">
 			<h1 id="guestname"></h1>
 			<h1 id="guestnum"></h1>
-			<h1 id="guestside" class="bride">Bride</h1>
+			<h1 id="guestside" ></h1>
 		</div>
 	</div>
 	<script>
@@ -50,9 +50,10 @@
 			$("#guestname").text(jsonObj["name"]);
 			$("#guestpic").attr("src", jsonObj["pic"]);
 			$("#guestnum").text(jsonObj["guests"]);
-
-			$("#guestinfo").removeClass();
-			$("#guestinfo").addClass(jsonObj["side"]);
+			$("#guestside").text(jsonObj["side"].toUpperCase());
+			
+			$("body").removeClass();
+			$("body").addClass(jsonObj["side"]);
 		}
 	</script>
 	
