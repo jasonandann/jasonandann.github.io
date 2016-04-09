@@ -1,0 +1,35 @@
+body {
+	padding: none;
+}
+
+#guestname {
+	height: 10%;
+	width: 100%;
+	margin: none;
+}
+
+#guestpic {
+	height: 100%;
+	max-width: 60%;
+	margin: none;
+	float: right;
+	margin: none;
+}
+
+#guestnum {
+	height: 10%;
+	width: 100%;
+	margin: none;
+}
+
+#guestside {
+	height: 10%;
+	width: 100%;
+	margin: none;
+}
+
+.bride {
+	width: 100%;
+	height: 100%;
+	background-color: pink;
+}
