@@ -590,6 +590,16 @@ h2.ss-subtitle:after{
 	-ms-transition:  color 0.2s linear;
 	transition:  color 0.2s linear;
 }
+@media screen and (max-width: 1017px){
+	.slick-sliderMenu span{
+		font-size:35px;
+	}
+}
+@media screen and (max-width: 530px){
+	.slick-sliderMenu span{
+		font-size:35px;
+	}
+}
 .slick-sliderMenu span:hover {
 	cursor: pointer;
 	color: #FFCE7B;
