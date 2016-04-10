@@ -815,21 +815,21 @@ h2.ss-subtitle:after{
 }
 .ps-mountains{
 	background-image:url(./images/strip1.jpg);
-	background-position-y: 0px;
+	background-position-y: 5px;
 }
 .ps-room{
 	background-image:url(./images/strip2.jpg);
 }
 .ps-boston{
 	background-image:url(./images/strip3.jpg);
-	background-position-y: 0px;
+	background-position-y: 5px;
 }
 .ps-brookside{
 	background-image:url(./images/strip4.jpg);
 }
 .ps-tender{
 	background-image:url(./images/strip5.jpg);
-	background-position-y: 0px;
+	background-position-y: 5px;
 }
 .ps-goofy{
 	background-image:url(./images/strip6.jpg);
@@ -845,6 +845,7 @@ h2.ss-subtitle:after{
 }
 .ps-banquet{
 	background-image:url(./images/strip9.jpg);
+	background-position-y: 0px;
 }
 
 /*
@@ -898,7 +899,7 @@ we need to simulate it with percentages and orientation
 	padding-top:10px;
 	padding-bottom:20px;
 }
-#design a {
+#design div div a {
 	color: #fff;
 	text-decoration: none;
 	border-bottom: 1px dashed;
@@ -909,14 +910,32 @@ we need to simulate it with percentages and orientation
 	transition:  color 0.2s linear;
 	margin-left: 1em;
 }
-#design a:hover
+#design div div a:hover {
 	color: #ccc;
 }
-.label {
-	text-align:left;
+.cleft, .cright{
+	float:left;
+	margin: 0 auto 0 auto;
+	text-align:center;
 }
-.credit {
-	text-align: center;
+.bright{
+	float:right;
+}
+.bleft p, .bright p{
+	font-size:20px;
+	line-height:26px;
+}
+@media screen and (max-width: 1017px){
+	.bleft, .bright{
+		width:98%;
+		margin: 0 auto 0 auto;
+	}
+}
+@media screen and (max-width: 400px){
+	.bleft p, .bright p{
+		font-size:18px;
+		line-height:24px;
+	}
 }
 
 /* End original site style */
