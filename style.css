@@ -832,11 +832,7 @@ h2.ss-subtitle:after{
 	background-position-y: 5px;
 }
 .ps-chinese{
-<<<<<<< HEAD
 	background-image:url(./images/invite.jpg);
-=======
-	background-image:url(./images/invite.png);
->>>>>>> a01fb01ad8d7b12ac631c03c6272f90366f1076b
 	background-position-y: 45px;
 }
 .ps-banquet{
