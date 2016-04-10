@@ -568,6 +568,14 @@ h2.ss-subtitle:after{
 }
 /* end nonproposal and proposal */
 
+/* Photos */
+#thumbnails {
+	text-align: center;
+	margin: 1% auto 1% auto;
+	width: 50%;
+}
+/* End Photos */
+
 /* Slides */
 .slidewrap{
 	width:100%;
