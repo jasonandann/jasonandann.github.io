@@ -21,8 +21,8 @@
 		fragment = uri.fragment();
 		uri = new URI("?" + uri.fragment());
 		data = uri.search(true);
-		id = data["id"];
-		pw = data["key"];
+		id = data["a"];
+		pw = data["b"];
 		
 		var request = $.ajax({
 			url: "//www.jasonandann.net/i/p/" + id + ".json",
