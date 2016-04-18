@@ -16,6 +16,11 @@
 			<h1 id="guestside" ></h1>
 		</div>
 	</div>
+	<hr/>
+	<div>
+		<h1>What is this?</h1>
+		<p>You're probably wondering what this page is all about. This is <em>your</em> personalized invitation page! Every invitation was sent with a unique code that allows us to communicate with you! As we receive your RSVP or obtain other wedding details, we'll update this page so check back often!</p>
+	</div>
 	<script>
 		uri = new URI(document.location);
 		fragment = uri.fragment();
@@ -25,7 +30,7 @@
 		pw = data["b"];
 		
 		var request = $.ajax({
-			url: "//www.jasonandann.net/i/p/" + id + ".json",
+			url: "https://www.jasonandann.net/i/p/" + id + ".json",
 			method: "GET",
 			dataType: "json"
 		});
@@ -48,9 +53,9 @@
 		function setup( jsonObj ) {
 			
 			$("#guestname").text(jsonObj["name"]);
-			$("#guestpic").attr("src", jsonObj["pic"]);
-			$("#guestnum").text(jsonObj["guests"]);
-			$("#guestside").text(jsonObj["side"].toUpperCase());
+			$("#guestpic").attr("src", "https://www.jasonandann.net/i/under-construction.png"/*jsonObj["pic"]*/);
+			$("#guestnum").text(jsonObj["guests"] + " Guest(s) Invited");
+			$("#guestside").text(jsonObj["side"].toUpperCase() + "'S SIDE");
 			
 			$("body").removeClass();
 			$("body").addClass(jsonObj["side"]);

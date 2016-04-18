@@ -4,6 +4,9 @@ body {
 	margin: 0;
 }
 
+#invite {
+	height: 100%;
+}
 #guestname {
 	width: 100%;
 }
