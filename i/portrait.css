@@ -20,7 +20,10 @@ body {
 
 #guestside {
 }
-
+#bottomContainer {
+    vertical-align: bottom;
+    display: table-cell;
+}
 .bride {
 	width: 100%;
 	background-color: pink;
