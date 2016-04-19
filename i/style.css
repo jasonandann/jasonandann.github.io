@@ -11,9 +11,6 @@ body {
 		margin-bottom: 10%;
 	}
 }
-#guestname{
-	width: 100%;
-}
 @media all and (orientation:portrait) {
 	#guestpic {
 		height: 40%;
@@ -29,10 +26,7 @@ body {
 		float: right;
 	}
 }
-#guestnum {
-	width: 100%;
-}
-#guestside {
+#guestname, #guestnum, #guestside {
 	width: 100%;
 }
 .bride {
@@ -40,6 +34,9 @@ body {
 }
 .groom {
 	background-color: #7ec0ee;
+}
+#restriction {
+	color: red;
 }
 #food-restrictions, #explanation {
 	width: 90%;
