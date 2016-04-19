@@ -1,0 +1,53 @@
+body {
+	text-align: center;
+	padding: 0;
+	margin: 0;
+}
+#invite {
+	height: 90%;
+}
+@media all and (orientation:portrait) {
+	#invite {
+		margin-bottom: 10%;
+	}
+}
+#guestname{
+	width: 100%;
+}
+@media all and (orientation:portrait) {
+	#guestpic {
+		height: 40%;
+		max-height: 60%;
+		max-width: 100%;
+	}
+}
+@media all and (orientation:landscape) {
+	#guestpic {
+		max-height: 80%;
+		margin: none;
+		padding: none;
+		float: right;
+	}
+}
+#guestnum {
+	width: 100%;
+}
+#guestside {
+	width: 100%;
+}
+.bride {
+	width: 100%;
+	background-color: pink;
+}
+.groom {
+	width: 100%;
+	background-color: #7ec0ee;
+}
+#food-restrictions {
+	width: 100%;
+	
+}
+#food-restrictions ul {
+	text-align: left;
+	font-size: x-large;
+}
