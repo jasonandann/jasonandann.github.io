@@ -663,7 +663,7 @@
 			function openAccordionTab(tab) {
 				if ($(tab + " .accordion-content").css('display') == 'none') {	
 					$(tab + " h3").trigger('click');
-					console.log( ga('send', 'event', 'navigation', 'click', tab) );
+					ga('send', 'event', 'navigation', 'click', tab);
 					
 				}
 			}
@@ -671,7 +671,8 @@
 				collapsible: true, 
 				active: true,
 				activate: function(event, ui) {
-					console.log("#" + ui.newHeader.text().toLowerCase().replace(/ /g, "-"));
+					ga('send', 'event', 'navigation', 'click', 
+					"#" + ui.newHeader.text().toLowerCase().replace(/ /g, "-") );
 				}
 			});
 			$("#attire h3").trigger("click");
