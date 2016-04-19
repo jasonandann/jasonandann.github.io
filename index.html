@@ -597,17 +597,14 @@
 		
 		<!-- Smoothscroll Scripts -->
 		<script type="text/javascript" src="./smooth-scroll.min.js"></script>
-		<script src="./i/URI.min.js"></script>
 		<script type="text/javascript">
 			$(document).ready(function() {
 
-				$('#navwrap a, #nav a, #event-details a, #travel a, #proposal a, #nonproposal a').smoothScroll(/*{
-					beforeScroll: function() {
-						uri = new URI(this.context.activeElement.href );
-						fragment = uri.hash();
-							ga('send', 'event', 'invitation', 'scan', json["name"], parseInt(json["guests"]));
+				$('#navwrap a, #nav a, #event-details a, #travel a, #proposal a, #nonproposal a').smoothScroll({
+					beforeScroll: function(opts) {
+						ga('send', 'event', 'navigation', 'click', opts.scrollTarget );
 					}
-				}*/);
+				});
 				
 				$('p.subnav a').click(function(event) {
 					event.preventDefault();
