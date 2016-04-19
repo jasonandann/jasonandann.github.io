@@ -167,6 +167,9 @@ h2{
 	z-index:6666;
 	text-align:left;
 }
+#logo2 a,#logo3 a{
+	border-bottom: none;
+}
 #navwrap a{
 	width:250px;
 	height:85px;
@@ -531,7 +534,7 @@ h2.ss-subtitle:after{
 /* End Our Story */
 
 /* nonproposal and proposal */
-#nonproposal, #proposal {
+#nonproposal, #proposal, #customs, #event-details, #travel {
 	width:95%;
 	max-width:1000px;
 	margin:0 auto 50px auto;
@@ -629,7 +632,7 @@ h2.ss-subtitle:after{
 	top: 50%;
 	right: -26px;
 	margin-top: -7px;
-	opacity:0;
+	opacity:1;
 	-webkit-transition:  all 0.2s ease-in-out;
 	-moz-transition:  all 0.2s ease-in-out;
 	-o-transition:  all 0.2s ease-in-out;
@@ -699,7 +702,6 @@ h2.ss-subtitle:after{
 }
 .colleft, .colright, .slick-slide {
 	width:48%;
-	height: 100%;
 	/*min-height:525px;*/
 	margin: 0 0.25% 1% 0.25%;
 	overflow:hidden;
@@ -725,7 +727,7 @@ h2.ss-subtitle:after{
 	font-weight:normal;
 }
 .colleft.text > p, .colright.text > p{
-	text-align: justify;
+	text-align: left;
 }
 .colleft img, .colright img {
 	width: 100%;
@@ -737,8 +739,18 @@ h2.ss-subtitle:after{
 	color:#ccc;
 }
 
+.ui-accordion-header {
+	width: 98%;
+	padding:10px 0;
+	background: #DE1F26;
+	color:#FCF593;
+	line-height:35px;
+	font-size:25px;
+	margin-bottom:10px;
+}
+
 .infostrip{
-	width:100%;
+	/*width:100%;*/
 	height:35px;
 	padding:10px 0;
 	background: #DE1F26;
@@ -748,8 +760,7 @@ h2.ss-subtitle:after{
 	margin-bottom:10px;
 }
 .inner-infostrip{
-	width:100%;
-	height:35px;
+	width:100%;;
 	padding:10px 0;
 	color:#DE1F26;
 	line-height:35px;

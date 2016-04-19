@@ -7,21 +7,20 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 	<meta name="robots" content="noindex, nofollow"/>
 	<link rel="shortcut icon" href="./images/icon.png"/>
-	  
-	<!--Site stylesheets -->
-	<link rel="stylesheet" type="text/css" href="./style.css"/>
-	<!--End Site Stylesheets -->
-		
+	  	
 	<!-- Fancybox Stylesheets -->
 	<link rel="stylesheet" href="jquery.fancybox.css" type="text/css" media="screen" />
 
-	<!-- Slick Carousel -->
-	<link rel="stylesheet" type="text/css" href="slick/slick.css"/>
-	<link rel="stylesheet" type="text/css" href="slick/slick-theme.css"/>			
-	<!-- End Slick Carousel -->
+	<!-- Accordion -->
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+	<!-- Accordion -->
 	 
 	<link href='https://fonts.googleapis.com/css?family=Alegreya' rel='stylesheet' type='text/css'>
 	
+	<!--Site stylesheets -->
+	<link rel="stylesheet" type="text/css" href="./style.css"/>
+	<!--End Site Stylesheets -->
+
 	</head>
     <body>
     		
@@ -248,48 +247,47 @@
 			<!-- Customs -->
 			<div id="customs">
 				<h1>Traditions</h1>
-				<div class="slick-sliderMenu">
-					<span class="slick-sliderMenuItem" onclick="$('.customs-slideshow').slick('slickGoTo', 0)">Invites</span>
-					<span class="slick-sliderMenuItem" onclick="$('.customs-slideshow').slick('slickGoTo', 1)">Double Happiness</span>
-					<span class="slick-sliderMenuItem" onclick="$('.customs-slideshow').slick('slickGoTo', 2)">Attire</span>
-					<span class="slick-sliderMenuItem" onclick="$('.customs-slideshow').slick('slickGoTo', 3)">Chinese Wedding Banquet</span>
-					<span class="slick-sliderMenuItem" onclick="$('.customs-slideshow').slick('slickGoTo', 4)">Wedding Jam</span>
-				</div>
-				<div class="slidewrap customs-slideshow" data-slick='{"initialSlide": 2}'>
-					<div class="slick-slide">
-						<div class="infostrip">Invites</div>
-						<div class="colleft">
-							<img src="./images/wedding-invite-inside.jpg"/>
-						</div>
-						<div class="colright text">
+				<div id="invites" class="accordion">
+					<h3>Invites</h3>
+					<div class="accordion-content">
+						<div class="colleft text">
 							<div class="inner-infostrip">Background</div>
 							<p>Unlike Western traditions, the color white is <strong><em>avoided</em></strong> for Chinese weddings as that color is typically used at funerals. Instead red is the predominant color used in weddings as it represents good fortune and joy. The cover of the invite depicts a golden dragon and phoenix which is a symbol of harmonious balance in marriage between the husband (dragon) and the wife (phoenix).</p>
 						</div>
-					</div>
-					<div class="slick-slide">
-						<div class="infostrip">Double Happiness</div>
-						<div class="colleft">
-							<img src="./images/double-happiness-circular-symbol.png"/>
+						<div class="colright">
+							<img src="./images/wedding-invite-inside.jpg"/>
 						</div>
-						<div class="colright text">
+					</div>
+				</div>
+				<div id="double-happiness" class="accordion">
+					<h3>Double Happiness</h3>
+					<div class="accordion-content">
+						<div class="colleft text">
 							<div class="inner-infostrip">Background</div>
 							<p>The symbol is actually the Chinese character '喜' (meaning joy or happiness) written twice. For this reason, it is commonly associated with weddings and appears frequently in decorations. It is often stylized to fit the particular setting or theme. For example, the symbol here has been stylized to fit a circular pattern to fit a sign. The symbol on our website is stylized with a heart replacing the bottom of the character.</p>
 						</div>
-					</div>							
-					<div class="slick-slide">
-						<div class="infostrip">Attire</div>
-						<div class="colleft">
-							<img src="./images/reddress.jpg"/>
+						<div class="colright">
+							<img src="./images/double-happiness-circular-symbol.png"/>
 						</div>
-						<div class="colright text">
+					</div>
+				</div>							
+				<div id="attire" class="accordion">
+					<h3>Attire</h3>
+					<div class="accordion-content">
+						<div class="colleft text">
 							<div class="inner-infostrip">Background</div>
 							<p>As a blended wedding, Ann will be wearing both a traditional white wedding gown and a traditional red <em>cheongsam</em> (a.k.a <em>qi pao</em>) at various points during the day. As a result, in addition to avoiding wearing white dresses on the day of the wedding, please avoid wearing red dresses.</p>
 							<p>The rest of the wedding party will be dressed up in formal attire so feel free to dress up as well! However, you are welcome to dress to your comfort. Note that if you were invited to the private ceremony, it will be outdoors on a hot summer day.
 							</p>
 						</div>
-					</div>							
-					<div class="slick-slide">
-						<div class="infostrip">Chinese Wedding Banquet</div>
+						<div class="colright">
+							<img src="./images/reddress.jpg"/>
+						</div>
+					</div>
+				</div>							
+				<div id="chinese-wedding-banquet" class="accordion">
+					<h3>Chinese Wedding Banquet</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">Background</div>
 							<p>We are extremely excited to share a traditional Chinese wedding banquet with you. Most of you probably think of Chinese food as wonton soup, lo mein, and shrimp fried rice. We will be eating authentic Chinese dishes and if you've never had <strong><em><u>real</u></em></strong> Chinese food, they you're in for a treat! A Chinese banquet typically includes at least 8 dishes. The dishes are served family style and a set of dishes may arrive in rapid fashion. It's important to pace yourself because many of the best dishes are later in the sequence. Several of the dishes have specific meaning associated with them. The menu has not yet been set as it depends on the number of guests attending - but you can look forward to at least a chicken dish, a duck dish, a lobster dish, and a noodle dish. Please let Jason or Ann know about any food restrictions  - we will do our best to accommodate you!</p>
@@ -298,9 +296,11 @@
 							<div class="inner-infostrip">Courses</div>
 							<p>To Be Determined</p>
 						</div>
-					</div>	
-					<div class="slick-slide">
-						<div class="infostrip">Wedding Jam</div>
+					</div>
+				</div>	
+				<div id="wedding-jam" class="accordion">
+					<h3>Wedding Jam</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">Background</div>
 							<p>Most wedding favors are somewhat frivolous trinkets that people order in bulk and seem very impersonal. Sure it may have the name of the bride and groom printed on it, but really - are you really going to hold onto that magnet or paperweight? We wanted something that was deeply personal and that you would enjoy. As wedding favors, we <strong><em><u>made</u></em></strong> you jam! We started by picking fruit together, cutting and processing it, combining all the raw ingredients, and canning it into 8 oz jars. We'll have five different flavors to choose from and there will be a set sampler jars at each table for you to try before you choose which flavor to take home with you. Of course there'll only be so many of each flavor at the table so you'll have to negotiate with your neighbors!</p>
@@ -311,8 +311,8 @@
 							</p>-->
 							<img src="./images/fruit-picking.jpg"/>
 						</div>
-					</div>						
-				</div>				
+					</div>
+				</div>						
 			</div>
 			<!-- End Customs -->
 							
@@ -325,16 +325,9 @@
 			<!-- Event Details -->
 			<div id="event-details">
 				<h1>Event Details</h1>
-				<div class="slick-sliderMenu">
-					<span class="slick-sliderMenuItem" onclick="$('.event-slideshow').slick('slickGoTo', 0)">Rehearsal Dinner</span>
-					<span class="slick-sliderMenuItem" onclick="$('.event-slideshow').slick('slickGoTo', 1)">Game Night</span>
-					<span class="slick-sliderMenuItem" onclick="$('.event-slideshow').slick('slickGoTo', 2)">Ceremony</span>
-					<span class="slick-sliderMenuItem" onclick="$('.event-slideshow').slick('slickGoTo', 3)">Reception</span>
-					<span class="slick-sliderMenuItem" onclick="$('.event-slideshow').slick('slickGoTo', 4)">Brunch</span>
-				</div>
-				<div class="slidewrap event-slideshow" data-slick='{"initialSlide": 3}'>
-					<div class="slick-slide">
-						<div class="infostrip">Rehearsal Dinner</div>
+				<div id="rehearsal-dinner" class="accordion">
+					<h3>Rehearsal Dinner</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">What to Expect</div>
 							<p>The rehearsal dinner will be held in nearby Wheaton Regional Park immediately following the rehearsal as a private gathering for the wedding party and select invited family members. Food will include barbecue meats, sides, corn bread, and salad along with non-alcoholic drinks. Alcoholic drinks are prohibited in the park. Bathrooms and playgrounds are available a short walk from the pavilion.</p>
@@ -348,8 +341,10 @@
 							<img src="./images/rehearsal-pavilion.jpg"/>
 						</div>
 					</div>
-					<div class="slick-slide">
-						<div class="infostrip">Game Night</div>
+				</div>
+				<div id="game-night" class="accordion">
+					<h3>Game Night</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">What to Expect</div>
 							<p>Weddings are always extraordinarily busy for the bride and groom. Jason and Ann wanted to make sure they had the chance to socialize with friends and give guests a chance to get to know one another in a less formal setting. So they decided to host a board game party the night before the wedding! Fun board games will be on hand but feel free to bring your favorite game to play! Outside alcoholic beverages are not permitted but can be purchased from the hotel cafe just down the hall.</p>
@@ -363,8 +358,10 @@
 							<img src="./images/game-night.jpg"/>
 						</div>
 					</div>
-					<div class="slick-slide">
-						<div class="infostrip">Ceremony</div>
+				</div>
+				<div id="ceremony" class="accordion">
+					<h3>Ceremony</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">What to Expect</div>
 							<p>A private ceremony will be held outdoors at <a href="http://www.montgomeryparks.org/brookside/">Brookside Gardens</a>. The program will be brief with abbreviated remarks as we have limited time in the Fragrance Garden. The rest of the surrounding gardens are open to the public so please feel free to explore the beautiful plants and landscapes following the ceremony. Seating is extremely limited and we expect every chair to be filled so please fill in the rows and get to know your fellow guests! Please bring your ceremony invitation to be admitted into the Fragrance Garden.</p>
@@ -377,12 +374,14 @@
 							<p><a href="https://goo.gl/maps/NbfKGSVrS4r">Brookside Gardens<br/>1800 Glenallan Ave<br/>Wheaton, MD 20902</a></p>
 							<img src="./images/brookside-gardens.jpg"/>
 						</div>
-					</div>					
-					<div class="slick-slide">
-						<div class="infostrip">Reception</div>
+					</div>
+				</div>					
+				<div id="reception" class="accordion">
+					<h3>Reception</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">What to Expect</div>
-							<p>The reception will be held at <a href="http://www.gichinese.com/"</a>Gourmet Inspirations</a> featuring a <a onclick="$('.customs-slideshow').slick('slickGoTo', 3);" href="#customs">traditional Chinese wedding banquet</a>. Samples of the <a onclick="$('.customs-slideshow').slick('slickGoTo', 4);" href="#customs">wedding jam</a> made by Jason and Ann will be available to try at each table before the banquet begins. There will be approximately 10 dishes served family style so pace yourself accordingly! Dancing will follow shortly after dinner has concluded.</p>
+							<p>The reception will be held at <a href="http://www.gichinese.com/"</a>Gourmet Inspirations</a> featuring a <a onclick="openAccordionTab('#chinese-wedding-banquet')" href="#chinese-wedding-banquet">traditional Chinese wedding banquet</a>. Samples of the <a onclick="openAccordionTab('#wedding-jam')" href="#wedding-jam">wedding jam</a> made by Jason and Ann will be available to try at each table before the banquet begins. There will be approximately 10 dishes served family style so pace yourself accordingly! Dancing will follow shortly after dinner has concluded.</p>
 							<div class="inner-infostrip">Parking</div>
 							<p>The restaurant does <strong><em><u>not</u></em></strong> have a parking lot. There is a small drop-off area available for guests requiring assistance. Street parking is available and there are multiple public parking lots nearby (see map). Parking is free after 6pm so you will need to feed the meter only enough to cover the time from your arrival to 6pm. The Wheaton Metro Station is also a short 5-7 minute walk from the restaurant. Hotel guests can <a href="https://goo.gl/maps/t5S3WFJGBe32">ride the Red Line</a> metro 2 stops from nearby Silver Spring Station towards Glenmont.</p>
 						</div>
@@ -393,8 +392,10 @@
 							<img src="./images/reception-map.jpg"/>
 						</div>
 					</div>
-					<div class="slick-slide">
-						<div class="infostrip">Brunch</div>
+				</div>
+				<div id="brunch" class="accordion">
+					<h3>Brunch</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">What to Expect</div>
 							<p>The bridal party will be attending dim sum at <a href="http://www.gichinese.com/"</a>Gourmet Inspirations</a> with select invited family members. However, the restaurant is open to the public for dim sum so guests should feel free to get a table with newfound friends!</p>
@@ -408,7 +409,7 @@
 							<img src="./images/reception-map.jpg"/>
 						</div>
 					</div>
-				</div>				
+				</div>
 			</div>
 			<!--End Event Details-->
 			
@@ -417,15 +418,9 @@
 			<!-- Travel -->
 			<div id="travel">
 				<h1>Travel Info</h1>
-				<div class="slick-sliderMenu">
-					<span class="slick-sliderMenuItem" onclick="$('.travel-slideshow').slick('slickGoTo', 0)">Flying Here</span>
-					<span class="slick-sliderMenuItem" onclick="$('.travel-slideshow').slick('slickGoTo', 1)">Accommodations</span>
-					<span class="slick-sliderMenuItem" onclick="$('.travel-slideshow').slick('slickGoTo', 2)">Getting Around</span>
-					<!--<span class="slick-sliderMenuItem" onclick="$('.travel-slideshow').slick('slickGoTo', 3)">Things to Do</span>-->
-				</div>
-				<div class="slidewrap travel-slideshow" data-slick='{"initialSlide": 1}'>
-					<div class="slick-slide">
-						<div class="infostrip">Flying Here</div>
+				<div id="flying-here" class="accordion">
+					<h3>Flying Here</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">Reagan National Airport (DCA)</div>
 							<p>This airport is the most convenient for travelers who do <strong><em>not</em></strong> wish to rent a car. The airport is on the Washington Metro Yellow Line which, via transfer, can be used <a href="https://goo.gl/maps/1v9tXLtJEt82">to travel</a> to the hotel where transportation options exist for the ceremony and reception.
@@ -439,8 +434,10 @@
 							<img src="./images/airport-map.jpg"/>
 						</div>
 					</div>
-					<div class="slick-slide">
-						<div class="infostrip">Accommodations</div>
+				</div>
+				<div id="accommodations" class="accordion">
+					<h3>Accommodations</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">Courtyard Silver Spring Downtown</div>
 							<p>There is a <a href="http://www.marriott.com/meeting-event-hotels/group-corporate-travel/groupCorp.mi?resLinkData=Li-DuBose%20Wedding%5Ewassv%60LDWLDWA%60109.00%60USD%60false%602%607/8/16%607/11/16%606/8/16&app=resvlink&stop_mobi=yes">group rate</a> of $109 for the wedding block at the hotel which can be obtained by using <a href="http://www.marriott.com/meeting-event-hotels/group-corporate-travel/groupCorp.mi?resLinkData=Li-DuBose%20Wedding%5Ewassv%60LDWLDWA%60109.00%60USD%60false%602%607/8/16%607/11/16%606/8/16&app=resvlink&stop_mobi=yes">this link</a>. Reservations must be made before June 8th, 2016 (one month prior) to guarantee the rate. Reservations made after June 8th will be given the group rate based on hotel availability. The hotel is conveniently located on the Washington Metro Red Line which can be used to travel to the reception restaurant. The hotel shuttle can be used to travel to the private ceremony venue.</p>
@@ -452,9 +449,11 @@
 							<p><a href="http://www.marriott.com/meeting-event-hotels/group-corporate-travel/groupCorp.mi?resLinkData=Li-DuBose%20Wedding%5Ewassv%60LDWLDWA%60109.00%60USD%60false%602%607/8/16%607/11/16%606/8/16&app=resvlink&stop_mobi=yes">Courtyard by Marriott<br/>8506 Fenton St<br/>Silver Spring, MD 20910</a></p>
 							<img src="./images/hotel-map.jpg"/>
 						</div>
-					</div>							
-					<div class="slick-slide">
-						<div class="infostrip">Getting Around</div>
+					</div>
+				</div>							
+				<div id="getting-around" class="accordion">
+					<h3>Getting Around</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">Metro</div>
 							<p>The Washington Metro is conveniently accessible from Reagan National Airport, the Courtyard Silver Spring Downtown (hotel), and Gourmet Inspirations (reception venue). The hotel and reception venue are on the Red Line which runs approximately every 12-15 minutes.</p>
@@ -463,25 +462,26 @@
 						</div>
 						<div class="colright text">
 							<div class="inner-infostrip">Carpool</div>
-							<p>Many of our guests are local and we are asking everyone to be friendly and help out of town guests who may need a lift. If you're an out of town guest that needs a ride, be sure to stop by <a onclick="$('.event-slideshow').slick('slickGoTo', 1);" href="#event-details">game night</a> and introduce yourself to new friends!.</p>
+							<p>Many of our guests are local and we are asking everyone to be friendly and help out of town guests who may need a lift. If you're an out of town guest that needs a ride, be sure to stop by <a onclick="openAccordionTab('#game-night');" href="#game-night">game night</a> and introduce yourself to new friends!.</p>
 							<img src="./images/metro-map.jpg"/>
 						</div>
 					</div>
-					<!--
-					<div class="slick-slide">
-						<div class="infostrip">Things to Do</div>
+				</div>
+				<div id="things-to-do" class="accordion">
+					<h3>Things to Do</h3>
+					<div class="accordion-content">
 						<div class="colleft text">
 							<div class="inner-infostrip">Nearby Attractions</div>
-							<p></p>
+							<p>Coming soon!</p>
 							<div class="inner-infostrip">Further Away</div>
+							<p>Coming soon!</p>
 						</div>
-						<div class="colright">
+						<div class="colright text">
 							<div class="inner-infostrip">Restaurants</div>
-							<img src=""/>
+							<p>Coming soon!</p>
 						</div>
-					</div>		
-					-->
-				</div>				
+					</div>
+				</div>		
 			</div>
 			<!-- End Travel -->
 			
@@ -555,6 +555,20 @@
 		  ga('send', 'pageview');
 
 		</script>
+		<script>
+			/**
+			* Function that tracks a click on an outbound link in Analytics.
+			* This function takes a valid URL string as an argument, and uses that URL string
+			* as the event label. Setting the transport method to 'beacon' lets the hit be sent
+			* using 'navigator.sendBeacon' in browser that support it.
+			*/
+			var trackOutboundLink = function(url) {
+			   ga('send', 'event', 'outbound', 'click', url, {
+				 'transport': 'beacon',
+				 'hitCallback': function(){document.location = url;}
+			   });
+			}
+			</script>
 		<!--End Google Analytics-->
 
 		<!--Our Story Scripts-->
@@ -577,7 +591,7 @@
 		<script type="text/javascript">
 			$(document).ready(function() {
 
-				$('#navwrap a, #nav a').smoothScroll();
+				$('#navwrap a, #nav a, #event-details a, #travel a, #proposal a, #nonproposal a').smoothScroll();
 
 				$('p.subnav a').click(function(event) {
 					event.preventDefault();
@@ -630,23 +644,20 @@
 		</div>
 		<!-- End Supersize Scripts -->
 		
-		<!-- Slick Scripts -->
-		<script type="text/javascript" src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
-		<script type="text/javascript" src="slick/slick.min.js"></script>
+		<!-- Accordion Scripts -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
 		<script type="text/javascript">
-			$(document).ready(function(){
-				$('.slidewrap').slick({
-					slidesToShow: 1,
-					slidesToScroll: 1,
-					arrows: true,
-					fade: false,
-					centerMode: true,
-					centerPadding: '55px',
-					focusOnSelect: true,
-				});
-			});
+			function openAccordionTab(tab) {
+				if ($(tab + " .accordion-content").css('display') == 'none') {	
+					$(tab + " h3").trigger('click');
+				}
+			}
+			$(".accordion").accordion({ collapsible: true, active: true });
+			$("#attire h3").trigger("click");
+			$("#reception h3").trigger("click");
+			$("#accommodations h3").trigger("click");
 		</script>
-		<!-- End Slick Scripts -->
+		<!-- End Accordion Scripts -->
 		<script type="text/javascript" src="./jquery.fancybox.pack.js"></script>
 		<script type="text/javascript" src="./jquery.mousewheel-3.0.6.pack.js"></script>
 		<script>
