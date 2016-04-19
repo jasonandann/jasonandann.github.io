@@ -496,7 +496,7 @@
 						<p>Help us upgrade our housewares:</p>
 					</div>
 					<div class="centered-div">
-						<p><a class="outbound" href="https://www.bedbathandbeyond.com/store/giftregistry/view_registry_guest.jsp?registryId=543067609&eventType=Wedding&pwsurl=?mcid=EM_triggeredem_emailregistryplural__allpromos" class="registry bbeyond outbound" title="Bed Bath &amp; Beyond">Bed Bath &amp; Beyond<span></span></a></p>
+						<p><a href="https://www.bedbathandbeyond.com/store/giftregistry/view_registry_guest.jsp?registryId=543067609&eventType=Wedding&pwsurl=?mcid=EM_triggeredem_emailregistryplural__allpromos" class="registry bbeyond outbound" title="Bed Bath &amp; Beyond">Bed Bath &amp; Beyond<span></span></a></p>
 					</div>
 					<div class="registry-imgs">
 						<p>Send us on honeymoon adventures:</p>
@@ -572,7 +572,7 @@
 			* using 'navigator.sendBeacon' in browser that support it.
 			*/
 			var trackOutboundLink = function(url) {
-				ga('send', 'event', 'outbound', 'click', url, {
+				ga('send', 'event', 'outbound', url.currentTarget.href, url, {
 					'transport': 'beacon',
 					'hitCallback': function(){document.location = url;}
 				});
@@ -602,7 +602,7 @@
 
 				$('#navwrap a, #nav a, #event-details a, #travel a, #proposal a, #nonproposal a').smoothScroll({
 					beforeScroll: function(opts) {
-						ga('send', 'event', 'navigation', 'click', opts.scrollTarget );
+						ga('send', 'event', 'navigation', opts.scrollTarget, opts.scrollTarget );
 					}
 				});
 				
@@ -663,7 +663,7 @@
 			function openAccordionTab(tab) {
 				if ($(tab + " .accordion-content").css('display') == 'none') {	
 					$(tab + " h3").trigger('click');
-					ga('send', 'event', 'link', 'click', tab);
+					ga('send', 'event', 'link', tab, tab);
 					
 				}
 			}
@@ -671,7 +671,7 @@
 				collapsible: true, 
 				active: true,
 				activate: function(event, ui) {
-					ga('send', 'event', 'navigation', 'click', 
+					ga('send', 'event', 'navigation', "#" + ui.newHeader.text().toLowerCase().replace(/ /g, "-"), 
 					"#" + ui.newHeader.text().toLowerCase().replace(/ /g, "-") );
 				}
 			});
