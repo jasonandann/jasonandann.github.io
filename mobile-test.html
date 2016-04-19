@@ -663,7 +663,7 @@
 			function openAccordionTab(tab) {
 				if ($(tab + " .accordion-content").css('display') == 'none') {	
 					$(tab + " h3").trigger('click');
-					ga('send', 'event', 'navigation', 'click', tab);
+					ga('send', 'event', 'link', 'click', tab);
 					
 				}
 			}
