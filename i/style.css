@@ -36,18 +36,26 @@ body {
 	width: 100%;
 }
 .bride {
-	width: 100%;
 	background-color: pink;
 }
 .groom {
-	width: 100%;
 	background-color: #7ec0ee;
 }
-#food-restrictions {
-	width: 100%;
-	
+#food-restrictions, #explanation {
+	width: 90%;
+	margin: 0 auto;	
+	padding: 5px;
+}
+#food-restritions p, #explanation p {
+	text-align: justify;
 }
 #food-restrictions ul {
 	text-align: left;
 	font-size: x-large;
+}
+#food-restrictions.bride, #explanation.bride {
+	background-color: #FFDFE5;
+}
+#food-restrictions.groom, #explanation.groom {
+	background-color: #BEDFF6;
 }
