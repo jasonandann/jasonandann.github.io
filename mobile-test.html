@@ -496,7 +496,7 @@
 						<p>Help us upgrade our housewares:</p>
 					</div>
 					<div class="centered-div">
-						<p><a class="outbound" href="https://www.bedbathandbeyond.com/store/giftregistry/view_registry_guest.jsp?registryId=543067609&eventType=Wedding&pwsurl=?mcid=EM_triggeredem_emailregistryplural__allpromos" class="registry bbeyond outbound" title="Bed Bath &amp; Beyond">Bed Bath &amp; Beyond<span></span></a></p>
+						<p><a href="https://www.bedbathandbeyond.com/store/giftregistry/view_registry_guest.jsp?registryId=543067609&eventType=Wedding&pwsurl=?mcid=EM_triggeredem_emailregistryplural__allpromos" class="registry bbeyond outbound" title="Bed Bath &amp; Beyond">Bed Bath &amp; Beyond<span></span></a></p>
 					</div>
 					<div class="registry-imgs">
 						<p>Send us on honeymoon adventures:</p>
@@ -572,7 +572,7 @@
 			* using 'navigator.sendBeacon' in browser that support it.
 			*/
 			var trackOutboundLink = function(url) {
-				ga('send', 'event', 'outbound', url, url, {
+				ga('send', 'event', 'outbound', url.currentTarget.href, url, {
 					'transport': 'beacon',
 					'hitCallback': function(){document.location = url;}
 				});
