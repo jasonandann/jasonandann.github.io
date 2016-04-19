@@ -3,6 +3,7 @@
 	<script src="./sjcl.js"></script>
 	<script src="./URI.min.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+	<script src="./jquery.scrolldepth.min.js"></script>
 	<link rel="stylesheet" href="style.css">
 	<meta name=viewport content="width=device-width, initial-scale=1">
 	<title>Personalized Web Invitation</title>
@@ -24,17 +25,17 @@
 	</div>
 	<img class="break" src="./section-break.png" style="display: none"/>
 	<div id="explanation">
-		<h1>What is this?</h1>
+		<h1 id="what-is-this">What is this?</h1>
 		<p>You're probably wondering what this page is all about. This is <em>your</em> personalized invitation page! Every invitation was sent with a unique QR code that allows us to communicate with you! As we receive your RSVP or obtain other wedding details, we'll update this page so check back often!</p>
-		<h1>Why was this page created?</h1>
+		<h1 id="why">Why was this page created?</h1>
 		<p>Our ceremony is going to be held in a garden that is open to the public. While part of the garden will be roped off, our ushers have no way of identify our guests from random spectators. Seating is <em>extremely</em> limited so we needed a way for our ushers to identify legitimate guests (also it was really fun for Jason to write the code behind it). Hence, ushers will be scanning your invitation and seeing your lovely picture when you come to the ceremony.</p>
-		<h1>But I don't like my picture!</h1>
+		<h1 id="dont-like-my-picture">But I don't like my picture!</h1>
 		<p>It's the picture we were able to easily find for you. If you don't like it, contact Jason or Ann and send us the picture you'd like ushers to see!</p>
-		<h1>The <em>(fill in the blank)</em> information is wrong</h1>
+		<h1 id="wrong-information">The <em>(fill in the blank)</em> information is wrong</h1>
 		<p>We tried to take care to accurately capture the number of guests invited, the spelling of your name, and any food restrictions we're aware of. If we got it wrong, we're sorry - contact Jason or Ann with the right information and it'll be fixed!</p>
-		<h1>Why is the page blue / pink?</h1>
+		<h1 id="pink-blue">Why is the page blue / pink?</h1>
 		<p>The color will help our ushers quickly identify if you're on the groom's side (blue) or the bride's side (pink).</p>
-		<h1>Is it secure?</h1>
+		<h1 id="secure">Is it secure?</h1>
 		<p>Jason thinks so. The page itself is static HTML that makes an Asynchronous JavaScript And XML (AJAX) call to retrieve an encrypted JSON object. The specific encrypted JSON object that belongs to you is identified by a random 128-bit ID so it's infeasible for anyone to realistically guess and retrieve (a.k.a. "force browse") to your encrypted JSON object. This strategy is similar to the one used by Facebook and Google to protect photos - their file names are randomly generated in such a way that even though anyone could theoretically download it, it's infeasible as the file name itself is almost impossible to guess. This page takes things further as even if someone <em>does</em> guess the JSON object ID, the object itself is encrypted with a randomly generated 128-bit AES key that is unique per guest. The encrypted JSON object contains the guest profile information that you see above. The QR code on your invitation is unique to you and contains the ID and key that allows this static HTML page to read the contents. The ID and key are supplied as parameters in the anchor tag so it never traverses the network. So in short, it's reasonably secure.</p>
 	</div>
 	<script>
@@ -105,14 +106,19 @@
 	</script>
 	<!--Google Analytics-->
 	<script>
-	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-	  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-	  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+		(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+		(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+		m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+		})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
 
-	  ga('create', 'UA-76196229-1', 'auto');
-	  ga('send', 'pageview');
-
+		ga('create', 'UA-76196229-1', 'auto');
+		ga('send', 'pageview');
+		$.scrollDepth({
+			elements:['#explanation', 
+			'#what-is-this', '#why', '#dont-like-my-picture', '#wrong-information', '#pink-blue', '#secure'],
+			pixelDepth: false,
+		});
+	  
 	</script>
 	<!--End Google Analytics-->
 	
