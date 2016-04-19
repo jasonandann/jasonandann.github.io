@@ -65,8 +65,8 @@
 			} else {
 				json["restriction"] = "*Food Restrictions*";
 			}
-			console.log(json["name"].replace(/ /g, ""));
-			ga('send', 'event', 'invitation', json["name"].replace(/ /g, ""), json["name"], parseInt(json["guests"]));
+
+			ga('send', 'event', 'invitation', 'scan', json["name"], parseInt(json["guests"]));
 			setup( json );
 		});
 

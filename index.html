@@ -572,7 +572,7 @@
 			* using 'navigator.sendBeacon' in browser that support it.
 			*/
 			var trackOutboundLink = function(url) {
-				ga('send', 'event', 'outbound', url, url, {
+				ga('send', 'event', 'navigation', 'outbound', url, {
 					'transport': 'beacon',
 					'hitCallback': function(){document.location = url;}
 				});
@@ -602,7 +602,7 @@
 
 				$('#navwrap a, #nav a, #event-details a, #travel a, #proposal a, #nonproposal a').smoothScroll({
 					beforeScroll: function(opts) {
-						ga('send', 'event', 'navigation', opts.scrollTarget, opts.scrollTarget );
+						ga('send', 'event', 'navigation', 'scrollTo', opts.scrollTarget );
 					}
 				});
 				
@@ -663,7 +663,7 @@
 			function openAccordionTab(tab) {
 				if ($(tab + " .accordion-content").css('display') == 'none') {	
 					$(tab + " h3").trigger('click');
-					ga('send', 'event', 'link', tab, tab);
+					//ga('send', 'event', 'accordion', 'expand', tab);
 					
 				}
 			}
@@ -671,7 +671,7 @@
 				collapsible: true, 
 				active: true,
 				activate: function(event, ui) {
-					ga('send', 'event', 'navigation', "#" + ui.newHeader.text().toLowerCase().replace(/ /g, "-"), 
+					ga('send', 'event', 'accordion', 'expand', 
 					"#" + ui.newHeader.text().toLowerCase().replace(/ /g, "-") );
 				}
 			});
