@@ -663,9 +663,17 @@
 			function openAccordionTab(tab) {
 				if ($(tab + " .accordion-content").css('display') == 'none') {	
 					$(tab + " h3").trigger('click');
+					console.log( ga('send', 'event', 'navigation', 'click', tab) );
+					
 				}
 			}
-			$(".accordion").accordion({ collapsible: true, active: true });
+			$(".accordion").accordion({ 
+				collapsible: true, 
+				active: true,
+				activate: function(event, ui) {
+					console.log("#" + ui.newHeader.text().toLowerCase().replace(/ /g, "-"));
+				}
+			});
 			$("#attire h3").trigger("click");
 			$("#reception h3").trigger("click");
 			$("#accommodations h3").trigger("click");
