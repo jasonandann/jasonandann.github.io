@@ -379,31 +379,30 @@ h2.ss-subtitle:after{
 	border:none;
 	outline:none;
 }
-.ss-small .ss-circle{
-	width: 100px;
-	height: 100px;
-}
-.ss-medium .ss-circle{
-	width: 310px;
-	height: 310px;
-}
 .ss-large .ss-circle{
 	width: 310px;
 	height: 310px;
 	border:none;
 	outline:none;
 }
-@media screen and (max-width: 660px){
-	.ss-medium .ss-circle{
-		width: 200px;
-		height: 200px;
-	}
+@media screen and (max-width: 700px){
 	.ss-large .ss-circle{
 		width: 200px;
 		height: 200px;
 	}
 }
-
+@media screen and (max-width: 400px){
+	.ss-large .ss-circle{
+		width: 150px;
+		height: 150px;
+	}
+}
+@media screen and (max-width: 350px){
+	.ss-large .ss-circle{
+		width: 125px;
+		height: 125px;
+	}
+}
 .ss-circle-deco:before{
 	width: 9%;
 	height: 0px;
@@ -455,9 +454,6 @@ h2.ss-subtitle:after{
 	background: rgba(26, 27, 33, 0.6);
 	text-shadow: 1px 1px 1px rgba(26, 27, 33, 0.8)
 }
-.ss-container .ss-medium h3{
-	margin-top: 82px;
-}
 .ss-container .ss-large h3{
 	margin-top: 133px;
 }
@@ -490,7 +486,7 @@ h2.ss-subtitle:after{
     color: #FFF;
 	font-weight:normal;
     display: block;
-	text-align: justify;
+	text-align: left;
 }
 .ss-container h3 a:hover{
 	color: rgba(255,255,255,1);
