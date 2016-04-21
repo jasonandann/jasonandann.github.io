@@ -89,7 +89,7 @@ h2{
 	width:100%;
 	height:75px;
 	position:fixed;
-	z-index:8000;
+	z-index:800;
 	background: #DE1F26;
 	border-bottom:solid 1px #4f0000;
 	font-family: 'Alegreya', serif;
@@ -155,7 +155,7 @@ h2{
 	float:left;
 	margin-left:10px;
 	display:none;
-	z-index:6666;
+	z-index:666;
 	text-align:left;
 }
 #logo3{
@@ -164,7 +164,7 @@ h2{
 	float:left;
 	margin-left:5px;
 	display:none;
-	z-index:6666;
+	z-index:666;
 	text-align:left;
 }
 #logo2 a,#logo3 a{
@@ -580,7 +580,7 @@ h2.ss-subtitle:after{
 #thumbnails {
 	text-align: center;
 	margin: 1% auto 1% auto;
-	width: 50%;
+	width: 98%;
 }
 #thumbnails a, #lightcase-nav a {
 	border-bottom: none;

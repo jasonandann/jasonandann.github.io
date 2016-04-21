@@ -666,19 +666,18 @@
 					$.each(jsonResp["photoset"]["photo"], function( key, val ) {
 						$('#thumbnails').append(
 							$("<a/>").attr("href", "").attr("data-rel", "lightcase").attr("data-lc-href", 
-								val["url_s"] + " " + val["width_s"] + "w, " +
 								val["url_n"] + " " + val["width_n"] + "w, " +
 								val["url_m"] + " " + val["width_m"] + "w, " +
 								val["url_z"] + " " + val["width_z"] + "w, " +
 								val["url_c"] + " " + val["width_c"] + "w, " +
-								val["url_k"] + " " + val["width_k"] + "w, "
-							
+								val["url_h"] + " " + val["width_h"] + "w, " +
+								val["url_k"] + " " + val["width_k"] + "w, " //+							
 								).addClass("photo-gallery").attr("data-rel", "lightcase:engagement-photos").append( 
 								$("<img></img>").attr("src", val["url_t"]).attr("width", val["width_t"]).attr("height", val["height_t"])
 							)
 						);
 					});
-					$('.photo-gallery').lightcase();
+					$('.photo-gallery').lightcase( { maxWidth: 2048, maxHeight: 2048, } );
 				});
 				
 			});

@@ -303,6 +303,10 @@
 					_self._matchMedia()('screen and (min-width:' + src.width + 'px)') &&
 					src.width >= width
 				) {
+
+					if (src.width > window.innerWidth) {
+						return;
+					}
 					width = src.width;
 					density = src.density;
 					url = src.url;
