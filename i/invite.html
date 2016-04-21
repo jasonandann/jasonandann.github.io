@@ -38,6 +38,7 @@
 		<h1 id="secure">Is it secure?</h1>
 		<p>Jason thinks so. The page itself is static HTML that makes an Asynchronous JavaScript And XML (AJAX) call to retrieve an encrypted JSON object. The specific encrypted JSON object that belongs to you is identified by a random 128-bit ID so it's infeasible for anyone to realistically guess and retrieve (a.k.a. "force browse") to your encrypted JSON object. This strategy is similar to the one used by Facebook and Google to protect photos - their file names are randomly generated in such a way that even though anyone could theoretically download it, it's infeasible as the file name itself is almost impossible to guess. This page takes things further as even if someone <em>does</em> guess the JSON object ID, the object itself is encrypted with a randomly generated 128-bit AES key that is unique per guest. The encrypted JSON object contains the guest profile information that you see above. The QR code on your invitation is unique to you and contains the ID and key that allows this static HTML page to read the contents. The ID and key are supplied as parameters in the anchor tag so it never traverses the network. So in short, it's reasonably secure.</p>
 	</div>
+	<a id="backlink" href="https://www.jasonandann.net/" onclick="ga('send', 'event', 'navigation', 'outbound', 'https://www.jasonandann.net', {'transport': 'beacon', 'hitCallback': function(){document.location = 'https://www.jasonandann.net';}}); return false;">Go to our website</a>
 	<script>
 		uri = new URI(document.location);
 		fragment = uri.fragment();
