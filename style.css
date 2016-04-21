@@ -560,6 +560,7 @@ h2.ss-subtitle:after{
 .bleft p, .bright p{
 	font-size:20px;
 	line-height:26px;
+	margin-bottom: 1ex;
 }
 @media screen and (max-width: 1017px){
 	.bleft, .bright{
@@ -581,7 +582,7 @@ h2.ss-subtitle:after{
 	margin: 1% auto 1% auto;
 	width: 50%;
 }
-#thumbnails a {
+#thumbnails a, #lightcase-nav a {
 	border-bottom: none;
 }
 /* End Photos */
