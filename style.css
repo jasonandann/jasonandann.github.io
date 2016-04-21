@@ -881,7 +881,7 @@ we need to simulate it with percentages and orientation
 	position:fixed;
 	background: #DE1F26;
 	display:none;
-	z-index:99999;
+	z-index:1000;
 }
 .dl-menuwrapper {
 	width: 100%;
