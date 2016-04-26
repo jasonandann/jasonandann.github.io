@@ -301,12 +301,10 @@
 					src.density >= density &&
 					// Check viewport width
 					_self._matchMedia()('screen and (min-width:' + src.width + 'px)') &&
-					src.width >= width
+					src.width >= width && 
+					src.width < window.innerWidth
 				) {
 
-					if (src.width > window.innerWidth) {
-						return;
-					}
 					width = src.width;
 					density = src.density;
 					url = src.url;
