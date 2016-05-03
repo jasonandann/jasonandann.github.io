@@ -686,7 +686,7 @@ h2.ss-subtitle:after{
 	width:100%;
 	text-align: center;
 }
-#registry *>a {
+.centered-div a {
 	border-bottom: none;
 }
 .registry {  
