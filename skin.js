@@ -42,7 +42,7 @@ javascript:(function(){
 	while(n.hasChildNodes()) {
 		n.removeChild(n.childNodes[0]);
 	}
-	tn = document.createTextNode("Please stop by the photo booth!");
+	tn = document.createTextNode("Don't forget to stop by the photo booth!");
 	n.appendChild(tn);
 	
 	// adjust brought to you by
