@@ -1,6 +1,9 @@
 javascript:(function(){
 
 	console.log("customizing...");
+	if (document.querySelector( ".banner" ).style.backgroundColor=="rgb(222, 31, 38)") {
+		console.log("already run");
+	}
 
 	document.querySelector( ".banner" ).style.backgroundColor="#DE1F26";
 	console.log("banner background set");
