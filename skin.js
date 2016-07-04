@@ -24,25 +24,33 @@ javascript:(function(){
 	tn = document.createTextNode("See your photos here on the screen!");
 	n.appendChild(tn);		
 
-	// Replace second banner with "Download CapsuleCam and use join code"
+	// Replace second banner with "Download the CapsuleCam app..."
 	n=document.querySelector(".banner > h1:nth-child(2)");
 	n.removeChild(n.childNodes[1]);
-	tn = document.createTextNode("Download");
-	n.insertBefore(tn, 	n.firstChild);		
-	
+	tn = document.createTextNode("Download the ");
+	n.insertBefore(tn, n.firstChild);
+	tn = document.createTextNode(" app...");
+	n.appendChild(tn);
+
+	// Replace third banner with "...and use join code "
+	n=document.querySelector(".banner > h1:nth-child(3)");
+	tn = document.createTextNode("...and use join code ");
+	n.replaceChild(tn, n.firstChild);
 
 	// remove Instagram
 	n=document.querySelector(".banner > h1:nth-child(4)");
 	while(n.hasChildNodes()) {
 		n.removeChild(n.childNodes[0]);
 	}
-	tn = document.createTextNode("Don't forget to stop by the photo booth!");
+	tn = document.createTextNode("Please stop by the photo booth!");
 	n.appendChild(tn);
 	
 	// adjust brought to you by
-	document.querySelector(".banner > h1:nth-child(5) > img").src="https://www.jasonandann.net/images/logo2-gold.png";
+	document.querySelector(".banner > h1:nth-child(5) > img").src="https://www.jasonandann.net/hotlink-ok/logo-gold.png";
 	console.log("brought to you by");
 
 	// adjust logo
+	document.querySelector(".logo > img").src="https://www.jasonandann.net/hotlink-ok/icon.png";
+	
 })();
 
