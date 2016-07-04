@@ -3,6 +3,7 @@ javascript:(function(){
 	console.log("customizing...");
 	if (document.querySelector( ".banner" ).style.backgroundColor=="rgb(222, 31, 38)") {
 		console.log("already run");
+		return;
 	}
 
 	document.querySelector( ".banner" ).style.backgroundColor="#DE1F26";
