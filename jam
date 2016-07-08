@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" class="js flexbox canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers applicationcache svg inlinesvg smil svgclippaths"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Jason & Ann</title>
+	<meta name="description" content="Jason &amp; Ann are getting married!"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/> 
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<meta name="robots" content="noindex, nofollow"/>
+	<link rel="shortcut icon" href="./images/icon.png"/>
+	  	
+	<!-- Fancybox Stylesheets -->
+	<link rel="stylesheet" href="jquery.fancybox.css" type="text/css" media="screen" />
+	<link rel="stylesheet" type="text/css" href="lightcase.css">
+	
+	<!-- Accordion -->
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+	<!-- Accordion -->
+	 
+	<link href='https://fonts.googleapis.com/css?family=Alegreya' rel='stylesheet' type='text/css'>
+	
+	<!--Site stylesheets -->
+	<link rel="stylesheet" type="text/css" href="./style.css"/>
+	<!--End Site Stylesheets -->
+	
+	</head>
+    <body>
+
+		<div id="customs">
+			<!-- Customs -->
+			<div id="customs">
+
+				<div id="wedding-jam" class="accordion">
+					<h3>Wedding Jam</h3>
+					<div class="accordion-content">
+						<div class="colleft text">
+							<div class="inner-infostrip">Background</div>
+							<p>Most wedding favors are cute trinkets that people order in bulk and seem very impersonal. Sure it may have the name of the bride and groom printed on it, but are you really going to hold onto that magnet or paperweight? We wanted something that was deeply personal and that you would enjoy as a consumable. As wedding favors, we <strong><em><u>made</u></em></strong> you jam! We started by picking fruit together, cutting and processing it, combining all the raw ingredients, and canning it into 8 oz jars. We'll have four different flavors to choose from and there will be a set sampler jars at each table for you to try before you choose which flavor to take home with you. Of course there'll only be so many of each flavor at the table so you'll have to negotiate with your neighbors!</p>
+						</div>
+						<div class="colright">
+							<!--<div class="inner-infostrip">Video</div>
+							<p>Coming Soon!</li>
+							</p>-->
+							<img src="./images/fruit-picking.jpg"/>
+						</div>
+					</div>
+				</div>						
+			</div>
+			<!-- End Customs -->
+
+		</div>
+		<!--Wrap End-->   
+		
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+		
+		<script src="./jquery.scrolldepth.min.js"></script>
+		<!--Google Analytics-->
+		<script>
+			(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+			(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+			m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+			})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+			ga('create', 'UA-76196229-1', 'auto');
+			ga('send', 'pageview');
+		</script>
+
+		<script>
+			/**
+			* Function that tracks a click on an outbound link in Analytics.
+			* This function takes a valid URL string as an argument, and uses that URL string
+			* as the event label. Setting the transport method to 'beacon' lets the hit be sent
+			* using 'navigator.sendBeacon' in browser that support it.
+			*/
+			var trackOutboundLink = function(url) {
+				ga('send', 'event', 'navigation', 'outbound', url, {
+					'transport': 'beacon',
+					'hitCallback': function(){document.location = url;}
+				});
+			}
+			</script>
+		<!--End Google Analytics-->
+
+		<!--Our Story Scripts-->
+		<script type="text/javascript" src="./jquery.easing.1.3.min.js"></script>
+		<script type="text/javascript" src="./ourstory.min.js"></script>
+		<!--End Our Story Scripts-->
+
+		<!--Responsive Menu Scripts--> 
+		<script type="text/javascript" src="./modernizr.custom.js"></script>
+		<script src="./jquery.dlmenu.min.js"></script>
+		<script>
+			$(function() {
+				$( '#dl-menu' ).dlmenu();
+			});
+		</script>
+		<!-- End Responsive Menu Scripts -->
+		
+		<!-- Smoothscroll Scripts -->
+		<script type="text/javascript" src="./smooth-scroll.min.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function() {
+
+				$('#navwrap a, #nav a, #event-details a, #travel a, #proposal a, #nonproposal a').smoothScroll({
+					beforeScroll: function(opts) {
+						ga('send', 'event', 'navigation', 'scrollTo', opts.scrollTarget );
+					}
+				});
+				
+				$('p.subnav a').click(function(event) {
+					event.preventDefault();
+					var link = this;
+					$.smoothScroll({
+					});
+				});
+
+				$('button.scrollsomething').click(function() {
+					$.smoothScroll({
+					scrollElement: $('div.scrollme'),
+					scrollTarget: '#findme'
+					});
+					return false;
+				});
+			
+				$('button.scrollhorz').click(function() {
+					$.smoothScroll({
+						direction: 'left',
+						scrollElement: $('div.scrollme'),
+						scrollTarget: '.horiz'
+					});
+					return false;
+				});
+
+				$.scrollDepth({
+					elements:['#ourstory', 
+					'#nonproposal', '#proposal', '#photos', '#customs', '#event-details', '#travel', '#registry', '#design'],
+					pixelDepth: false,
+				});
+			});
+		</script>
+		<!-- End Smoothscroll Scripts--> 
+
+		<!-- Supersized scripts -->
+		<script type="text/javascript">
+			(function(){
+				/**
+				CONFIGURATION:
+				Define the size of our background image
+				*/
+				var bgImageSize = {
+				width: 1400,
+				height: 918
+				};
+				/*END CONFIGURATION */
+			})();
+		</script>  
+
+		<!-- End Supersize Scripts -->
+		
+		<!-- Accordion Scripts -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+		<script type="text/javascript">
+			function openAccordionTab(tab) {
+				if ($(tab + " .accordion-content").css('display') == 'none') {	
+					$(tab + " h3").trigger('click');
+					//ga('send', 'event', 'accordion', 'expand', tab);
+					
+				}
+			}
+			$(".accordion").accordion({ 
+				collapsible: true, 
+				active: true,
+				activate: function(event, ui) {
+					ga('send', 'event', 'accordion', 'expand', 
+					"#" + ui.newHeader.text().toLowerCase().replace(/ /g, "-") );
+				}
+			});
+			$("#attire h3").trigger("click");
+			$("#wedding-jam h3").trigger("click");
+			$("#reception h3").trigger("click");
+			$("#accommodations h3").trigger("click");
+			
+			$('#wedding-jam')[0].scrollIntoView( true );
+		</script>
+		<!-- End Accordion Scripts -->	
+		<script type="text/javascript" src="jquery.events.touch.js"></script>
+		<script type="text/javascript" src="lightcase.js"></script>
+		<script>		
+			$(document).ready(function() {			
+				
+				$('.photo-gallery').lightcase({
+				});
+				
+				var request = $.getJSON("https://api.flickr.com/services/rest/?method=flickr.photosets.getPhotos&api_key=ee63a3bf799391276c6da8e5c1803425&photoset_id=72157666862360082&user_id=30749047%40N06&extras=url_sq%2C+url_t%2C+url_s%2C+url_m%2Curl_h%2C+url_n%2C+url_z%2C+url_c%2C+url_b%2C+url_k%2C+url_o&media=photos&format=json&jsoncallback=?", function( jsonResp ) {
+					$.each(jsonResp["photoset"]["photo"], function( key, val ) {
+						$('#thumbnails').append(
+							$("<a/>").attr("href", "").attr("data-rel", "lightcase").attr("data-lc-href", 
+								val["url_n"] + " " + val["width_n"] + "w, " +
+								val["url_m"] + " " + val["width_m"] + "w, " +
+								val["url_z"] + " " + val["width_z"] + "w, " +
+								val["url_c"] + " " + val["width_c"] + "w, " +
+								val["url_h"] + " " + val["width_h"] + "w, " +
+								val["url_k"] + " " + val["width_k"] + "w, " //+							
+								).addClass("photo-gallery").attr("data-rel", "lightcase:engagement-photos").append( 
+								$("<img></img>").attr("src", val["url_t"]).attr("width", val["width_t"]).attr("height", val["height_t"])
+							)
+						);
+					});
+					$('.photo-gallery').lightcase( { maxWidth: 2048, maxHeight: 2048, } );
+				});
+				
+			});
+			
+		</script>
+	</body>
+</html>
