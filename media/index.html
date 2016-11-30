@@ -253,6 +253,12 @@
 						console.log(error);
 					});;
 				});
+				
+				player.on('load', function(data) {
+					console.log('player ready');
+				});
+   
+});
 
 			});
 		</script>
