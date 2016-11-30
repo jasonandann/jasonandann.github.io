@@ -245,9 +245,13 @@
 				var player = new Vimeo.Player(iframe);
 				
 				$('.seek').click(function(e) {
-					console.log(this.name);
-					console.log(this.dataset.time);
-					console.log("player.setCurrentTime(" + parseFloat(this.dataset.time) +")");
+					console.log("Attempting seek to: " + parseFloat(this.dataset.time));
+					player.setCurrentTime(parseFloat(this.dataset.time)).then(function(seconds) {
+						console.log("...actually seeked to: " + seconds);
+					}).catch(function(error) {
+						console.log(error.name);
+						console.log(error);
+					});;
 				});
 
 			});
