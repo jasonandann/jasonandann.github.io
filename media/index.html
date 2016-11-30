@@ -243,20 +243,27 @@
 			$(document).ready(function() {			
 				var iframe = document.querySelector('#vimeo-player');
 				var player = new Vimeo.Player(iframe);
+				$('#vimeo-player').data("loaded", false);
 				
 				$('.seek').click(function(e) {
-					console.log("Attempting seek to: " + parseFloat(this.dataset.time));
-					player.setCurrentTime(parseFloat(this.dataset.time)).then(function(seconds) {
-						console.log("...actually seeked to: " + seconds);
-					}).catch(function(error) {
-						console.log(error.name);
-						console.log(error);
-					});;
+					if ( $('#vimeo-player').data("loaded") ) {
+						console.log("Attempting seek to: " + parseFloat(this.dataset.time));
+						player.setCurrentTime(parseFloat(this.dataset.time)).then(function(seconds) {
+							console.log("...actually seeked to: " + seconds);
+						}).catch(function(error) {
+							console.log(error.name);
+							console.log(error);
+						});;
+					} else {
+						console.log('player not yet loaded');
+						alert('You must first enter the video password and allow the player to load.');
+					}
 				});
 				
 				
 				player.on('loaded', function(data) {
 					console.log('player ready');
+					$('#vimeo-player').data("loaded", true);
 				});
 			});
 		</script>
