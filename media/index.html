@@ -1,5 +1,256 @@
-<html>
-<body>
-<h1>Initial Placeholder</h1>
-</body>
+<!DOCTYPE html>
+<html lang="en" class="js flexbox canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers applicationcache svg inlinesvg smil svgclippaths"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Jason & Ann</title>
+	<meta name="description" content="Jason &amp; Ann's Wedding Media!"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/> 
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<meta name="robots" content="noindex, nofollow"/>
+	<link rel="shortcut icon" href="../images/icon.png"/>
+	  	
+	<!-- Fancybox Stylesheets -->
+	<link rel="stylesheet" href="../jquery.fancybox.css" type="text/css" media="screen" />
+	<link rel="stylesheet" type="text/css" href="../lightcase.css">
+	 
+	<link href='https://fonts.googleapis.com/css?family=Alegreya' rel='stylesheet' type='text/css'>
+	
+	<!--Site stylesheets -->
+	<link rel="stylesheet" type="text/css" href="../style.css"/>
+	<!--End Site Stylesheets -->
+	
+	</head>
+    <body>
+    		
+		<!--Screen Navigation-->
+		<div id="navigation">
+			<div id="navwrap">
+
+				<div id="navleft">
+					<ul>
+						<li><a href="#photos">Photos</a></li>
+						<li><a href="#video">Video</a></li>
+					</ul>
+				</div>
+				<div id="logo"><a href="#home"><img style="border:none; outline:none;" src="../images/logo-gold.png"></a></div>
+				<div id="navright">
+					<ul>
+					</ul>
+					</div>
+			</div>
+		</div> 
+		<!--Screen Navigation End-->
+           	
+		<!--Responsive Navigation-->
+		<div id="nav">
+			<div id="dl-menu" class="dl-menuwrapper">
+				<div id="logo2"><a href="#home"><img style="border:none; outline:none;" src="../images/logo2-gold.png"></a></div>
+				<div id="logo3"><a href="#home"><img style="border:none; outline:none;" src="../images/logo3-gold.png"></a></div>
+				<button class="">Menu</button>
+				<ul class="dl-menu">
+					<li><a href="#photos">Photos</a></li>
+					<li><a href="#video">Video</a></li>
+				</ul>
+			</div><!-- /dl-menuwrapper -->
+		</div>
+		<!--Responsive Navigation End-->
+            
+		<!--Home-->
+		<div id="home"></div>
+		<!--Home End-->
+
+		<div id="wrap">
+
+			<!-- Photos -->
+			<div id="photos">
+				<h1>Photos</h1>
+				<div id="thumbnails">
+					
+				</div>
+			</div>
+			<!-- End Photos -->		
+
+
+			<!-- Video -->
+			<div id="video">
+				<h1>Video</h1>
+
+				<div class="bleft">
+					<p>Chapters:
+					<ul class="chapterLinks">
+						<li><a href="#chapter1" class="seek" data-time="15.5">Parents Entrance</a></li>
+						<li><a href="#chapter2" class="seek" data-time="30">Groomsmen Entrance</a></li>
+						<li><a href="#chapter3" class="seek" data-time="45.5">Processional</a></li>
+						<li><a href="#chapter4" class="seek" data-time="60">Bridal Processional</a></li>
+						<li><a href="#chapter5" class="seek" data-time="75">Welcome</a></li>
+						<li><a href="#chapter6" class="seek" data-time="90">Singing</a></li>
+						<li><a href="#chapter7" class="seek" data-time="105">Exchange of Vows</a></li>
+						<li><a href="#chapter8" class="seek" data-time="120">Sand Ceremony</a></li>						
+						<li><a href="#chapter9" class="seek" data-time="135">Recessional</a></li>
+					</ul>
+					</p>					
+				</div>
+
+				<div class="bright">
+					<iframe id="vimeo-player" src="https://player.vimeo.com/video/126464352" style="display:block; margin:auto;" width="600" height="400" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+				</div>
+			</div>
+			<!-- End Video -->
+			<div class="clr"></div>
+			
+			<div id="design">
+				<h3>Credits</h3>
+				<div id="design-photos">
+					<div class="cleft">Photography By:</div>
+					<div class="cright"><a onclick="trackOutboundLink(this.href); return false;" href="http://www.richriggins.com/">Rich Riggins</a></div>
+				</div>
+				<div id="design-video">
+					<div class="cleft">Video Recording By:</div>
+					<div class="cright"><a onclick="trackOutboundLink(this.href); return false;" href="http://lentzmedia.com/">Les Lentz</a></div>
+				</div>
+				<div id="design-editing">
+					<div class="cleft">Video Editing By:</div>
+					<div class="cright">Jason</div>
+				</div>
+			</div>
+        
+		</div>
+		<!--Wrap End-->   
+		
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+		
+		<!--Supersize-->
+		<script type="text/javascript" src="../supersized.core.3.2.1.min.js"></script>
+		<script type="text/javascript">
+			jQuery(function($){
+				$.supersized({
+					slides  :  	[ {image : '../images/married.jpg', title : 'Jason & Ann'} ]
+				});
+			});
+		</script>
+		<!--Supersize end-->
+
+		<script src="../jquery.scrolldepth.min.js"></script>
+		<!--Google Analytics-->
+		<script>
+			(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+			(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+			m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+			})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+			ga('create', 'UA-76196229-1', 'auto');
+			ga('send', 'pageview');
+		</script>
+
+		<script>
+			/**
+			* Function that tracks a click on an outbound link in Analytics.
+			* This function takes a valid URL string as an argument, and uses that URL string
+			* as the event label. Setting the transport method to 'beacon' lets the hit be sent
+			* using 'navigator.sendBeacon' in browser that support it.
+			*/
+			var trackOutboundLink = function(url) {
+				ga('send', 'event', 'navigation', 'outbound', url, {
+					'transport': 'beacon',
+					'hitCallback': function(){document.location = url;}
+				});
+			}
+			</script>
+		<!--End Google Analytics-->
+
+		<!--Responsive Menu Scripts--> 
+		<script type="text/javascript" src="../modernizr.custom.js"></script>
+		<script src="../jquery.dlmenu.min.js"></script>
+		<script>
+			$(function() {
+				$( '#dl-menu' ).dlmenu();
+			});
+		</script>
+		<!-- End Responsive Menu Scripts -->
+		
+		<!-- Smoothscroll Scripts -->
+		<script type="text/javascript" src="../smooth-scroll.min.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function() {
+
+				$('#navwrap a, #nav a').smoothScroll({
+					beforeScroll: function(opts) {
+						ga('send', 'event', 'navigation', 'scrollTo', opts.scrollTarget );
+					}
+				});
+				
+				$.scrollDepth({
+					elements:['#photos', '#video', '#design'],
+					pixelDepth: false,
+				});
+			});
+		</script>
+		<!-- End Smoothscroll Scripts--> 
+
+		<!-- Supersized scripts -->
+		<script type="text/javascript">
+			(function(){
+				/**
+				CONFIGURATION:
+				Define the size of our background image
+				*/
+				var bgImageSize = {
+				width: 1400,
+				height: 918
+				};
+				/*END CONFIGURATION */
+			})();
+		</script>  
+
+		<div id="supersized-loader" style="display: none;"></div>
+		<div id="supersized" style="visibility: visible;">
+			<a class="activeslide" target="_blank">
+				<img src="../images/mainbg.jpg" style="visibility: visible; width: 1366px; height: 805.94px; left: 0px; top: -90.5px;">
+			</a>
+		</div>
+		<!-- End Supersize Scripts -->
+		
+		<script type="text/javascript" src="../jquery.events.touch.js"></script>
+		<script type="text/javascript" src="../lightcase.js"></script>
+		<script>		
+			$(document).ready(function() {			
+				
+				$('.photo-gallery').lightcase({
+				});
+				
+				var request = $.getJSON("https://api.flickr.com/services/rest/?method=flickr.photosets.getPhotos&api_key=ee63a3bf799391276c6da8e5c1803425&photoset_id=72157666862360082&user_id=30749047%40N06&extras=url_sq%2C+url_t%2C+url_s%2C+url_m%2Curl_h%2C+url_n%2C+url_z%2C+url_c%2C+url_b%2C+url_k%2C+url_o&media=photos&format=json&jsoncallback=?", function( jsonResp ) {
+					$.each(jsonResp["photoset"]["photo"], function( key, val ) {
+						$('#thumbnails').append(
+							$("<a/>").attr("href", "").attr("data-rel", "lightcase").attr("data-lc-href", 
+								val["url_n"] + " " + val["width_n"] + "w, " +
+								val["url_m"] + " " + val["width_m"] + "w, " +
+								val["url_z"] + " " + val["width_z"] + "w, " +
+								val["url_c"] + " " + val["width_c"] + "w, " +
+								val["url_h"] + " " + val["width_h"] + "w, " +
+								val["url_k"] + " " + val["width_k"] + "w, " //+							
+								).addClass("photo-gallery").attr("data-rel", "lightcase:engagement-photos").append( 
+								$("<img></img>").attr("src", val["url_t"]).attr("width", val["width_t"]).attr("height", val["height_t"])
+							)
+						);
+					});
+					$('.photo-gallery').lightcase( { maxWidth: 2048, maxHeight: 2048, } );
+				});
+				
+			});
+		</script>
+		
+		<!-- video -->
+		<script src="https://player.vimeo.com/api/player.js"></script>
+		<script>
+			$(document).ready(function() {			
+				var iframe = document.querySelector('#vimeo-player');
+				var player = new Vimeo.Player(iframe);
+				
+				$('.seek').click(function(e) {
+					console.log(this.name);
+					console.log(this.dataset.time);
+					console.log("player.setCurrentTime(" + parseFloat(this.dataset.time) +")");
+				});
+
+			});
+		</script>
+	</body>
 </html>
