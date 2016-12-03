@@ -13,8 +13,162 @@
 	 
 	<link href='https://fonts.googleapis.com/css?family=Alegreya' rel='stylesheet' type='text/css'>
 	
+	<script src="../i/URI.min.js"></script>
+	<script src="../i/sjcl.js"></script>
+	
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+	
 	<!--Site stylesheets -->
 	<link rel="stylesheet" type="text/css" href="../style.css"/>
+	<style>
+		#password-form {
+			margin: auto;
+			text-align: center;
+			font-family: "Helvetica Neue",Helvetica,Arial!important;
+		}
+		#password-form h3 {
+			font-size: 31.5px;
+			margin-bottom: 5px;
+			max-width: 80%; 
+			margin: 0 auto;
+		}
+		#password-form p {
+		    color: #c9c9c9;
+			text-shadow: 1px 1px 2px rgba(23,35,34,.75);
+			margin: .25em 0 .9375em;
+			font-size: 15px;
+		}
+		#password-form input {
+			font-weight: 700;
+			font-size: 15px;
+			margin: 0 .3125em;
+			border: 0;
+		}
+		#password-form input:not([type=button]) {
+			border-radius: 2px;
+			width: 9em;
+			color: #444;
+			padding: .625em;
+		}
+		#password-form input[type=button] {
+		    background-color: rgb(0, 173, 239);
+			color: #fff;
+			padding: .625em 1.25em;
+			border-radius: 5px;
+		}
+		#validation-bubble {
+			z-index: 2147483647;
+			display: inline-block;
+			position: absolute;
+			margin: 0;
+			font-size: 11.666666667px;
+			line-height: 0;
+			text-align: left;
+			opacity: 0;
+			-webkit-transition: opacity .25s;
+			transition: opacity .25s;
+			cursor: default
+		}
+		#validation-bubble.animate {
+			opacity: 1;
+			-webkit-animation: wiggle .3s linear 1;
+			animation: wiggle .3s linear 1
+			-webkit-transition: opacity .25s;
+			transition: opacity .25s;
+		}		
+		#validation-bubble-message {
+			z-index: 2147483644;
+			display: block;
+			min-width: 50px;
+			max-width: 300px;
+			padding: .7142857143em 1.0714285714em;
+			position: relative;
+			top: -4px;
+			border-radius: .3571428571em;
+			background-color: #fc465a;
+			color: #fff;
+			line-height: normal;
+			font-weight: 700
+		}
+		#validation-bubble-arrow {
+			z-index: 2147483645;
+			display: inline-block;
+			position: relative;
+			left: 1.4285714286em;
+			width: .8571428571em;
+			height: .8571428571em;
+			background-color: #fc465a;
+			-webkit-transform: rotate(45deg);
+			transform: rotate(45deg);
+			-webkit-transform-origin: 0 0;
+			transform-origin: 0 0
+		}
+		#validation-bubble-arrow-clipper {
+			display: block;
+			overflow: hidden;
+			height: .8571428571em
+		}
+		
+		iframe {
+			display: block;
+			margin: auto;
+			width: 600px;
+			height: 400px;
+		}
+		@media screen and (max-width: 600px){
+			iframe {
+				width: 300px;
+				height: 200px;				
+			}
+		}
+		
+		@-webkit-keyframes wiggle {
+			0% {
+				-webkit-transform: translateY(10px);
+				transform: translateY(10px)
+			}
+			20% {
+				-webkit-transform: translateY(0);
+				transform: translateY(0)
+			}
+			40%,
+			80% {
+				-webkit-transform: translateX(8px);
+				transform: translateX(8px)
+			}
+			60% {
+				-webkit-transform: translateX(-8px);
+				transform: translateX(-8px)
+			}
+			100% {
+				-webkit-transform: translateX(0);
+				transform: translateX(0)
+			}
+		}
+		@keyframes wiggle {
+			0% {
+				-webkit-transform: translateY(10px);
+				transform: translateY(10px)
+			}
+			20% {
+				-webkit-transform: translateY(0);
+				transform: translateY(0)
+			}
+			40%,
+			80% {
+				-webkit-transform: translateX(8px);
+				transform: translateX(8px)
+			}
+			60% {
+				-webkit-transform: translateX(-8px);
+				transform: translateX(-8px)
+			}
+			100% {
+				-webkit-transform: translateX(0);
+				transform: translateX(0)
+			}
+		}
+	</style>
 	<!--End Site Stylesheets -->
 	
 	</head>
@@ -61,9 +215,19 @@
 
 			<!-- Photos -->
 			<div id="photos">
-				<h1>Photos</h1>
-				<div id="thumbnails">
-					
+				<h1 id="photo-header">Photos</h1>
+				<div id="password-form">
+					<h3>Password Required</h3>
+					<p class="subtitle">If you’ve got it, enter it below.</p>
+					<form onSubmit="loadPictures(); return false;" novalidate>
+						<input id="photo-password" type="password" name="password" placeholder="Password" required="" aria-required="true" aria-label="Password" style="cursor: auto;" autocomplete="off"><input type="button" id="photo-passsword-button" onclick="loadPictures()" value="See Photos">
+					</form>
+				</div>			
+				<div id="validation-bubble" class="hidden">
+					<div id="validation-bubble-arrow-clipper">
+						<div id="validation-bubble-arrow"></div>
+					</div>
+					<div id="validation-bubble-message"></div>
 				</div>
 			</div>
 			<!-- End Photos -->		
@@ -73,7 +237,7 @@
 			<div id="video">
 				<h1>Video</h1>
 
-				<div class="bleft">
+				<!--<div class="bleft">
 					<p>Chapters:
 					<ul class="chapterLinks">
 						<li><a href="#chapter1" class="seek" data-time="15.5">Parents Entrance</a></li>
@@ -88,10 +252,10 @@
 					</ul>
 					</p>					
 				</div>
-
-				<div class="bright">
-					<iframe id="vimeo-player" src="https://player.vimeo.com/video/126464352" style="display:block; margin:auto;" width="600" height="400" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-				</div>
+				-->
+				<!--<div class="bright">-->
+					<iframe id="vimeo-player" src="https://player.vimeo.com/video/126464352" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+				<!--</div>-->
 			</div>
 			<!-- End Video -->
 			<div class="clr"></div>
@@ -210,31 +374,95 @@
 		
 		<script type="text/javascript" src="../jquery.events.touch.js"></script>
 		<script type="text/javascript" src="../lightcase.js"></script>
-		<script>		
-			$(document).ready(function() {			
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+		<script>	
+			var configData = {"iv":"3qkg7wZ2fnEKRK6hclX6eQ==","v":1,"iter":10000,"ks":128,"ts":64,"mode":"ccm","adata":"","cipher":"aes","salt":"lVrPH2Dl/yw=","ct":"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"};
+			
+			function populateThumbnails( jsonData ) {
+				var albums = jsonData["albums"];
 				
-				$('.photo-gallery').lightcase({
-				});
+				$.each( albums, function (i, val) {
 				
-				var request = $.getJSON("https://api.flickr.com/services/rest/?method=flickr.photosets.getPhotos&api_key=ee63a3bf799391276c6da8e5c1803425&photoset_id=72157666862360082&user_id=30749047%40N06&extras=url_sq%2C+url_t%2C+url_s%2C+url_m%2Curl_h%2C+url_n%2C+url_z%2C+url_c%2C+url_b%2C+url_k%2C+url_o&media=photos&format=json&jsoncallback=?", function( jsonResp ) {
-					$.each(jsonResp["photoset"]["photo"], function( key, val ) {
-						$('#thumbnails').append(
-							$("<a/>").attr("href", "").attr("data-rel", "lightcase").attr("data-lc-href", 
-								val["url_n"] + " " + val["width_n"] + "w, " +
-								val["url_m"] + " " + val["width_m"] + "w, " +
-								val["url_z"] + " " + val["width_z"] + "w, " +
-								val["url_c"] + " " + val["width_c"] + "w, " +
-								val["url_h"] + " " + val["width_h"] + "w, " +
-								val["url_k"] + " " + val["width_k"] + "w, " //+							
-								).addClass("photo-gallery").attr("data-rel", "lightcase:engagement-photos").append( 
-								$("<img></img>").attr("src", val["url_t"]).attr("width", val["width_t"]).attr("height", val["height_t"])
-							)
-						);
+					var node = $("<div/>").attr("id", val["collection"].toLowerCase().replace(" ", "-"));
+					var textToInsert = [], ttiIdx = 0;
+					
+					textToInsert[ttiIdx++] = '<div id="';
+					textToInsert[ttiIdx++] = val["collection"].toLowerCase().replace(" ", "-");
+					textToInsert[ttiIdx++] = '"><h1>';
+					textToInsert[ttiIdx++] = val["collection"];
+					textToInsert[ttiIdx++] = '</h1><div id="';
+					textToInsert[ttiIdx++] = val["id"];
+					textToInsert[ttiIdx++] = '"></div>';		
+					
+					node.append(textToInsert.join(''));
+					
+					$("#photos").append(node);
+					$.getJSON(val["url"], function(jsonResp) {
+						var aToInsert = [], atiIdx = 0;
+						var photos = jsonResp["photoset"]["photo"];
+
+						for (var idx = 0; idx < photos.length; idx++) {
+							aToInsert[atiIdx++] = '<a href="" data-rel="lightcase:';
+							aToInsert[atiIdx++] = val["collection"].toLowerCase().replace(" ", "-");
+							aToInsert[atiIdx++] = '" data-lc-href="';
+							aToInsert[atiIdx++] = [ photos[idx]["url_n"], photos[idx]["width_n"] + "w,", 
+								photos[idx]["url_m"], photos[idx]["width_m"] + "w,", photos[idx]["url_z"],
+								photos[idx]["width_z"] + "w,", photos[idx]["url_c"], photos[idx]["width_c"] +
+								"w,", photos[idx]["url_h"], photos[idx]["width_h"] + "w,", photos[idx]["url_k"],
+								, photos[idx]["width_k"] + "w,"].join(' ');
+							aToInsert[atiIdx++] = '" class="photo-gallery" style="border-bottom: none"><img src ="';
+							aToInsert[atiIdx++] = photos[idx]["url_t"];
+							aToInsert[atiIdx++] = '" width="';
+							aToInsert[atiIdx++] = photos[idx]["width_t"];
+							aToInsert[atiIdx++] = '" height="';
+							aToInsert[atiIdx++] = photos[idx]["height_t"];
+							aToInsert[atiIdx++] = '"/></a>';
+						};
+						node.append(aToInsert.join(''));
+						
+						$('.photo-gallery').lightcase( { maxWidth: 2048, maxHeight: 2048, } );
 					});
-					$('.photo-gallery').lightcase( { maxWidth: 2048, maxHeight: 2048, } );
+				});
+			}
+			
+			function loadPictures() {
+				var pwd = $("#photo-password").val();
+				if (pwd) {
+					var decrypted;
+					try {
+						decrypted = sjcl.decrypt(pwd, JSON.stringify(configData) );
+					} catch (err) {
+					}
+					
+					if (decrypted) {
+						var json = $.parseJSON(decrypted);
+						populateThumbnails(json);
+						$("#password-form, #photo-header").fadeOut();
+					} else {
+						showErrorMessage("Uh oh. There was a problem. Please try again.");
+					}
+				} else {
+					showErrorMessage("Please enter the password.")
+				}
+			}
+			function showErrorMessage(msg) {
+				$("#validation-bubble").removeClass("animate").addClass("hidden");
+				$("#validation-bubble-message").text(msg);
+			
+				$("#validation-bubble").position( {my:"left top", at:"left bottom", of: "#photo-password"});
+				
+				
+				$("#validation-bubble").removeClass("hidden").addClass("animate");
+				$("#photo-password").focus();
+				$("#photo-password").keydown(function(e) {
+					$("#validation-bubble").removeClass("animate").addClass("hidden");
 				});
 				
-			});
+				setTimeout( function() {
+					$("#validation-bubble").removeClass("animate").addClass("hidden");
+				}, 5000);
+			}
+			
 		</script>
 		
 		<!-- video -->
