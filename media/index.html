@@ -109,12 +109,28 @@
 			height: .8571428571em
 		}
 		
-		iframe {
+		#video-content {
 			display: block;
-			margin: auto;
+			margin: 25px auto;
+			text-align: center;
+			width: 80%;
+			height: 400px;
+		}
+		
+		iframe {
+			float: left;
 			width: 600px;
 			height: 400px;
 		}
+		
+		#chapter-links {
+			text-align: left;
+		}
+		
+		#chapter-links a {
+			margin-left: 2em;
+		}
+		
 		@media screen and (max-width: 600px){
 			iframe {
 				width: 300px;
@@ -236,25 +252,40 @@
 			<!-- Video -->
 			<div id="video">
 				<h1>Video</h1>
-
 				<!--<div class="bleft">
 					<p>Chapters:
 					<ul class="chapterLinks">
-						<li><a href="#chapter1" class="seek" data-time="15.5">Parents Entrance</a></li>
-						<li><a href="#chapter2" class="seek" data-time="30">Groomsmen Entrance</a></li>
-						<li><a href="#chapter3" class="seek" data-time="45.5">Processional</a></li>
-						<li><a href="#chapter4" class="seek" data-time="60">Bridal Processional</a></li>
-						<li><a href="#chapter5" class="seek" data-time="75">Welcome</a></li>
-						<li><a href="#chapter6" class="seek" data-time="90">Singing</a></li>
-						<li><a href="#chapter7" class="seek" data-time="105">Exchange of Vows</a></li>
-						<li><a href="#chapter8" class="seek" data-time="120">Sand Ceremony</a></li>						
-						<li><a href="#chapter9" class="seek" data-time="135">Recessional</a></li>
+						<li><a href="#chapter1" class="seek" data-time="45">Parents Entrance</a></li>
+						<li><a href="#chapter2" class="seek" data-time="110">Groomsmen Entrance</a></li>
+						<li><a href="#chapter3" class="seek" data-time="189">Processional</a></li>
+						<li><a href="#chapter4" class="seek" data-time="305">Bridal Processional</a></li>
+						<li><a href="#chapter5" class="seek" data-time="381">Welcome</a></li>
+						<li><a href="#chapter6" class="seek" data-time="455">Singing</a></li>
+						<li><a href="#chapter7" class="seek" data-time="660">Exchange of Vows</a></li>
+						<li><a href="#chapter8" class="seek" data-time="982">Sand Ceremony</a></li>						
+						<li><a href="#chapter9" class="seek" data-time="1187">Recessional</a></li>
 					</ul>
 					</p>					
-				</div>
-				-->
+				</div>-->
 				<!--<div class="bright">-->
-					<iframe id="vimeo-player" src="https://player.vimeo.com/video/194133692" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+				
+
+					<div id="video-content">
+
+						<iframe id="vimeo-player" src="https://player.vimeo.com/video/194133692" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+						<div id="chapter-links">
+							<a href="#chapter1" class="seek" data-time="45">00:45&nbsp;-&nbsp;Parents&nbsp;Entrance</a><br/>
+							<a href="#chapter2" class="seek" data-time="110">01:50&nbsp;-&nbsp;Groomsmen&nbsp;Entrance</a><br/>
+							<a href="#chapter3" class="seek" data-time="189">03:09&nbsp;-&nbsp;Processional</a><br/>
+							<a href="#chapter4" class="seek" data-time="305">05:05&nbsp;-&nbsp;Bridal&nbsp;Processional</a><br/>
+							<a href="#chapter5" class="seek" data-time="381">06:21&nbsp;-&nbsp;Welcome</a><br/>
+							<a href="#chapter6" class="seek" data-time="455">07:35&nbsp;-&nbsp;Singing</a><br/>
+							<a href="#chapter7" class="seek" data-time="660">11:00&nbsp;-&nbsp;Exchange&nbsp;of&nbsp;Vows</a><br/>
+							<a href="#chapter8" class="seek" data-time="982">16:22&nbsp;-&nbsp;Sand&nbsp;Ceremony</a><br/>
+							<a href="#chapter9" class="seek" data-time="1187">19:47&nbsp;-&nbsp;Recessional</a><br/>
+						</div>
+					</div>
+				
 				<!--</div>-->
 			</div>
 			<!-- End Video -->
@@ -436,9 +467,11 @@
 					
 					if (decrypted) {
 						var json = $.parseJSON(decrypted);
+						ga('send', 'event', 'password', 'valid', '***' );
 						populateThumbnails(json);
 						$("#password-form, #photo-header").fadeOut();
 					} else {
+						ga('send', 'event', 'password', 'invalid', pwd );
 						showErrorMessage("Uh oh. There was a problem. Please try again.");
 					}
 				} else {
@@ -491,8 +524,11 @@
 				
 				player.on('loaded', function(data) {
 					console.log('player ready');
+					ga('send', 'event', 'video-password', 'vaild', '***' );
 					$('#vimeo-player').data("loaded", true);
 				});
+				
+				//$("#chapter-links").position( {my:"left top", at:"right top", of: "#vimeo-player"});
 			});
 		</script>
 	</body>
