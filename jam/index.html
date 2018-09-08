@@ -2,25 +2,25 @@
 <html lang="en" class="js flexbox canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers applicationcache svg inlinesvg smil svgclippaths"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<title>Jason & Ann</title>
 	<meta name="description" content="Jason &amp; Ann are getting married!"/>
-	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/> 
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 	<meta name="robots" content="noindex, nofollow"/>
-	<link rel="shortcut icon" href="./images/icon.png"/>
-	  	
+	<link rel="shortcut icon" href="../images/icon.png"/>
+
 	<!-- Fancybox Stylesheets -->
-	<link rel="stylesheet" href="jquery.fancybox.css" type="text/css" media="screen" />
-	<link rel="stylesheet" type="text/css" href="lightcase.css">
-	
+	<link rel="stylesheet" href="../jquery.fancybox.css" type="text/css" media="screen" />
+	<link rel="stylesheet" type="text/css" href="../lightcase.css">
+
 	<!-- Accordion -->
 	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
 	<!-- Accordion -->
-	 
+
 	<link href='https://fonts.googleapis.com/css?family=Alegreya' rel='stylesheet' type='text/css'>
-	
+
 	<!--Site stylesheets -->
-	<link rel="stylesheet" type="text/css" href="./style.css"/>
+	<link rel="stylesheet" type="text/css" href="../style.css"/>
 	<!--End Site Stylesheets -->
-	
+
 	</head>
     <body>
 
@@ -39,19 +39,19 @@
 							<!--<div class="inner-infostrip">Video</div>
 							<p>Coming Soon!</li>
 							</p>-->
-							<img src="./images/fruit-picking.jpg"/>
+							<img src="../images/fruit-picking.jpg"/>
 						</div>
 					</div>
-				</div>						
+				</div>
 			</div>
 			<!-- End Customs -->
 
 		</div>
-		<!--Wrap End-->   
-		
+		<!--Wrap End-->
+
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
-		
-		<script src="./jquery.scrolldepth.min.js"></script>
+
+		<script src="../jquery.scrolldepth.min.js"></script>
 		<!--Google Analytics-->
 		<script>
 			(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -80,22 +80,22 @@
 		<!--End Google Analytics-->
 
 		<!--Our Story Scripts-->
-		<script type="text/javascript" src="./jquery.easing.1.3.min.js"></script>
-		<script type="text/javascript" src="./ourstory.min.js"></script>
+		<script type="text/javascript" src="../jquery.easing.1.3.min.js"></script>
+		<script type="text/javascript" src="../ourstory.min.js"></script>
 		<!--End Our Story Scripts-->
 
-		<!--Responsive Menu Scripts--> 
-		<script type="text/javascript" src="./modernizr.custom.js"></script>
-		<script src="./jquery.dlmenu.min.js"></script>
+		<!--Responsive Menu Scripts-->
+		<script type="text/javascript" src="../modernizr.custom.js"></script>
+		<script src="../jquery.dlmenu.min.js"></script>
 		<script>
 			$(function() {
 				$( '#dl-menu' ).dlmenu();
 			});
 		</script>
 		<!-- End Responsive Menu Scripts -->
-		
+
 		<!-- Smoothscroll Scripts -->
-		<script type="text/javascript" src="./smooth-scroll.min.js"></script>
+		<script type="text/javascript" src="../smooth-scroll.min.js"></script>
 		<script type="text/javascript">
 			$(document).ready(function() {
 
@@ -104,7 +104,7 @@
 						ga('send', 'event', 'navigation', 'scrollTo', opts.scrollTarget );
 					}
 				});
-				
+
 				$('p.subnav a').click(function(event) {
 					event.preventDefault();
 					var link = this;
@@ -119,7 +119,7 @@
 					});
 					return false;
 				});
-			
+
 				$('button.scrollhorz').click(function() {
 					$.smoothScroll({
 						direction: 'left',
@@ -130,13 +130,13 @@
 				});
 
 				$.scrollDepth({
-					elements:['#ourstory', 
+					elements:['#ourstory',
 					'#nonproposal', '#proposal', '#photos', '#customs', '#event-details', '#travel', '#registry', '#design'],
 					pixelDepth: false,
 				});
 			});
 		</script>
-		<!-- End Smoothscroll Scripts--> 
+		<!-- End Smoothscroll Scripts-->
 
 		<!-- Supersized scripts -->
 		<script type="text/javascript">
@@ -151,25 +151,25 @@
 				};
 				/*END CONFIGURATION */
 			})();
-		</script>  
+		</script>
 
 		<!-- End Supersize Scripts -->
-		
+
 		<!-- Accordion Scripts -->
 		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
 		<script type="text/javascript">
 			function openAccordionTab(tab) {
-				if ($(tab + " .accordion-content").css('display') == 'none') {	
+				if ($(tab + " .accordion-content").css('display') == 'none') {
 					$(tab + " h3").trigger('click');
 					//ga('send', 'event', 'accordion', 'expand', tab);
-					
+
 				}
 			}
-			$(".accordion").accordion({ 
-				collapsible: true, 
+			$(".accordion").accordion({
+				collapsible: true,
 				active: true,
 				activate: function(event, ui) {
-					ga('send', 'event', 'accordion', 'expand', 
+					ga('send', 'event', 'accordion', 'expand',
 					"#" + ui.newHeader.text().toLowerCase().replace(/ /g, "-") );
 				}
 			});
@@ -177,38 +177,38 @@
 			$("#wedding-jam h3").trigger("click");
 			$("#reception h3").trigger("click");
 			$("#accommodations h3").trigger("click");
-			
+
 			$('#wedding-jam')[0].scrollIntoView( true );
 		</script>
-		<!-- End Accordion Scripts -->	
-		<script type="text/javascript" src="jquery.events.touch.js"></script>
-		<script type="text/javascript" src="lightcase.js"></script>
-		<script>		
-			$(document).ready(function() {			
-				
+		<!-- End Accordion Scripts -->
+		<script type="text/javascript" src="../jquery.events.touch.js"></script>
+		<script type="text/javascript" src="../lightcase.js"></script>
+		<script>
+			$(document).ready(function() {
+
 				$('.photo-gallery').lightcase({
 				});
-				
+
 				var request = $.getJSON("https://api.flickr.com/services/rest/?method=flickr.photosets.getPhotos&api_key=ee63a3bf799391276c6da8e5c1803425&photoset_id=72157666862360082&user_id=30749047%40N06&extras=url_sq%2C+url_t%2C+url_s%2C+url_m%2Curl_h%2C+url_n%2C+url_z%2C+url_c%2C+url_b%2C+url_k%2C+url_o&media=photos&format=json&jsoncallback=?", function( jsonResp ) {
 					$.each(jsonResp["photoset"]["photo"], function( key, val ) {
 						$('#thumbnails').append(
-							$("<a/>").attr("href", "").attr("data-rel", "lightcase").attr("data-lc-href", 
+							$("<a/>").attr("href", "").attr("data-rel", "lightcase").attr("data-lc-href",
 								val["url_n"] + " " + val["width_n"] + "w, " +
 								val["url_m"] + " " + val["width_m"] + "w, " +
 								val["url_z"] + " " + val["width_z"] + "w, " +
 								val["url_c"] + " " + val["width_c"] + "w, " +
 								val["url_h"] + " " + val["width_h"] + "w, " +
-								val["url_k"] + " " + val["width_k"] + "w, " //+							
-								).addClass("photo-gallery").attr("data-rel", "lightcase:engagement-photos").append( 
+								val["url_k"] + " " + val["width_k"] + "w, " //+
+								).addClass("photo-gallery").attr("data-rel", "lightcase:engagement-photos").append(
 								$("<img></img>").attr("src", val["url_t"]).attr("width", val["width_t"]).attr("height", val["height_t"])
 							)
 						);
 					});
 					$('.photo-gallery').lightcase( { maxWidth: 2048, maxHeight: 2048, } );
 				});
-				
+
 			});
-			
+
 		</script>
 	</body>
 </html>
