@@ -142,7 +142,7 @@ python3 tools/serve.py          # serves the whole repository; open http://local
 
 1. **First load:** open the page in Chrome (or Safari). In Chrome, DevTools > Application shows the service worker and, under Cache storage, a `pes3-c1-…` cache. Type `parent` on the home screen: App updates should say "Offline copy: N files".
 2. **Offline:** stop the server (Ctrl-C) and reload: the app still opens; open a few games, including Baffle and one with recordings.
-3. **New list at the menu:** start the server again, change the first line of `words.txt` (the list title), switch to another tab and back. The menu should reload with the new title.
+3. **New list at the menu:** start the server again first (`python3 tools/serve.py`; nothing can update while it is stopped). Change the first line of `words.txt` (the list title) and save. Switch to another tab in the same Chrome window and back (clicking another app's window may not count as hiding the page). Within a second or two the menu reloads with the new title; if not, the grown-ups panel's "Last check" line says why.
 4. **New list during a game:** open a game, change the title again, switch away and back: the game must not reset. Tap Home: the new title appears.
 5. **Code change:** edit any file under `js/`; the next return to the tab picks it up the same way.
 6. **Install as an app (optional):** Chrome's install icon in the address bar opens it in its own window, like the Chromebook app.
