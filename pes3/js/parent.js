@@ -1,6 +1,7 @@
 // Hidden "grown-ups" panel. Opened by tapping the page title 5 times quickly,
 // or by typing "parent" on the home screen. Nothing on the child-facing screens links here.
 import { el, getProgress, clearProgress, isLetters } from './util.js';
+import { offlineStatus, updateNow, resetOffline } from './offline.js';
 import { lookaheadMode, setLookaheadMode, getStats, clearStats, isFluent, fluentCount, fluentNeeded, getFluency, setFluency } from './games/baffle.js';
 
 export function openParent(entries) {
@@ -35,6 +36,18 @@ export function openParent(entries) {
   const fluencyRow = el('div', { class: 'row' },
     picker('Fluent after ', fl.streak, [1, 2, 3, 4, 5].map((n) => [n, `${n} in a row`]), (n) => setFluency({ streak: n })),
     picker('Auto off at ', fl.share, [0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1].map((x) => [x, `${Math.round(x * 100)}% of list`]), (x) => setFluency({ share: x })));
+
+  // Offline copy (issue #13): what this device has saved, plus manual update/reset. Filled in when the worker answers.
+  const offNote = el('p', { class: 'small offline-status' }, 'Checking the offline copy…');
+  offlineStatus().then((st) => {
+    offNote.textContent = !st ? 'No offline copy in this browser (needs https and service worker support).'
+      : st.files ? `Offline copy: ${st.files} files, saved ${new Date(st.since).toLocaleString()}. Updates load by themselves when she is on the home menu.`
+        : 'Offline copy not saved yet. It is saved the first time the app opens with internet.';
+  });
+  const busyBtn = (label, run) => el('button', {
+    class: 'btn', type: 'button',
+    onclick: (e) => { e.currentTarget.disabled = true; e.currentTarget.textContent = 'Working…'; run(); },
+  }, label);
 
   const onKey = (e) => { if (e.key === 'Escape') close(); };
   function close() {
@@ -74,6 +87,15 @@ export function openParent(entries) {
       days.length
         ? el('table', {}, el('tbody', {}, days.map(([d, v]) => el('tr', {}, el('td', {}, d), el('td', {}, `${v.c + v.m} rounds`)))))
         : el('p', {}, 'No practice recorded yet.'),
+      el('h3', {}, 'App updates'),
+      offNote,
+      el('div', { class: 'row' },
+        busyBtn('Check for updates', updateNow),
+        busyBtn('Reset offline copy', () => {
+          if (confirm('Delete the saved offline copy and download it again? Needs the internet. Progress, Baffle stats and the garden are kept.')) resetOffline();
+          else reopen();
+        }),
+      ),
       el('div', { class: 'row' },
         el('button', { class: 'btn primary', type: 'button', onclick: close }, 'Close'),
         el('button', {
