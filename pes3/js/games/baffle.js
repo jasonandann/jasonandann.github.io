@@ -24,6 +24,20 @@ const BLINK_MS = 2400;
 const BRANCH_RGB = ['236, 72, 153', '20, 184, 166', '249, 115, 22', '14, 165, 233', '132, 204, 22', '168, 85, 247', '234, 179, 8', '239, 68, 68'];
 const ALPHA_MIN = 0.22;   // a tile on one word's path
 const ALPHA_MAX = 0.6;    // the tile most words pass through
+// Same colours with neighbouring hues first, so the common 2-branch overlap mixes to coral, not grey.
+const BLEND_RGB = ['236, 72, 153', '249, 115, 22', '234, 179, 8', '20, 184, 166', '14, 165, 233', '132, 204, 22', '168, 85, 247', '239, 68, 68'];
+
+// ---- TEST ONLY (branch claude/baffle-lookahead-paths): remove before opening the PR ----
+// Fixed board with overlapping branches (bunny/bunnies vs butterfly/butterflies share I-E-S), and a
+// shared-tile style toggle. Add ?random to the page URL for normal boards (the automated tests do).
+const TEST_GRID = [...'ubphs' + 'neutn' + 'ndrrt' + 'yiafe' + 'eslya'];
+const TEST_BOARD = typeof location !== 'undefined' && !new URLSearchParams(location.search).has('random');
+const OVERLAP_KEY = 'spelling-games.baffle.overlap';   // 'diagonal' | 'blend' | 'both'
+const OVERLAP_MODES = [['diagonal', 'Diagonal'], ['blend', 'Better blend'], ['both', 'Both']];
+function overlapMode() {
+  try { const m = localStorage.getItem(OVERLAP_KEY); return OVERLAP_MODES.some(([k]) => k === m) ? m : 'diagonal'; } catch { return 'diagonal'; }
+}
+// ---- end TEST ONLY ----
 
 /* ---------- grid generation ---------- */
 const NB = Array.from({ length: N * N }, (_, i) => {
@@ -181,7 +195,9 @@ export function mount(root, entries, api) {
     sc.dispose();
     sc = scope();
     const chosen = chooseWords(pool, MAX_TARGETS);
-    const { grid, hidden } = generate(chosen.map((e) => e.word));
+    const { grid, hidden } = TEST_BOARD // TEST ONLY
+      ? { grid: TEST_GRID, hidden: [...listWords].filter((w) => findPath(TEST_GRID, w)) }
+      : generate(chosen.map((e) => e.word));
     const targets = new Map(hidden.map((w) => [w, pool.find((e) => e.word === w)]));
     const found = new Set();   // list words found
     const bonus = new Set();   // other real words found
@@ -208,23 +224,31 @@ export function mount(root, entries, api) {
     /* --- look-ahead: tint each remaining path to an unfound spelling word, one colour per branch --- */
     const spell = (p) => p.map((i) => grid[i]).join('');
     const openWords = () => [...listWords].filter((w) => !found.has(w) && !bonus.has(w));
-    // Translucent layers stack, so tiles shared by branches blend; more words through a tile = stronger.
+    // More words through a tile = stronger tint. A tile on several branches is either split into
+    // diagonal bands (one per branch) or gets translucent layers that blend.
     function paintLookahead(p) {
-      const layers = tiles.map(() => []);
+      const mode = overlapMode();
+      const palette = mode === 'diagonal' ? BRANCH_RGB : BLEND_RGB;
+      const shades = tiles.map(() => []);
       const branches = look && p.length ? lookaheadBranches(grid, openWords(), p) : [];
       const most = Math.max(1, ...branches.flatMap((b) => [...b.tiles.values()]));
       branches.forEach((b, k) => {
-        const rgb = BRANCH_RGB[k % BRANCH_RGB.length];
+        const rgb = palette[k % palette.length];
         for (const [c, n] of b.tiles) {
           const a = (ALPHA_MIN + (ALPHA_MAX - ALPHA_MIN) * (n - 1) / Math.max(1, most - 1)).toFixed(2);
-          layers[c].push(`linear-gradient(rgba(${rgb}, ${a}), rgba(${rgb}, ${a}))`);
+          shades[c].push(`rgba(${rgb}, ${a})`);
         }
       });
+      const paint = (cs) => {
+        if (cs.length < 2 || mode === 'blend') return cs.map((c) => `linear-gradient(${c}, ${c})`).join(', ');
+        const step = 100 / cs.length;
+        return `linear-gradient(135deg, ${cs.map((c, j) => `${c} ${(j * step).toFixed(1)}% ${((j + 1) * step).toFixed(1)}%`).join(', ')})`;
+      };
       tiles.forEach((t, i) => {
-        t.style.backgroundImage = layers[i].join(', ');
+        t.style.backgroundImage = paint(shades[i]);
         const k = branches.findIndex((b) => b.first === i);
         t.classList.toggle('next', k >= 0);
-        if (k >= 0) t.style.setProperty('--ring', `rgb(${BRANCH_RGB[k % BRANCH_RGB.length]})`);
+        if (k >= 0) t.style.setProperty('--ring', `rgb(${palette[k % palette.length]})`);
         else t.style.removeProperty('--ring');
       });
     }
@@ -450,12 +474,24 @@ export function mount(root, entries, api) {
           msg,
           el('div', { class: 'row' }, hintBtn, el('button', { class: 'btn', type: 'button', onclick: play }, '🔀 New letters'),
             el('button', { class: 'btn', type: 'button', onclick: wrapUp }, '🏁 All done')),
+          TEST_BOARD ? overlapToggle() : null, // TEST ONLY
           listArea,
           bonusArea,
         ),
       ),
     );
     drawLists();
+
+    // TEST ONLY: switch how shared tiles look, keeping the current letters selected.
+    function overlapToggle() {
+      const box = el('div', { class: 'row bf-test' }, el('span', { class: 'small' }, 'Shared tiles (test):'));
+      const draw = () => box.replaceChildren(box.firstChild, ...OVERLAP_MODES.map(([k, label]) => el('button', {
+        class: `btn${k === overlapMode() ? ' primary' : ''}`, type: 'button', 'data-mode': k,
+        onclick: () => { try { localStorage.setItem(OVERLAP_KEY, k); } catch { /* ignore */ } draw(); setPath(path); },
+      }, label)));
+      draw();
+      return box;
+    }
   }
 
   play();

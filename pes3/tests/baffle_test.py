@@ -82,7 +82,7 @@ try:
             for pt in pts[1:]: page.mouse.move(*pt, steps=4)
             page.mouse.up(); time.sleep(0.15)
 
-        page.goto(URL); page.wait_for_selector(".mcard")
+        page.goto(URL + "?random")  # TEST ONLY: random boards; page.wait_for_selector(".mcard")
         check("menu has 23 cards", page.locator(".mcard").count() == 23)
         check("Baffle is in the Spelling section", page.locator(".sect", has_text="Spelling").locator(".mcard", has_text="Baffle").count() == 1)
 
@@ -295,10 +295,31 @@ try:
         check("New letters starts a fresh board", page.locator(".bf-tile").count() == 25 and page.locator(".bf-slots.done").count() == 0)
         home()
 
+        # TEST ONLY: fixed board (no ?random) and the shared-tile toggle. From B, bunnies and
+        # butterflies both end on I-E-S (cells 16, 20, 21), so those tiles are on two branches.
+        page3 = ctx.new_page()
+        page3.route(URL + "words.txt", lambda r: r.fulfill(body="# test\nbunny\nbunnies\nbutterfly\nbutterflies\n"))
+        page3.goto(URL); page3.wait_for_selector(".mcard")
+        page3.evaluate("['lookahead', 'stats.v1', 'overlap'].forEach(k => localStorage.removeItem('spelling-games.baffle.' + k))")
+        page3.locator(".mcard", has_text="Baffle").first.tap()
+        check("test board is the fixed bunny/butterfly board", "".join(page3.locator(".bf-tile").all_inner_texts()) == "UBPHSNEUTNNDRRTYIAFEESLYA")
+        page3.locator(".bf-tile[data-i='1']").tap()
+        bg = lambda i: page3.evaluate(f"document.querySelector(\".bf-tile[data-i='{i}']\").style.backgroundImage")
+        check("diagonal (default): shared tile split into two colours", "135deg" in bg(16) and bg(16).count("rgba(") == 4 and "236, 72, 153" in bg(16) and "20, 184, 166" in bg(16), bg(16))
+        check("diagonal: single-branch tile stays one colour", "135deg" not in bg(15) and bg(15).count("linear-gradient") == 1, bg(15))
+        page3.locator(".bf-test button[data-mode='blend']").tap()
+        check("better blend: shared tile stacks two layers with neighbouring hues", "135deg" not in bg(16) and bg(16).count("linear-gradient") == 2 and "249, 115, 22" in bg(16), bg(16))
+        check("toggle keeps her letters selected", page3.locator(".bf-current").inner_text() == "B")
+        page3.locator(".bf-test button[data-mode='both']").tap()
+        check("both: split tile with blend-friendly colours", "135deg" in bg(16) and "249, 115, 22" in bg(16), bg(16))
+        check("toggle setting is saved", page3.evaluate("localStorage.getItem('spelling-games.baffle.overlap')") == "both")
+        page3.evaluate("localStorage.removeItem('spelling-games.baffle.overlap')")
+        page3.close()
+
         # dictionary missing: list words still work, others are not called fake
         page2 = ctx.new_page(); page2.route("**/dict/words.txt", lambda r: r.fulfill(status=404, body=""))
         page2.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
-        page2.goto(URL); page2.wait_for_selector(".mcard")
+        page2.goto(URL + "?random")  # TEST ONLY: random boards; page2.wait_for_selector(".mcard")
         page2.locator(".mcard", has_text="Baffle").first.tap()
         g2 = page2.evaluate("[...document.querySelectorAll('.bf-tile')].map(t => t.textContent.toLowerCase())")
         nonword = page2.evaluate("""async (g) => { const m = await import('/js/games/baffle.js');

@@ -188,6 +188,8 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .chip.got { background: var(--good-bg); border-color: var(--good); }
 .chip.bonus { background: var(--warm-bg); border-color: var(--warm); }
 .chips[hidden] { display: none; }
+.bf-test { padding: 6px 10px; border: 2px dashed var(--soft); border-radius: 12px; align-items: center; } /* TEST ONLY */
+.bf-test .btn { min-height: 44px; padding: 0 12px; font-size: .95rem; } /* TEST ONLY */
 .bf-break { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(246,247,251,.85); z-index: 5; }
 .bf-break-card { background: #fff; border-radius: var(--radius); padding: 24px; text-align: center; box-shadow: 0 6px 24px rgba(20,22,50,.15); max-width: 92vw; }
 .bf-break-card h2 { margin: 8px 0 16px; }
