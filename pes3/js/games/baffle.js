@@ -32,10 +32,10 @@ const BLEND_RGB = ['236, 72, 153', '249, 115, 22', '234, 179, 8', '20, 184, 166'
 // shared-tile style toggle. Add ?random to the page URL for normal boards (the automated tests do).
 const TEST_GRID = [...'ubphs' + 'neutn' + 'ndrrt' + 'yiafe' + 'eslya'];
 const TEST_BOARD = typeof location !== 'undefined' && !new URLSearchParams(location.search).has('random');
-const OVERLAP_KEY = 'spelling-games.baffle.overlap';   // 'diagonal' | 'blend' | 'both'
-const OVERLAP_MODES = [['diagonal', 'Diagonal'], ['blend', 'Better blend'], ['both', 'Both']];
+const OVERLAP_KEY = 'spelling-games.baffle.overlap';   // 'checker' | 'blend' | 'both'
+const OVERLAP_MODES = [['checker', 'Checkered'], ['blend', 'Better blend'], ['both', 'Both']];
 function overlapMode() {
-  try { const m = localStorage.getItem(OVERLAP_KEY); return OVERLAP_MODES.some(([k]) => k === m) ? m : 'diagonal'; } catch { return 'diagonal'; }
+  try { const m = localStorage.getItem(OVERLAP_KEY); return OVERLAP_MODES.some(([k]) => k === m) ? m : 'checker'; } catch { return 'checker'; }
 }
 // ---- end TEST ONLY ----
 
@@ -224,11 +224,12 @@ export function mount(root, entries, api) {
     /* --- look-ahead: tint each remaining path to an unfound spelling word, one colour per branch --- */
     const spell = (p) => p.map((i) => grid[i]).join('');
     const openWords = () => [...listWords].filter((w) => !found.has(w) && !bonus.has(w));
-    // More words through a tile = stronger tint. A tile on several branches is either split into
-    // diagonal bands (one per branch) or gets translucent layers that blend.
+    // More words through a tile = stronger tint. A tile on several branches either gets a small
+    // checkerboard of the branch colours (no direction, unlike diagonals or stripes) or translucent
+    // layers that blend.
     function paintLookahead(p) {
       const mode = overlapMode();
-      const palette = mode === 'diagonal' ? BRANCH_RGB : BLEND_RGB;
+      const palette = mode === 'checker' ? BRANCH_RGB : BLEND_RGB;
       const shades = tiles.map(() => []);
       const branches = look && p.length ? lookaheadBranches(grid, openWords(), p) : [];
       const most = Math.max(1, ...branches.flatMap((b) => [...b.tiles.values()]));
@@ -239,13 +240,17 @@ export function mount(root, entries, api) {
           shades[c].push(`rgba(${rgb}, ${a})`);
         }
       });
-      const paint = (cs) => {
-        if (cs.length < 2 || mode === 'blend') return cs.map((c) => `linear-gradient(${c}, ${c})`).join(', ');
-        const step = 100 / cs.length;
-        return `linear-gradient(135deg, ${cs.map((c, j) => `${c} ${(j * step).toFixed(1)}% ${((j + 1) * step).toFixed(1)}%`).join(', ')})`;
+      // 2 colours: quarters alternate, so the repeated cell is a checkerboard; 3+: a pinwheel cell.
+      const checker = (cs) => {
+        const seq = cs.length === 2 ? [...cs, ...cs] : cs;
+        const step = 100 / seq.length;
+        return `conic-gradient(${seq.map((c, j) => `${c} ${(j * step).toFixed(1)}% ${((j + 1) * step).toFixed(1)}%`).join(', ')})`;
       };
       tiles.forEach((t, i) => {
-        t.style.backgroundImage = paint(shades[i]);
+        const cs = shades[i];
+        const checkered = cs.length > 1 && mode !== 'blend';
+        t.style.backgroundImage = checkered ? checker(cs) : cs.map((c) => `linear-gradient(${c}, ${c})`).join(', ');
+        t.style.backgroundSize = checkered ? '25% 25%' : ''; // 4x4 cells = 8x8 checks per tile
         const k = branches.findIndex((b) => b.first === i);
         t.classList.toggle('next', k >= 0);
         if (k >= 0) t.style.setProperty('--ring', `rgb(${palette[k % palette.length]})`);
