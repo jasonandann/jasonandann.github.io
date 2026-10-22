@@ -25,13 +25,6 @@ function savedCount() {
 }
 function saveCount(n) { try { localStorage.setItem(COUNT_KEY, String(n)); } catch { /* ignore */ } }
 
-// Squares that touch on the board (side or corner), so zombies never sit next to each other.
-const touching = (a, b) => {
-  const p = cell(a);
-  const q = cell(b);
-  return Math.abs(p.col - q.col) <= 1 && Math.abs(p.row - q.row) <= 1;
-};
-
 // Random board each game. No special square is another special's destination, so jumps never chain.
 // Placement is greedy and can paint itself into a corner, so retry until every piece fits.
 export function makeBoard(zombieCount = 3) {
@@ -60,7 +53,7 @@ function tryBoard(zombieCount) {
     const from = rand(8, LAST - 2);
     const to = from - rand(4, 9);
     if (to < 1 || !free(from) || !free(to)) continue;
-    if (Object.keys(zombies).some((z) => touching(+z, from))) continue;
+    if (zombies[from - 1] != null || zombies[from + 1] != null) continue; // never two in a row along the trail
     zombies[from] = to; used.add(from); used.add(to);
   }
   return { shortcuts, zombies };

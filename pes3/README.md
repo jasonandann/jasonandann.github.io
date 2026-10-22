@@ -66,7 +66,7 @@ A 5×5 grid of letters. Slide a finger across letters that touch (diagonals coun
 Roll a die, answer a question. Right: move ahead by the roll. Wrong: move back by the roll. Landing on a 🚀 shortcut jumps you ahead; landing on a 🧟 zombie sends you back (arrows and "→ 23" / "← 11" labels show where). Reach square 35 (🏁) to win; you do not need an exact roll.
 
 - Setup screen: 1 or 2 players (taking turns on one device), questions = Spelling / Math / Both, **Zombies** (1-5, default 3; the choice is remembered on that device), and **Second chance** (on by default: one more try before moving back; turn it off for the strict rules).
-- A new random board is generated each game (4 shortcuts plus the chosen number of zombies; jumps never chain, and no two zombies touch, not even diagonally).
+- A new random board is generated each game (4 shortcuts plus the chosen number of zombies; jumps never chain, and no two zombies sit on consecutive squares along the trail).
 - Spelling questions use your `words.txt` (hear the word, type it) and are recorded in the hidden progress like the other spelling games. Math (grade-3 style add/subtract within 100, times tables up to 10, matching division) is not recorded.
 - Tune the math or the board in `mathProblem()` / `makeBoard()` at the top of `js/games/zombie.js`.
 

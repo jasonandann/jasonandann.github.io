@@ -62,23 +62,19 @@ try:
         check("3 zombies (default) go back 4-9", len(zb) == 3 and all(4 <= f - t <= 9 for f, t in zb.items()), str(zb))
         dests = list(sc.values()) + list(zb.values()); srcs = list(sc) + list(zb)
         check("no chaining (destinations are never special squares)", not (set(dests) & set(srcs)) and len(set(dests + srcs)) == 14)
-        # many generated boards: exact zombie count for every option, never two zombies touching (side or corner)
+        # many generated boards: exact zombie count for every option, never two zombies on consecutive squares
         gen = page.evaluate("""async () => {
           const m = await import('./js/games/zombie.js');
-          const cell = (i) => { const r = Math.floor(i / 6), c = i % 6; return [r % 2 ? 5 - c : c, r]; };
           const bad = [];
           for (const n of m.ZOMBIE_COUNTS) for (let k = 0; k < 400; k++) {
             const z = Object.keys(m.makeBoard(n).zombies).map(Number);
             if (z.length !== n) bad.push(`n=${n} got ${z.length}`);
-            for (const a of z) for (const b of z) if (a < b) {
-              const [p, q] = [cell(a), cell(b)];
-              if (Math.abs(p[0] - q[0]) <= 1 && Math.abs(p[1] - q[1]) <= 1) bad.push(`n=${n} ${a}~${b}`);
-            }
+            for (const a of z) if (z.includes(a + 1)) bad.push(`n=${n} ${a},${a + 1}`);
           }
           return { counts: m.ZOMBIE_COUNTS, bad: bad.slice(0, 5) };
         }""")
         check("zombie options are 1-5", gen["counts"] == [1, 2, 3, 4, 5], str(gen["counts"]))
-        check("2000 boards: exact zombie count, zombies never touch", not gen["bad"], str(gen["bad"]))
+        check("2000 boards: exact zombie count, no two zombies in a row", not gen["bad"], str(gen["bad"]))
         check("squares 0,1,34,35 not special", not ({0, 1, 34, 35} & set(srcs + dests)))
         check("pawn starts at 0", pos() == 0)
         # serpentine geometry: square 5 is far right bottom row, 6 is far right one row up, 11 far left
