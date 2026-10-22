@@ -24,6 +24,7 @@ const BLINK_MS = 2400;
 const BRANCH_RGB = ['236, 72, 153', '20, 184, 166', '249, 115, 22', '14, 165, 233', '132, 204, 22', '168, 85, 247', '234, 179, 8', '239, 68, 68'];
 const ALPHA_MIN = 0.22;   // a tile on one word's path
 const ALPHA_MAX = 0.6;    // the tile most words pass through
+const CHECK_ALPHA = 0.4;  // checkered tiles use at least this, or the two colours blur into one
 // Same colours with neighbouring hues first, so the common 2-branch overlap mixes to coral, not grey.
 const BLEND_RGB = ['236, 72, 153', '249, 115, 22', '234, 179, 8', '20, 184, 166', '14, 165, 233', '132, 204, 22', '168, 85, 247', '239, 68, 68'];
 
@@ -237,20 +238,20 @@ export function mount(root, entries, api) {
         const rgb = palette[k % palette.length];
         for (const [c, n] of b.tiles) {
           const a = (ALPHA_MIN + (ALPHA_MAX - ALPHA_MIN) * (n - 1) / Math.max(1, most - 1)).toFixed(2);
-          shades[c].push(`rgba(${rgb}, ${a})`);
+          shades[c].push({ rgb, a: +a });
         }
       });
       // 2 colours: quarters alternate, so the repeated cell is a checkerboard; 3+: a pinwheel cell.
       const checker = (cs) => {
-        const seq = cs.length === 2 ? [...cs, ...cs] : cs;
+        const seq = (cs.length === 2 ? [...cs, ...cs] : cs).map(({ rgb, a }) => `rgba(${rgb}, ${Math.max(a, CHECK_ALPHA)})`);
         const step = 100 / seq.length;
         return `conic-gradient(${seq.map((c, j) => `${c} ${(j * step).toFixed(1)}% ${((j + 1) * step).toFixed(1)}%`).join(', ')})`;
       };
       tiles.forEach((t, i) => {
         const cs = shades[i];
         const checkered = cs.length > 1 && mode !== 'blend';
-        t.style.backgroundImage = checkered ? checker(cs) : cs.map((c) => `linear-gradient(${c}, ${c})`).join(', ');
-        t.style.backgroundSize = checkered ? '25% 25%' : ''; // 4x4 cells = 8x8 checks per tile
+        t.style.backgroundImage = checkered ? checker(cs) : cs.map(({ rgb, a }) => `linear-gradient(rgba(${rgb}, ${a}), rgba(${rgb}, ${a}))`).join(', ');
+        t.style.backgroundSize = checkered ? '50% 50%' : ''; // 2x2 cells = 4x4 checks per tile
         const k = branches.findIndex((b) => b.first === i);
         t.classList.toggle('next', k >= 0);
         if (k >= 0) t.style.setProperty('--ring', `rgb(${palette[k % palette.length]})`);

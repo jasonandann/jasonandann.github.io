@@ -306,7 +306,7 @@ try:
         page3.locator(".bf-tile[data-i='1']").tap()
         bg = lambda i: page3.evaluate(f"document.querySelector(\".bf-tile[data-i='{i}']\").style.backgroundImage")
         size = lambda i: page3.evaluate(f"document.querySelector(\".bf-tile[data-i='{i}']\").style.backgroundSize")
-        check("checkered (default): shared tile is a two-colour checkerboard", bg(16).startswith("conic-gradient") and bg(16).count("rgba(") == 8 and "236, 72, 153" in bg(16) and "20, 184, 166" in bg(16) and size(16) == "25% 25%", f"{bg(16)} {size(16)}")
+        check("checkered (default): shared tile is a two-colour checkerboard", bg(16).startswith("conic-gradient") and bg(16).count("rgba(") == 8 and "236, 72, 153" in bg(16) and "20, 184, 166" in bg(16) and size(16) == "50% 50%" and "0.4)" in bg(16), f"{bg(16)} {size(16)}")
         check("checkered: single-branch tile stays one solid colour", "conic" not in bg(15) and bg(15).count("linear-gradient") == 1 and size(15) == "", f"{bg(15)} {size(15)}")
         page3.locator(".bf-test button[data-mode='blend']").tap()
         check("better blend: shared tile stacks two layers with neighbouring hues", "conic" not in bg(16) and bg(16).count("linear-gradient") == 2 and "249, 115, 22" in bg(16) and size(16) == "", bg(16))
