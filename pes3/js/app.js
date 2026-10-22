@@ -22,17 +22,17 @@ import * as garden from './games/garden.js';
 // needsWords: game uses words.txt (spelling). Sections appear in this order on the home screen.
 const SECTIONS = [
   { title: '✏️ Spelling', needsWords: true, games: [
+    { icon: '📖', name: 'See the Words', blurb: 'Tap a word to hear it', mod: words },
     { icon: '🔀', name: 'Word Jumble', blurb: 'Put the letters in order', mod: jumble },
-    { icon: '👂', name: 'Listen & Type', blurb: 'Hear it, then spell it', mod: typeit },
     { icon: '✏️', name: 'Fill the Blanks', blurb: 'Find the missing letters', mod: fillblank },
+    { icon: '👀', name: 'Look, Cover, Write, Check', blurb: 'Study it, hide it, spell it', mod: lcwc },
     { icon: '🌧️', name: 'Spell Catcher', blurb: 'Catch the falling letters', mod: catcher },
     { icon: '🌋', name: 'Word Volcano', blurb: 'Tap the rocks in order', mod: volcano },
-    { icon: '🟩', name: 'Wordal', blurb: 'Guess the word in six tries', mod: wordal },
     { icon: '🃏', name: 'Memory Match', blurb: 'Match the word pairs', mod: memory },
-    { icon: '🔎', name: 'Word Search', blurb: 'Find the hidden words', mod: wordsearch },
     { icon: '🤯', name: 'Baffle', blurb: 'Make words from touching letters', mod: baffle },
-    { icon: '👀', name: 'Look, Cover, Write, Check', blurb: 'Study it, hide it, spell it', mod: lcwc },
-    { icon: '📖', name: 'See the Words', blurb: 'Tap a word to hear it', mod: words },
+    { icon: '🔎', name: 'Word Search', blurb: 'Find the hidden words', mod: wordsearch },
+    { icon: '🟩', name: 'Wordal', blurb: 'Guess the word in six tries', mod: wordal },
+    { icon: '👂', name: 'Listen & Type', blurb: 'Hear it, then spell it', mod: typeit },
   ] },
   { title: '➗ Math', games: [
     { icon: '🫧', name: 'Number Bubbles', blurb: 'Pop the right answer', mod: mq.bubbles },
