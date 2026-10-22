@@ -31,7 +31,22 @@ const BLEND_RGB = ['236, 72, 153', '249, 115, 22', '234, 179, 8', '20, 184, 166'
 // ---- TEST ONLY (branch claude/baffle-lookahead-paths): remove before opening the PR ----
 // Fixed board with overlapping branches (bunny/bunnies vs butterfly/butterflies share I-E-S), and a
 // shared-tile style toggle. Add ?random to the page URL for normal boards (the automated tests do).
-const TEST_GRID = [...'ubphs' + 'neutn' + 'ndrrt' + 'yiafe' + 'eslya'];
+// Overlap boards: from B, the bunny board's bunnies/butterflies share I-E-S (2 branches, your
+// words.txt); on the vowel board bats/bets/bits(/bots) each take a different vowel and then all
+// share T-S (3 or 4 branches, with its own word list).
+const BUNNY_GRID = [...'ubphs' + 'neutn' + 'ndrrt' + 'yiafe' + 'eslya'];
+const VOWEL_GRID = [...'kqzxk' + 'kzaek' + 'qzbts' + 'kziok' + 'qxzkq'];
+const TEST_BOARDS = [
+  ['bunny', 'Bunny (2)', BUNNY_GRID, null],
+  ['three', '3-way', VOWEL_GRID, ['bats', 'bets', 'bits']],
+  ['four', '4-way', VOWEL_GRID, ['bats', 'bets', 'bits', 'bots']],
+];
+const BOARD_KEY = 'spelling-games.baffle.testboard';
+function testBoard() {
+  let k = null;
+  try { k = localStorage.getItem(BOARD_KEY); } catch { /* ignore */ }
+  return TEST_BOARDS.find((b) => b[0] === k) || TEST_BOARDS[0];
+}
 const TEST_BOARD = typeof location !== 'undefined' && !new URLSearchParams(location.search).has('random');
 const OVERLAP_KEY = 'spelling-games.baffle.overlap';   // 'checker' | 'blend' | 'both'
 const OVERLAP_MODES = [['checker', 'Checkered'], ['blend', 'Better blend'], ['both', 'Both']];
@@ -186,9 +201,16 @@ export function lookaheadOn(words) {
 }
 
 export function mount(root, entries, api) {
-  const pool = entries.filter((e) => isLetters(e.word) && e.word.length >= 2);
+  let pool = entries.filter((e) => isLetters(e.word) && e.word.length >= 2);
   if (!pool.length) return noWords(root);
-  const listWords = new Set(pool.map((e) => e.word));
+  let listWords = new Set(pool.map((e) => e.word));
+  // TEST ONLY: the 3-/4-way boards bring their own word list.
+  const useTestWords = () => {
+    const ws = TEST_BOARD && testBoard()[3];
+    pool = ws ? ws.map((word) => ({ word })) : entries.filter((e) => isLetters(e.word) && e.word.length >= 2);
+    listWords = new Set(pool.map((e) => e.word));
+  };
+  useTestWords();
   loadDictionary();
   let sc = scope();
 
@@ -197,7 +219,7 @@ export function mount(root, entries, api) {
     sc = scope();
     const chosen = chooseWords(pool, MAX_TARGETS);
     const { grid, hidden } = TEST_BOARD // TEST ONLY
-      ? { grid: TEST_GRID, hidden: [...listWords].filter((w) => findPath(TEST_GRID, w)) }
+      ? { grid: testBoard()[2], hidden: [...listWords].filter((w) => findPath(testBoard()[2], w)) }
       : generate(chosen.map((e) => e.word));
     const targets = new Map(hidden.map((w) => [w, pool.find((e) => e.word === w)]));
     const found = new Set();   // list words found
@@ -241,9 +263,11 @@ export function mount(root, entries, api) {
           shades[c].push({ rgb, a: +a });
         }
       });
-      // 2 colours: quarters alternate, so the repeated cell is a checkerboard; 3+: a pinwheel cell.
+      // Each repeated cell has 4 quarters, so 2-4 colours make an even checkerboard: 2 alternate, 3 leave
+      // one quarter blank (3 wedges made upward-pointing chevrons). 5+ (never seen in testing): wedges.
       const checker = (cs) => {
-        const seq = (cs.length === 2 ? [...cs, ...cs] : cs).map(({ rgb, a }) => `rgba(${rgb}, ${Math.max(a, CHECK_ALPHA)})`);
+        const cols = cs.map(({ rgb, a }) => `rgba(${rgb}, ${Math.max(a, CHECK_ALPHA)})`);
+        const seq = cols.length === 2 ? [...cols, ...cols] : cols.length === 3 ? [...cols, 'transparent'] : cols;
         const step = 100 / seq.length;
         return `conic-gradient(${seq.map((c, j) => `${c} ${(j * step).toFixed(1)}% ${((j + 1) * step).toFixed(1)}%`).join(', ')})`;
       };
@@ -490,11 +514,19 @@ export function mount(root, entries, api) {
 
     // TEST ONLY: switch how shared tiles look, keeping the current letters selected.
     function overlapToggle() {
-      const box = el('div', { class: 'row bf-test' }, el('span', { class: 'small' }, 'Shared tiles (test):'));
-      const draw = () => box.replaceChildren(box.firstChild, ...OVERLAP_MODES.map(([k, label]) => el('button', {
-        class: `btn${k === overlapMode() ? ' primary' : ''}`, type: 'button', 'data-mode': k,
-        onclick: () => { try { localStorage.setItem(OVERLAP_KEY, k); } catch { /* ignore */ } draw(); setPath(path); },
-      }, label)));
+      const box = el('div', { class: 'row bf-test' });
+      const draw = () => box.replaceChildren(
+        el('span', { class: 'small' }, 'Shared tiles (test):'),
+        ...OVERLAP_MODES.map(([k, label]) => el('button', {
+          class: `btn${k === overlapMode() ? ' primary' : ''}`, type: 'button', 'data-mode': k,
+          onclick: () => { try { localStorage.setItem(OVERLAP_KEY, k); } catch { /* ignore */ } draw(); setPath(path); },
+        }, label)),
+        el('span', { class: 'small' }, 'Board (test):'),
+        ...TEST_BOARDS.map(([k, label]) => el('button', {
+          class: `btn${k === testBoard()[0] ? ' primary' : ''}`, type: 'button', 'data-board': k,
+          onclick: () => { try { localStorage.setItem(BOARD_KEY, k); } catch { /* ignore */ } useTestWords(); play(); },
+        }, label)),
+      );
       draw();
       return box;
     }

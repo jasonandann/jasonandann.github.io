@@ -300,7 +300,7 @@ try:
         page3 = ctx.new_page()
         page3.route(URL + "words.txt", lambda r: r.fulfill(body="# test\nbunny\nbunnies\nbutterfly\nbutterflies\n"))
         page3.goto(URL); page3.wait_for_selector(".mcard")
-        page3.evaluate("['lookahead', 'stats.v1', 'overlap'].forEach(k => localStorage.removeItem('spelling-games.baffle.' + k))")
+        page3.evaluate("['lookahead', 'stats.v1', 'overlap', 'testboard'].forEach(k => localStorage.removeItem('spelling-games.baffle.' + k))")
         page3.locator(".mcard", has_text="Baffle").first.tap()
         check("test board is the fixed bunny/butterfly board", "".join(page3.locator(".bf-tile").all_inner_texts()) == "UBPHSNEUTNNDRRTYIAFEESLYA")
         page3.locator(".bf-tile[data-i='1']").tap()
@@ -308,6 +308,14 @@ try:
         size = lambda i: page3.evaluate(f"document.querySelector(\".bf-tile[data-i='{i}']\").style.backgroundSize")
         check("checkered (default): shared tile is a two-colour checkerboard", bg(16).startswith("conic-gradient") and bg(16).count("rgba(") == 8 and "236, 72, 153" in bg(16) and "20, 184, 166" in bg(16) and size(16) == "50% 50%" and "0.4)" in bg(16), f"{bg(16)} {size(16)}")
         check("checkered: single-branch tile stays one solid colour", "conic" not in bg(15) and bg(15).count("linear-gradient") == 1 and size(15) == "", f"{bg(15)} {size(15)}")
+        # TEST ONLY: 3- and 4-way boards (own word lists): from B, T and S are on every branch
+        stops = lambda i: bg(i).count("rgba(") // 2
+        page3.locator(".bf-test button[data-board='three']").tap(); page3.locator(".bf-tile[data-i='12']").tap()
+        check("3-way board: T and S checkered in 3 colours plus a blank quarter", all(stops(i) == 3 and "transparent" in bg(i) for i in (13, 14)), bg(13))
+        page3.locator(".bf-test button[data-board='four']").tap(); page3.locator(".bf-tile[data-i='12']").tap()
+        check("4-way board: T and S checkered in 4 colours", all(stops(i) == 4 and "transparent" not in bg(i) for i in (13, 14)), bg(13))
+        page3.locator(".bf-test button[data-board='bunny']").tap(); page3.locator(".bf-tile[data-i='1']").tap()
+        check("back on the bunny board with your words", "".join(page3.locator(".bf-tile").all_inner_texts()) == "UBPHSNEUTNNDRRTYIAFEESLYA" and page3.locator(".bf-slots").count() == 4)
         page3.locator(".bf-test button[data-mode='blend']").tap()
         check("better blend: shared tile stacks two layers with neighbouring hues", "conic" not in bg(16) and bg(16).count("linear-gradient") == 2 and "249, 115, 22" in bg(16) and size(16) == "", bg(16))
         check("toggle keeps her letters selected", page3.locator(".bf-current").inner_text() == "B")
