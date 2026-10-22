@@ -14,6 +14,7 @@ try:
         for name, w, h in [("ipad_land", 1024, 768), ("ipad_land_safari", 1024, 660), ("chromebook", 1366, 650), ("phone", 390, 800)]:
             ctx = b.new_context(viewport={"width": w, "height": h}, has_touch=True)
             ctx.add_init_script(FAKE)
+            ctx.route("http://localhost:8767/words.txt", lambda r: r.fulfill(path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "words.txt")))  # fixed list, not the weekly one
             pg = ctx.new_page()
             pg.goto("http://localhost:8767/"); pg.wait_for_selector(".mcard")
             pg.locator(".mcard", has_text="Zombie Trail").first.tap()

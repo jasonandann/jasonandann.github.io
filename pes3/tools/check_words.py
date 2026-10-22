@@ -13,7 +13,10 @@ from pathlib import Path
 
 MAX_SEARCH_LEN = 14  # longest word Word Search can place
 
-path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent / "words.txt"
+ROOT = Path(__file__).resolve().parent.parent
+path = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "words.txt"
+dict_path = ROOT / "dict" / "words.txt"  # built by tools/make_dictionary.py
+dictionary = set(dict_path.read_text(encoding="utf-8").split()) if dict_path.exists() else set()
 if not path.exists():
     sys.exit(f"error: {path} not found")
 
@@ -37,6 +40,8 @@ for word, _ in words:
     seen.add(word)
     if not re.fullmatch(r"[a-z]+", word):
         warnings.append(f"not letters-only (skipped in Jumble/Word Search): {word!r}")
+    elif dictionary and 3 <= len(word) <= 12 and word not in dictionary:
+        warnings.append(f"not in the dictionary, check the spelling (Baffle accepts it anyway): {word}")
     if len(word) > MAX_SEARCH_LEN:
         warnings.append(f"longer than {MAX_SEARCH_LEN} letters (skipped in Word Search): {word}")
 

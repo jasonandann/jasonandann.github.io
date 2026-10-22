@@ -5,7 +5,7 @@ Static spelling-practice games for a weekly school word list. Plain HTML/CSS/Jav
 ## Each week
 
 1. Edit `words.txt` (one word per line).
-2. Optional check: `python3 tools/check_words.py`
+2. Optional check: `python3 tools/check_words.py` (also flags words missing from the dictionary, which is usually a typo)
 3. `git add words.txt && git commit -m "Week of ..." && git push`
 
 The site loads `words.txt` fresh each visit (`cache: 'no-cache'`), so the new list appears once GitHub Pages republishes (usually about a minute; not verified for your setup).
@@ -38,6 +38,7 @@ Home screen sections: **Spelling**, **Math**, **Fun**, **Rewards**.
 | Wordal | Wordle-style: six tries to spell the word she hears. Grey/yellow/green, no dictionary check |
 | Memory Match | Flips cards to find each word's pair (speaks the word on flip) |
 | Word Search | Drags across letters, or taps first and last letter |
+| Baffle | Boggle-style 5×5 letter grid: slides across touching letters to make words (see below) |
 | Look, Cover, Write, Check | Studies the word, hides it, writes it from memory, compares |
 | See the Words | Study list; tap a word to hear it |
 
@@ -48,6 +49,17 @@ Home screen sections: **Spelling**, **Math**, **Fun**, **Rewards**.
 **Rewards**: My Garden. Every finished question in any game (right first time or not) is one point; every 4 points grows a flower, and butterflies and bees arrive later. It only grows, never shrinks, and shows no numbers. Stored in `localStorage` (`spelling-games.garden.v1`); the parent panel's "Erase history" does not touch it.
 
 The new spelling and math games are original vanilla-JS re-implementations of the mechanics in [Spellbound](https://github.com/benSlaughter/spellbound) (MIT per its README); none of its code was copied. Differences from Spellbound, chosen for a child who discourages easily: no timers, no best scores, no unlock gating, no lives.
+
+### Baffle
+
+A 5×5 grid of letters. Slide a finger across letters that touch (diagonals count, each letter once), or tap them one by one and tap the last one again (or ✔ Check).
+
+- Each new board is generated in the browser from `words.txt` (no extra weekly step): it hides as many list words as it can fit, whatever this week's rule is. Typical result: about 13–17 of 22 for a y/ies week, 8–9 of 12 sight words. Long words and words with many doubled letters fit less often.
+- List words found go under ⭐ Spelling words (spoken aloud). Any other real word goes in the 🫙 Bonus jar. Made-up words get "Hmm, I don't know that word. Try another!" Words in `words.txt` are always accepted even if the dictionary lacks them.
+- No timer, no count. **💡 Hints** (off by default, remembered per device) shows a row of empty boxes per hidden list word, filled in as she finds them.
+- After 8 minutes, 40 tries, or 12 tries in a row with nothing new, it offers "Getting tired? Let's take a break!" (Keep playing / All done). All done shows what she found and an optional "Peek at the hiding words". Tune these at the top of `js/games/baffle.js`.
+- Every new word (list or bonus) is a garden point. Baffle does not record hidden progress.
+- Dictionary: `dict/words.txt`, built by `python3 tools/make_dictionary.py` from the public-domain [ENABLE list](https://github.com/dolph/dictionary) (3–12 letters, about 152k words, 1.4 MB; downloaded only when Baffle opens). ENABLE is from about 2000, so newer words (email, selfie) are missing, and it includes Scrabble oddities (aah, zax). `tools/blocklist.txt` removes swear words and slurs; add to it and re-run the script. To switch to [SCOWL](http://wordlist.aspell.net/) later, pass its word file to the script.
 
 ### Zombie Trail
 
@@ -64,7 +76,7 @@ The on-screen keyboard avoids iPad autocorrect and predictive text. A physical k
 
 ## Hidden progress (grown-ups only)
 
-Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, and Zombie Trail record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, the math games, Spot Match, Simon Says, and Zombie Trail math questions do not record anything. In Wordal, "first try" means solved within the first two guesses.
+Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, and Zombie Trail record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle, the math games, Spot Match, Simon Says, and Zombie Trail math questions do not record anything. In Wordal, "first try" means solved within the first two guesses.
 
 Open the panel from the home screen by either:
 - tapping the **"Spelling Time" title 5 times within 3 seconds**, or
@@ -99,7 +111,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`. The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 
@@ -121,10 +133,12 @@ js/parent.js         grown-ups panel
 js/math.js           math question generator, level picker, quiz loop
 js/games/*.js        one file per game (mathquiz.js holds 5 math games)
 audio/               optional recordings + manifest.json + pronunciations.txt
+dict/words.txt       real-word list for Baffle (generated; see tools/make_dictionary.py)
 tests/               Playwright tests
 CLAUDE.md            context for Claude Code
 tools/check_words.py optional list checker
 tools/make_audio.py  optional macOS audio generator
+tools/make_dictionary.py + blocklist.txt   rebuilds dict/words.txt
 ```
 
 ## Known limits

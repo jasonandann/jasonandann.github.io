@@ -1,0 +1,14 @@
+# Week of Oct 26
+# Fixed list for the tests, so they don't change when the weekly words.txt does.
+because | I stayed inside because it was raining.
+friend
+whale
+people
+water
+again
+about
+their
+light
+could
+would
+said
