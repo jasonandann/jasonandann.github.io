@@ -210,6 +210,8 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .panel table { width: 100%; border-collapse: collapse; font-size: .95rem; }
 .panel th, .panel td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--soft); }
 .panel .flag { color: #b45309; font-weight: 800; }
+.panel .pick { display: flex; align-items: center; gap: 6px; font-size: .95rem; }
+.panel .pick select { min-height: 44px; font: inherit; padding: 0 8px; border-radius: 10px; border: 2px solid var(--soft); background: #fff; }
 
 /* feedback motion */
 .shake { animation: shake .4s; }

@@ -2,10 +2,10 @@
 // The grid is generated so it hides as many words.txt words as possible; any other real word
 // (dict/words.txt) goes in the bonus jar. No timer, no score; after a while it offers a break.
 // Helpers: blank slots for the list words are always shown; 💡 Hint blinks the next letter of a
-// list word; look-ahead lights the tiles that can still lead to a word. Look-ahead switches itself
-// off once most of the week's words are found without hints (parent panel can force it on/off).
+// list word; look-ahead lights the tiles that can still lead to a list word. Look-ahead switches
+// itself off once most of the week's words are found without hints (parent panel sets the rule).
 import { el, chooseWords, isLetters, speakWord, celebrate, noWords, award, scope, cheer } from '../util.js';
-import { loadDictionary, dictionaryReady, inDictionary, hasPrefix, MIN_LEN } from '../dictionary.js';
+import { loadDictionary, dictionaryReady, inDictionary, MIN_LEN } from '../dictionary.js';
 
 export const N = 5;
 const MAX_TARGETS = 24;           // most list words to aim for on one board
@@ -14,8 +14,11 @@ const BREAK_TRIES = 40;           // ...or this many tries...
 const BREAK_STUCK = 12;           // ...or this many tries in a row with nothing new
 const LOOK_KEY = 'spelling-games.baffle.lookahead';   // 'auto' (default) | 'on' | 'off'
 const STATS_KEY = 'spelling-games.baffle.stats.v1';   // {games, words: {w: {solo, helped, free, streak}}}
-export const FLUENT_STREAK = 2;   // a word is fluent after this many finds in a row with no hint
-export const FLUENT_SHARE = 0.75; // auto look-ahead turns off once this share of the list is fluent
+const FLUENCY_KEY = 'spelling-games.baffle.fluency'; // {streak, share}, set in the parent panel
+export const FLUENCY_DEFAULT = {
+  streak: 2,     // a word is fluent after this many finds in a row with no hint
+  share: 0.75,   // auto look-ahead turns off once this share of the list is fluent
+};
 const BLINK_MS = 2400;
 
 /* ---------- grid generation ---------- */
@@ -127,24 +130,30 @@ export function getStats() {
 }
 function saveStats(s) { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch { /* ignore */ } }
 export function clearStats() { try { localStorage.removeItem(STATS_KEY); } catch { /* ignore */ } }
-export const isFluent = (r) => !!r && r.streak >= FLUENT_STREAK;
-export function fluentCount(words, stats = getStats()) { return words.filter((w) => isFluent(stats.words[w])).length; }
+export function getFluency() {
+  try {
+    const f = JSON.parse(localStorage.getItem(FLUENCY_KEY)) || {};
+    const streak = Number.isInteger(f.streak) && f.streak >= 1 ? f.streak : FLUENCY_DEFAULT.streak;
+    const share = typeof f.share === 'number' && f.share > 0 && f.share <= 1 ? f.share : FLUENCY_DEFAULT.share;
+    return { streak, share };
+  } catch { return { ...FLUENCY_DEFAULT }; }
+}
+export function setFluency(f) { try { localStorage.setItem(FLUENCY_KEY, JSON.stringify({ ...getFluency(), ...f })); } catch { /* ignore */ } }
+export const isFluent = (r, f = getFluency()) => !!r && r.streak >= f.streak;
+export function fluentCount(words, stats = getStats(), f = getFluency()) { return words.filter((w) => isFluent(stats.words[w], f)).length; }
+export const fluentNeeded = (words, f = getFluency()) => Math.ceil(f.share * words.length);
 // Decided once per board, so tiles never stop lighting up halfway through a game.
 export function lookaheadOn(words) {
   const m = lookaheadMode();
-  return m === 'on' || (m === 'auto' && fluentCount(words) < FLUENT_SHARE * words.length);
+  return m === 'on' || (m === 'auto' && fluentCount(words) < fluentNeeded(words));
 }
 
 export function mount(root, entries, api) {
   const pool = entries.filter((e) => isLetters(e.word) && e.word.length >= 2);
   if (!pool.length) return noWords(root);
   const listWords = new Set(pool.map((e) => e.word));
-  const listPrefixes = new Set([...listWords].flatMap((w) => [...w].map((_, k) => w.slice(0, k + 1))));
-  const isWord = (s) => listWords.has(s) || inDictionary(s);
-  const isPrefix = (s) => listPrefixes.has(s) || hasPrefix(s);
+  loadDictionary();
   let sc = scope();
-  let refresh = () => {};
-  loadDictionary().then(() => refresh()); // look-ahead knows only list words until the dictionary arrives
 
   function play() {
     sc.dispose();
@@ -174,16 +183,13 @@ export function mount(root, entries, api) {
     const bonusArea = el('div', { class: 'bf-list' });
     const slotWords = [...targets.keys()].sort((a, b) => a.length - b.length || a.localeCompare(b));
 
-    /* --- look-ahead: does path p lead to a word nobody has found yet? --- */
+    /* --- look-ahead: touching tiles that continue the path toward a spelling word not found yet --- */
     const spell = (p) => p.map((i) => grid[i]).join('');
-    const unfound = (s) => !found.has(s) && !bonus.has(s) && isWord(s);
-    function leads(p) {
-      const s = spell(p);
-      if (!isPrefix(s)) return false;
-      if (p.length >= 2 && unfound(s)) return true;
-      return NB[p[p.length - 1]].some((k) => !p.includes(k) && leads([...p, k]));
-    }
-    const nextTiles = (p) => NB[p[p.length - 1]].filter((j) => !p.includes(j) && leads([...p, j]));
+    const openWords = () => [...listWords].filter((w) => !found.has(w) && !bonus.has(w));
+    const nextTiles = (p) => {
+      const words = openWords().filter((w) => w.length > p.length);
+      return NB[p[p.length - 1]].filter((j) => !p.includes(j) && words.some((w) => findPath(grid, w, [...p, j])));
+    };
 
     /* --- current path --- */
     let path = [];
@@ -196,10 +202,9 @@ export function mount(root, entries, api) {
         t.classList.toggle('next', next.includes(i));
       });
       current.textContent = spell(path).toUpperCase();
-      current.classList.toggle('word', look && path.length >= 2 && unfound(spell(path)));
+      current.classList.toggle('word', look && openWords().includes(spell(path)));
       checkBtn.hidden = clearBtn.hidden = path.length === 0 || dragging;
     }
-    refresh = () => setPath(path);
 
     /* --- hint: blink the next letter of a spelling word, keeping as much of her path as fits --- */
     let blinkTimer = null;
@@ -213,15 +218,18 @@ export function mount(root, entries, api) {
     function hint() {
       const left = slotWords.filter((w) => !found.has(w));
       if (!left.length) { msg.textContent = 'You found every spelling word! Look for bonus words. 🫙'; return; }
-      // The word her letters already start (most letters kept wins), else the next empty slot.
-      let best = { w: left[0], k: 0, route: findPath(grid, left[0]) };
-      for (const w of left) {
+      // The word her letters already start (most letters kept wins; ties keep the last hinted word,
+      // then slot order), else the next empty slot.
+      const order = left.includes(hintWord) ? [hintWord, ...left.filter((w) => w !== hintWord)] : left;
+      let best = { w: order[0], k: 0, route: findPath(grid, order[0]) };
+      for (const w of order) {
         for (let k = path.length; k > best.k; k--) {
           const route = findPath(grid, w, path.slice(0, k));
           if (route) { best = { w, k, route }; break; }
         }
       }
       const { w, k, route } = best;
+      const switched = w !== hintWord;
       hinted.add(w);
       hintWord = w;
       drawLists();
@@ -230,7 +238,7 @@ export function mount(root, entries, api) {
         msg.textContent = 'That spells it! Tap ✔ Check. ⭐';
         return blink(route[k - 1]);
       }
-      if (k === 0) speakWord(targets.get(w)); // in the tap, so iOS lets it play
+      if (k === 0 || switched) speakWord(targets.get(w)); // say which word; in the tap, so iOS lets it play
       msg.textContent = k === 0 ? 'Listen! Start with the blinking letter. 💡' : 'The blinking letter comes next! 💡';
       blink(route[k]);
     }

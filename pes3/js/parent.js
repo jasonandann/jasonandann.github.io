@@ -1,7 +1,7 @@
 // Hidden "grown-ups" panel. Opened by tapping the page title 5 times quickly,
 // or by typing "parent" on the home screen. Nothing on the child-facing screens links here.
 import { el, getProgress, clearProgress, isLetters } from './util.js';
-import { lookaheadMode, setLookaheadMode, getStats, clearStats, isFluent, fluentCount, FLUENT_STREAK, FLUENT_SHARE } from './games/baffle.js';
+import { lookaheadMode, setLookaheadMode, getStats, clearStats, isFluent, fluentCount, fluentNeeded, getFluency, setFluency } from './games/baffle.js';
 
 export function openParent(entries) {
   if (document.querySelector('.overlay')) return;
@@ -17,16 +17,24 @@ export function openParent(entries) {
   // Baffle helpers: look-ahead setting + per-word finds (Baffle keeps its own stats).
   const bf = getStats();
   const bfWords = entries.map((e) => e.word).filter((w) => isLetters(w) && w.length >= 2);
-  const fluent = fluentCount(bfWords, bf);
-  const need = Math.ceil(FLUENT_SHARE * bfWords.length);
+  const fl = getFluency();
+  const fluent = fluentCount(bfWords, bf, fl);
+  const need = fluentNeeded(bfWords, fl);
   const mode = lookaheadMode();
   const lookNote = mode === 'on' ? 'Always on.' : mode === 'off' ? 'Off.'
-    : `Auto: ${fluent < need ? 'on' : 'off'} now. ${fluent} of ${bfWords.length} words found ${FLUENT_STREAK}+ times in a row with no hint; it turns off at ${need} (checked when a new board starts).`;
+    : `Auto: ${fluent < need ? 'on' : 'off'} now. ${fluent} of ${bfWords.length} words found ${fl.streak}+ times in a row with no hint; it turns off at ${need} (checked when a new board starts).`;
   const modeBtn = (m, label) => el('button', {
     class: `btn${m === mode ? ' primary' : ''}`, type: 'button', 'aria-pressed': String(m === mode),
-    onclick: () => { setLookaheadMode(m); close(); openParent(entries); },
+    onclick: () => { setLookaheadMode(m); reopen(); },
   }, label);
   const bfRows = bfWords.filter((w) => bf.words[w]);
+  const reopen = () => { close(); openParent(entries); };
+  const picker = (label, value, options, save) => el('label', { class: 'pick' }, label,
+    el('select', { onchange: (e) => { save(Number(e.target.value)); reopen(); } },
+      options.map(([v, text]) => el('option', { value: v, selected: v === value }, text))));
+  const fluencyRow = el('div', { class: 'row' },
+    picker('Fluent after ', fl.streak, [1, 2, 3, 4, 5].map((n) => [n, `${n} in a row`]), (n) => setFluency({ streak: n })),
+    picker('Auto off at ', fl.share, [0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1].map((x) => [x, `${Math.round(x * 100)}% of list`]), (x) => setFluency({ share: x })));
 
   const onKey = (e) => { if (e.key === 'Escape') close(); };
   function close() {
@@ -49,8 +57,9 @@ export function openParent(entries) {
         )),
       ),
       el('h3', {}, 'Baffle look-ahead'),
-      el('p', { class: 'small' }, 'Lights up letters that can still make a word. ' + lookNote),
+      el('p', { class: 'small' }, 'Lights up letters that can still make one of this week’s words. ' + lookNote),
       el('div', { class: 'row' }, modeBtn('auto', 'Auto'), modeBtn('on', 'Always on'), modeBtn('off', 'Off')),
+      fluencyRow,
       bfRows.length
         ? el('table', {},
           el('thead', {}, el('tr', {}, ['Word', 'Found, no hint', 'Look-ahead off', 'With hint', 'In a row'].map((h) => el('th', {}, h)))),

@@ -166,10 +166,9 @@ try:
         nxt = lit("next")
         check("look-ahead lights the next letter of a hidden word", tp[1] in nxt, f"{nxt} {tp}")
         expect = page.evaluate("""async ([g, start, list, taken]) => { const m = await import('/js/games/baffle.js');
-          const dict = (await (await fetch('/dict/words.txt')).text()).split('\\n').filter(Boolean);
-          const words = [...new Set([...dict, ...list])].filter(w => !taken.includes(w) && w.startsWith(g[start]));
+          const words = list.filter(w => !taken.includes(w) && w.startsWith(g[start]));
           return m.neighbours(start).filter(j => words.some(w => m.findPath(g, w, [start, j]))).sort((a, b) => a - b); }""", [grid(), tp[0], LIST, taken])
-        check("look-ahead matches a brute-force dictionary scan", sorted(nxt) == expect, f"{sorted(nxt)} vs {expect}")
+        check("look-ahead = only tiles toward unfound spelling words", sorted(nxt) == expect, f"{sorted(nxt)} vs {expect}")
         page.touchscreen.tap(*center(tp[1]))
         check("look-ahead follows the path", tp[0] not in lit("next") and tp[1] not in lit("next") and (len(tp) < 3 or tp[2] in lit("next")), str(lit("next")))
         page.screenshot(path=f"{SHOTS}/baffle_lookahead.png")
@@ -227,6 +226,21 @@ try:
         tap(".panel button:has-text('Auto')")
         check("parent panel sets look-ahead to Auto", page.evaluate("localStorage.getItem('spelling-games.baffle.lookahead')") == "auto")
         check("parent panel explains auto state", "Auto: on now" in page.locator(".panel").inner_text(), page.locator(".panel").inner_text()[:300])
+        page.locator(".panel .pick select").nth(0).select_option("1")
+        page.locator(".panel .pick select").nth(1).select_option("0.5")
+        fl = page.evaluate("JSON.parse(localStorage.getItem('spelling-games.baffle.fluency'))")
+        check("parent panel saves the fluency rule", fl == {"streak": 1, "share": 0.5}, str(fl))
+        check("panel text follows the new rule", "1+ times in a row" in page.locator(".panel").inner_text() and f"turns off at {(len(LIST) + 1) // 2}" in page.locator(".panel").inner_text())
+        page.keyboard.press("Escape")
+        # with streak 1 / 50%, half the list found once unhinted is enough to turn auto off
+        page.evaluate("""(list) => localStorage.setItem('spelling-games.baffle.stats.v1',
+          JSON.stringify({games: 1, words: Object.fromEntries(list.slice(0, Math.ceil(list.length / 2)).map(w => [w, {solo: 1, helped: 0, free: 0, streak: 1}]))}))""", LIST)
+        open_game("Baffle")
+        page.touchscreen.tap(*center(path_of([w for w in LIST if path_of(w)][0])[0]))
+        check("auto uses the parent's fluency rule", lit("next") == [], str(lit("next")))
+        page.evaluate("['fluency', 'stats.v1'].forEach(k => localStorage.removeItem('spelling-games.baffle.' + k))")
+        home()
+        page.keyboard.type("parent"); page.wait_for_selector(".overlay")
         page.keyboard.press("Escape")
         open_game("Baffle")
 
