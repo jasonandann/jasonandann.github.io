@@ -2,7 +2,7 @@
 // The grid is generated so it hides as many words.txt words as possible; any other real word
 // (dict/words.txt) goes in the bonus jar. No timer, no score; after a while it offers a break.
 // Helpers: blank slots for the list words are always shown; 💡 Hint blinks the next letter of a
-// list word; look-ahead lights the tiles that can still lead to a list word. Look-ahead switches
+// list word; look-ahead tints every remaining path to a list word, one colour per next tile. Look-ahead switches
 // itself off once most of the week's words are found without hints (parent panel sets the rule).
 import { el, chooseWords, isLetters, speakWord, celebrate, noWords, award, scope, cheer } from '../util.js';
 import { loadDictionary, dictionaryReady, inDictionary, MIN_LEN } from '../dictionary.js';
@@ -20,6 +20,10 @@ export const FLUENCY_DEFAULT = {
   share: 0.75,   // auto look-ahead turns off once this share of the list is fluent
 };
 const BLINK_MS = 2400;
+// Look-ahead branch colours (contrasting, none close to the selected-tile indigo) and tint strength.
+const BRANCH_RGB = ['236, 72, 153', '20, 184, 166', '249, 115, 22', '14, 165, 233', '132, 204, 22', '168, 85, 247', '234, 179, 8', '239, 68, 68'];
+const ALPHA_MIN = 0.22;   // a tile on one word's path
+const ALPHA_MAX = 0.6;    // the tile most words pass through
 
 /* ---------- grid generation ---------- */
 const NB = Array.from({ length: N * N }, (_, i) => {
@@ -119,6 +123,35 @@ export function generate(words, { restarts = 8, iters = 4000, budgetMs = 400 } =
 }
 
 /* ---------- game ---------- */
+// Look-ahead: every way `path` can be finished into one of `words`, grouped by the next tile.
+// Returns [{first, tiles: Map(cell -> number of words through it)}], sorted by first cell.
+export function lookaheadBranches(g, words, path) {
+  const branches = new Map();
+  for (const w of words) {
+    if (w.length <= path.length || path.some((i, k) => g[i] !== w[k])) continue;
+    const used = new Set(path);
+    const route = [];
+    const grow = () => {
+      if (path.length + route.length === w.length) {
+        const b = branches.get(route[0]) || new Map();
+        branches.set(route[0], b);
+        for (const c of route) (b.get(c) || b.set(c, new Set()).get(c)).add(w);
+        return;
+      }
+      const ch = w[path.length + route.length];
+      for (const j of NB[route.length ? route[route.length - 1] : path[path.length - 1]]) {
+        if (used.has(j) || g[j] !== ch) continue;
+        used.add(j); route.push(j);
+        grow();
+        used.delete(j); route.pop();
+      }
+    };
+    grow();
+  }
+  return [...branches.keys()].sort((a, b) => a - b)
+    .map((first) => ({ first, tiles: new Map([...branches.get(first)].map(([c, ws]) => [c, ws.size])) }));
+}
+
 /* ---------- look-ahead setting + hidden per-word stats (shown in the parent panel) ---------- */
 export function lookaheadMode() {
   try { const m = localStorage.getItem(LOOK_KEY); return m === 'on' || m === 'off' ? m : 'auto'; } catch { return 'auto'; }
@@ -183,24 +216,39 @@ export function mount(root, entries, api) {
     const bonusArea = el('div', { class: 'bf-list' });
     const slotWords = [...targets.keys()].sort((a, b) => a.length - b.length || a.localeCompare(b));
 
-    /* --- look-ahead: touching tiles that continue the path toward a spelling word not found yet --- */
+    /* --- look-ahead: tint each remaining path to an unfound spelling word, one colour per branch --- */
     const spell = (p) => p.map((i) => grid[i]).join('');
     const openWords = () => [...listWords].filter((w) => !found.has(w) && !bonus.has(w));
-    const nextTiles = (p) => {
-      const words = openWords().filter((w) => w.length > p.length);
-      return NB[p[p.length - 1]].filter((j) => !p.includes(j) && words.some((w) => findPath(grid, w, [...p, j])));
-    };
+    // Translucent layers stack, so tiles shared by branches blend; more words through a tile = stronger.
+    function paintLookahead(p) {
+      const layers = tiles.map(() => []);
+      const branches = look && p.length ? lookaheadBranches(grid, openWords(), p) : [];
+      const most = Math.max(1, ...branches.flatMap((b) => [...b.tiles.values()]));
+      branches.forEach((b, k) => {
+        const rgb = BRANCH_RGB[k % BRANCH_RGB.length];
+        for (const [c, n] of b.tiles) {
+          const a = (ALPHA_MIN + (ALPHA_MAX - ALPHA_MIN) * (n - 1) / Math.max(1, most - 1)).toFixed(2);
+          layers[c].push(`linear-gradient(rgba(${rgb}, ${a}), rgba(${rgb}, ${a}))`);
+        }
+      });
+      tiles.forEach((t, i) => {
+        t.style.backgroundImage = layers[i].join(', ');
+        const k = branches.findIndex((b) => b.first === i);
+        t.classList.toggle('next', k >= 0);
+        if (k >= 0) t.style.setProperty('--ring', `rgb(${BRANCH_RGB[k % BRANCH_RGB.length]})`);
+        else t.style.removeProperty('--ring');
+      });
+    }
 
     /* --- current path --- */
     let path = [];
     function setPath(p) {
       path = p;
-      const next = look && path.length ? nextTiles(path) : [];
       tiles.forEach((t, i) => {
         t.classList.toggle('sel', path.includes(i));
         t.classList.toggle('last', i === path[path.length - 1]);
-        t.classList.toggle('next', next.includes(i));
       });
+      paintLookahead(path);
       current.textContent = spell(path).toUpperCase();
       current.classList.toggle('word', look && openWords().includes(spell(path)));
       checkBtn.hidden = clearBtn.hidden = path.length === 0 || dragging;

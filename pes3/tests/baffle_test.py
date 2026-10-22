@@ -96,6 +96,12 @@ try:
         check("generator: every hidden word is traceable", all(g["ok"] for g in gen))
         check("generator hides at least 5 list words", all(len(g["hidden"]) >= 5 for g in gen), str([len(g["hidden"]) for g in gen]))
         check("generator stays within ~0.5 s", all(g["ms"] < 600 for g in gen), str([round(g["ms"]) for g in gen]))
+        # look-ahead branches on the example board: T -> I (tip, tin) and T -> E (ten); 'tips' is not a list word
+        ex = list("atexx" "cinxx" "qpzxx" "szzxx" "xxxxx")
+        br = page.evaluate("async ([g, w]) => (await import('/js/games/baffle.js')).lookaheadBranches(g, w, [1]).map(b => [b.first, [...b.tiles]])", [ex, ["tip", "tin", "ten"]])
+        check("look-ahead: one branch per next tile", [b[0] for b in br] == [2, 6], str(br))
+        check("look-ahead: word counts per tile", dict(br[1][1]) == {6: 2, 7: 1, 11: 1} and dict(br[0][1]) == {2: 1, 7: 1}, str(br))
+        check("look-ahead: S untinted when 'tips' isn't on the list", all(15 not in dict(t) for _, t in br))
         yies = "puppy puppies penny pennies study studies carry carries butterfly butterflies lady ladies bunny bunnies dry dries hurry hurries marry marries".split()
         n_yies = page.evaluate("async (w) => (await import('/js/games/baffle.js')).generate(w).hidden.length", yies)
         check("generator: y/ies list hides 10+ of 20", n_yies >= 10, str(n_yies))
@@ -169,6 +175,22 @@ try:
           const words = list.filter(w => !taken.includes(w) && w.startsWith(g[start]));
           return m.neighbours(start).filter(j => words.some(w => m.findPath(g, w, [start, j]))).sort((a, b) => a - b); }""", [grid(), tp[0], LIST, taken])
         check("look-ahead = only tiles toward unfound spelling words", sorted(nxt) == expect, f"{sorted(nxt)} vs {expect}")
+        # every remaining path is tinted, one translucent layer per branch through a tile (brute force in Python)
+        def nbrs(i): return [r * 5 + c for r in range(i // 5 - 1, i // 5 + 2) for c in range(i % 5 - 1, i % 5 + 2)
+                             if 0 <= r < 5 and 0 <= c < 5 and r * 5 + c != i]
+        def routes(g, w, p):
+            if len(p) == len(w): yield p[:]; return
+            for j in nbrs(p[-1]):
+                if j not in p and g[j] == w[len(p)]: p.append(j); yield from routes(g, w, p); p.pop()
+        g = grid(); want = {}
+        for w in [w for w in LIST if w not in taken and len(w) > 1 and w[0] == g[tp[0]]]:
+            for r in routes(g, w, [tp[0]]):
+                for c in r[1:]: want.setdefault(c, set()).add(r[1])
+        layers = page.evaluate("[...document.querySelectorAll('.bf-tile')].map(t => (t.style.backgroundImage.match(/linear-gradient/g) || []).length)")
+        check("look-ahead tints exactly the tiles on remaining paths", {i for i, n in enumerate(layers) if n} == set(want), f"{sorted(i for i, n in enumerate(layers) if n)} vs {sorted(want)}")
+        check("one colour layer per branch through a tile", all(layers[c] == len(br) for c, br in want.items()), str(layers))
+        rings = page.evaluate("[...document.querySelectorAll('.bf-tile.next')].map(t => t.style.getPropertyValue('--ring'))")
+        check("each branch's next tile has its own ring colour", len(set(rings)) == len(rings) and all(rings), str(rings))
         page.touchscreen.tap(*center(tp[1]))
         check("look-ahead follows the path", tp[0] not in lit("next") and tp[1] not in lit("next") and (len(tp) < 3 or tp[2] in lit("next")), str(lit("next")))
         page.screenshot(path=f"{SHOTS}/baffle_lookahead.png")
