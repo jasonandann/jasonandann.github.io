@@ -39,9 +39,15 @@ export function openParent(entries) {
 
   // Offline copy (issue #13): what this device has saved, plus manual update/reset. Filled in when the worker answers.
   const offNote = el('p', { class: 'small offline-status' }, 'Checking the offline copy…');
+  const LAST = {
+    quiet: 'nothing new', same: 'compared every file, nothing new', swapped: 'updated',
+    mixed: 'the site was in the middle of an update, so the current copy was kept (it tries again next time)',
+    offline: 'no internet',
+  };
   offlineStatus().then((st) => {
+    const last = st && st.last ? ` Last check ${new Date(st.last.at).toLocaleTimeString()}: ${LAST[st.last.result] || st.last.result}.` : '';
     offNote.textContent = !st ? 'No offline copy in this browser (needs https and service worker support).'
-      : st.files ? `Offline copy: ${st.files} files, saved ${new Date(st.since).toLocaleString()}. Updates load by themselves when she is on the home menu.`
+      : st.files ? `Offline copy: ${st.files} files, saved ${new Date(st.since).toLocaleString()}.${last} Updates load by themselves when she is on the home menu.`
         : 'Offline copy not saved yet. It is saved the first time the app opens with internet.';
   });
   const busyBtn = (label, run) => el('button', {

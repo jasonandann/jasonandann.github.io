@@ -2,15 +2,29 @@
 // Registers the service worker, tells it which files to keep, and asks it to check for updates
 // on launch and whenever the app comes back to the front. An update reloads the page only on the
 // home menu, never in the middle of a game. Without service workers (file://, old browsers) all of this is a no-op.
+// The start-up watchdog in index.html covers the case where this module never runs (a broken copy).
 
 const sw = typeof navigator !== 'undefined' && 'serviceWorker' in navigator ? navigator.serviceWorker : null;
-let started = false;
+const FULL_KEY = 'spelling-games.offline.fullcheck'; // when the last full check ran (ms)
+const FULL_EVERY = 6 * 3600 * 1000; // a probe becomes a full check if the last one is older than this
+const ERROR_GAP = 5 * 60 * 1000; // at most one error-triggered full check per 5 minutes
+let registered = false;
 let pending = false;
 let busy = () => false;
+let lastErrorCheck = 0;
+
+// A new copy is in place: reload now on the menu, or when she next goes Home.
+function apply() {
+  if (busy()) pending = true;
+  else location.reload();
+}
+
+const readFull = () => { try { return Number(localStorage.getItem(FULL_KEY)) || 0; } catch { return 0; } };
+const saveFull = () => { try { localStorage.setItem(FULL_KEY, String(Date.now())); } catch { /* ignore */ } };
 
 // Sends a message to the active worker and resolves with its reply (null if there is none in time).
 async function ask(msg, ms = 60000) {
-  if (!started) return null;
+  if (!registered) return null;
   const reg = await sw.ready;
   if (!reg.active) return null;
   return new Promise((resolve) => {
@@ -44,7 +58,17 @@ export async function initOffline(isBusy) {
   try {
     await sw.register('sw.js', { updateViaCache: 'none' });
   } catch { return; } // blocked or unsupported: the site still works online
-  started = true;
+  registered = true;
+  sw.addEventListener('message', (e) => { if (e.data && e.data.type === 'updated') apply(); });
+  sw.startMessages();
+  // A script error may mean a bad mix of files: compare the copy with the site (applies only if something changed).
+  const onError = () => {
+    if (Date.now() - lastErrorCheck < ERROR_GAP) return;
+    lastErrorCheck = Date.now();
+    checkForUpdates(true);
+  };
+  window.addEventListener('error', onError);
+  window.addEventListener('unhandledrejection', onError);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   await ask({ type: 'warm', urls: await warmList() });
   checkForUpdates(true);
@@ -56,12 +80,11 @@ export async function initOffline(isBusy) {
 }
 
 // full=false: quick probe (words.txt + js/app.js); full=true: compare every cached file.
+// The worker also announces a new copy to every open page ('updated' message), so both paths call apply().
 export async function checkForUpdates(full = false) {
-  const r = await ask({ type: 'check', full });
-  if (r && r.updated) {
-    if (busy()) pending = true;
-    else location.reload();
-  }
+  const r = await ask({ type: 'check', full: full || Date.now() - readFull() > FULL_EVERY });
+  if (r && ['same', 'swapped', 'mixed'].includes(r.result)) saveFull();
+  if (r && r.updated) apply();
   return r;
 }
 
@@ -79,7 +102,7 @@ export async function offlineStatus() {
 
 // "Check for updates": full check, then reload either way (also picks up a new sw.js).
 export async function updateNow() {
-  if (started) {
+  if (registered) {
     await ask({ type: 'check', full: true });
     await sw.getRegistration().then((r) => r && r.update()).catch(() => {});
   }

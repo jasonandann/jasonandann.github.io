@@ -137,10 +137,12 @@ document.addEventListener('keydown', (e) => {
     const hint = location.protocol === 'file:'
       ? 'Opening the file directly does not work. Run "python3 -m http.server" in this folder and visit http://localhost:8000.'
       : String(err.message || err);
+    window.__started = true; // the code is fine; the list is what failed
     initOffline(() => true); // still set up the offline copy so the next launch can work offline
     return showError('Could not load the word list.', hint);
   }
   home();
+  window.__started = true; // tells the start-up watchdog in index.html that the app's code loaded and ran
   // Offline copy + updates. Busy = in a game or a grown-up/options pop-up is open: the update waits for home().
   initOffline(() => inGame || !!document.querySelector('.overlay'));
 })();
