@@ -1,0 +1,25 @@
+# For test on Wednesday October 28, 2026
+# One word per line. Add " | example sentence" if you want it read aloud with the word.
+# Lines starting with # are ignored (the first one above is shown as the list name).
+puppy
+puppies
+penny
+pennies
+study
+studies
+carry
+carries
+butterfly
+butterflies
+lady
+ladies
+bunny
+bunnies
+dry
+dries
+hurry
+hurries
+marry
+marries
+along
+put
