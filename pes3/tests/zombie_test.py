@@ -46,9 +46,16 @@ try:
         # ---------- setup screen
         open_zombie()
         check("setup screen shown", page.locator(".zt-setup h2").inner_text().endswith("Zombie Trail"))
-        check("defaults: 1 player / spelling / second chance on",
-              page.locator(".zt-setup .btn.primary").all_inner_texts() == ["1 player", "Spelling", "On", "Start!"],
+        check("setup shows only players / questions / More options / Start",
+              page.locator(".zt-setup .btn.primary").all_inner_texts() == ["1 player", "Spelling", "Start!"] and page.locator(".zt-setup .zt-more").count() == 1,
               str(page.locator(".zt-setup .btn.primary").all_inner_texts()))
+        check("default options summary", page.locator(".zt-summary").inner_text() == "3 zombies · jumps 7–9 · second chance on", page.locator(".zt-summary").inner_text())
+        tap(".zt-more"); page.wait_for_selector(".zt-options")
+        check("options pop-up defaults: 3 zombies / 7–9 / it stays / second chance on",
+              page.locator(".zt-options .btn.primary").all_inner_texts() == ["3", "7–9", "It stays", "On", "Done"],
+              str(page.locator(".zt-options .btn.primary").all_inner_texts()))
+        page.keyboard.press("Escape")
+        check("Escape closes the pop-up", page.locator(".zt-options").count() == 0)
         pick("Both")
         tap(".zt-setup .btn:has-text('Start!')")
         page.wait_for_selector(".zt-board")
@@ -58,10 +65,36 @@ try:
         specials = page.eval_on_selector_all(".sq", "els=>els.map(e=>({i:+e.dataset.i,k:e.dataset.kind,to:e.dataset.to===''?null:+e.dataset.to}))")
         sc = {s["i"]: s["to"] for s in specials if s["k"] == "shortcut"}
         zb = {s["i"]: s["to"] for s in specials if s["k"] == "zombie"}
-        check("4 shortcuts go forward 5-10", len(sc) == 4 and all(5 <= t - f <= 10 for f, t in sc.items()), str(sc))
-        check("5 zombies go back 4-9", len(zb) == 5 and all(4 <= f - t <= 9 for f, t in zb.items()), str(zb))
+        check("4 shortcuts go forward 7-9 (default jump size)", len(sc) == 4 and all(7 <= t - f <= 9 for f, t in sc.items()), str(sc))
+        check("3 zombies (default) go back 7-9", len(zb) == 3 and all(7 <= f - t <= 9 for f, t in zb.items()), str(zb))
         dests = list(sc.values()) + list(zb.values()); srcs = list(sc) + list(zb)
-        check("no chaining (destinations are never special squares)", not (set(dests) & set(srcs)) and len(set(dests + srcs)) == 18)
+        check("no chaining (destinations are never special squares)", not (set(dests) & set(srcs)) and len(set(dests + srcs)) == 14)
+        # many generated boards, every zombie count x jump size: exact counts, sizes in range, never two zombies in a row.
+        # "safe landing": no zombie in the 6 squares after any zombie's destination (required for the defaults).
+        gen = page.evaluate("""async () => {
+          const m = await import('./js/games/zombie.js');
+          const bad = [], strict = {};
+          const safe = (zb) => Object.entries(zb).every(([f, d]) => Object.keys(zb).every((z) => z === f || !(+z > d && +z <= d + 6)));
+          for (const n of m.ZOMBIE_COUNTS) for (const [lo, hi] of m.JUMPS) {
+            let ok = 0;
+            for (let k = 0; k < 100; k++) {
+              const b = m.makeBoard({ zombies: n, jump: [lo, hi] });
+              const z = Object.keys(b.zombies).map(Number), s = Object.keys(b.shortcuts).map(Number);
+              if (z.length !== n || s.length !== 4) bad.push(`n=${n} ${lo}-${hi}: ${s.length} rockets ${z.length} zombies`);
+              for (const a of z) if (z.includes(a + 1)) bad.push(`n=${n} ${a},${a + 1} in a row`);
+              for (const [f, t] of [...Object.entries(b.zombies).map(([f, t]) => [f - t]), ...Object.entries(b.shortcuts).map(([f, t]) => [t - f])])
+                if (f < lo || f > hi) bad.push(`n=${n} ${lo}-${hi}: jump ${f}`);
+              if (b.strict && !safe(b.zombies)) bad.push(`n=${n} ${lo}-${hi}: strict board not safe`);
+              ok += b.strict;
+            }
+            strict[`${n}:${lo}-${hi}`] = ok;
+          }
+          return { counts: m.ZOMBIE_COUNTS, jumps: m.JUMPS.map(([a, b]) => `${a}-${b}`), bad: bad.slice(0, 5), strict };
+        }""")
+        check("zombie options 1-4, jump sizes 3-5 .. 8-10", gen["counts"] == [1, 2, 3, 4] and gen["jumps"] == ["3-5", "4-6", "5-7", "6-8", "7-9", "8-10"], str(gen))
+        check("2400 boards: exact counts, jumps in range, no two zombies in a row", not gen["bad"], str(gen["bad"]))
+        check("1-4 zombies at 7-9 always get the safe-landing board", all(gen["strict"][f"{n}:7-9"] == 100 for n in (1, 2, 3, 4)), str(gen["strict"]))
+        print("(safe-landing boards per 100: " + ", ".join(f"{k}={v}" for k, v in gen["strict"].items() if v < 100) + ")")
         check("squares 0,1,34,35 not special", not ({0, 1, 34, 35} & set(srcs + dests)))
         check("pawn starts at 0", pos() == 0)
         # serpentine geometry: square 5 is far right bottom row, 6 is far right one row up, 11 far left
@@ -149,8 +182,17 @@ try:
         # ---------- play again -> setup; two players, second chance off
         tap(".finish button:has-text('Play again')")
         check("play again returns to setup", page.locator(".zt-setup").count() == 1)
-        pick("2 players"); pick("Math"); tap(".zt-setup .btn:has-text('Off')")
+        pick("2 players"); pick("Math")
+        tap(".zt-more"); page.wait_for_selector(".zt-options")
+        page.locator(".zt-options .btn").get_by_text("4", exact=True).tap()
+        tap(".zt-options .btn:has-text('4–6')"); tap(".zt-options .btn:has-text('Off')")
+        tap(".zt-options .btn:has-text('Done')")
+        check("summary reflects chosen options", page.locator(".zt-summary").inner_text() == "4 zombies · jumps 4–6 · second chance off", page.locator(".zt-summary").inner_text())
+        check("players/questions kept after closing options", page.locator(".zt-setup .btn.primary").all_inner_texts() == ["2 players", "Math", "Start!"])
+        check("options remembered", json.loads(page.evaluate("localStorage.getItem('spelling-games.zombie.options')")) == {"zombies": 4, "jump": "4-6", "fade": False, "second": False})
         tap(".zt-setup .btn:has-text('Start!')"); page.wait_for_selector(".zt-board")
+        zs = page.eval_on_selector_all(".sq[data-kind='zombie'], .sq[data-kind='shortcut']", "els=>els.map(e=>Math.abs(+e.dataset.to - +e.dataset.i))")
+        check("chosen zombie count (4) and jump size (4-6) used on the board", page.locator(".sq[data-kind='zombie']").count() == 4 and all(4 <= d <= 6 for d in zs), str(zs))
         check("two pawns present", page.locator(".pawn").count() == 2)
         check("P1 status first", "Player 1's turn" in page.locator(".zt-status").inner_text())
         tap("button:has-text('Roll')"); page.wait_for_selector(".zt-q")
@@ -176,6 +218,34 @@ try:
         tap("#back")
         page.keyboard.type("hello"); time.sleep(1.2)
         check("home after leaving mid-question", page.locator(".mcard").count() == 22)
+
+        # ---------- "fade away": steer onto a zombie, it leaves the board
+        open_zombie(); pick("1 player"); pick("Math")
+        tap(".zt-more"); page.wait_for_selector(".zt-options"); tap(".zt-options .btn:has-text('fades away')"); tap(".zt-options .btn:has-text('Done')")
+        tap(".zt-setup .btn:has-text('Start!')"); page.wait_for_selector(".zt-board")
+        faded = None; saw_msg = False
+        for _ in range(80):
+            if page.locator(".finish").count():
+                tap(".finish button:has-text('Play again')"); tap(".zt-setup .btn:has-text('Start!')"); page.wait_for_selector(".zt-board")
+            zb = {int(i): None for i in page.eval_on_selector_all(".sq[data-kind='zombie']", "els=>els.map(e=>e.dataset.i)")}
+            tap("button:has-text('Roll')"); page.wait_for_selector(".zt-q")
+            n = int(page.locator(".zt-die .die").get_attribute("data-n")); cur = pos()
+            m = re.match(r"(\d+) ([+−×÷]) (\d+) = \?", page.locator(".zt-q .bigword").inner_text())
+            ans = str({"+": int(m[1]) + int(m[3]), "−": int(m[1]) - int(m[3]), "×": int(m[1]) * int(m[3]), "÷": int(m[1]) // int(m[3])}[m[2]])
+            right = not (max(0, cur - n) in zb and min(35, cur + n) not in zb)
+            if right: type_text(ans); tap(".zt-q button:has-text('Check')")
+            else: type_text("0"); tap(".zt-q button:has-text('Check')"); type_text("0"); tap(".zt-q button:has-text('Check')"); tap(".zt-q button:has-text('OK')")
+            target = min(35, cur + n) if right else max(0, cur - n)
+            if target in zb:
+                try: page.wait_for_selector(".zt-panel .msg:has-text('wanders off')", timeout=5000); saw_msg = True
+                except Exception: saw_msg = False
+            page.wait_for_function("document.querySelector('.finish') || [...document.querySelectorAll('button')].some(b=>b.textContent.includes('Roll'))", timeout=20000)
+            if target in zb: faded = target; break
+        check("steered onto a zombie with fade on", faded is not None)
+        if faded is not None:
+            check("hit zombie faded off the board", page.locator(f".sq[data-i='{faded}']").get_attribute("data-kind") == "none" and page.locator(f".sq[data-i='{faded}'] .ic").count() == 0)
+            check("its arrow is gone, others remain", page.locator(".zt-lines line").count() == 4 + page.locator(".sq[data-kind='zombie']").count())
+            check("fade message shown", saw_msg)
 
         # ---------- phone layout
         page.set_viewport_size({"width": 390, "height": 800})
