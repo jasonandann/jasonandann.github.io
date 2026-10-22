@@ -311,9 +311,11 @@ try:
         # TEST ONLY: 3- and 4-way boards (own word lists): from B, T and S are on every branch
         stops = lambda i: bg(i).count("rgba(") // 2
         page3.locator(".bf-test button[data-board='three']").tap(); page3.locator(".bf-tile[data-i='12']").tap()
-        check("3-way board: T and S checkered in 3 colours plus a blank quarter", all(stops(i) == 3 and "transparent" in bg(i) for i in (13, 14)), bg(13))
+        cols = lambda i: [c.split(")")[0] for c in bg(i).split("rgba(")[1::2]]  # one entry per slice
+        check("3-way board: T and S are one pie, 6 slices = colours 1,2,3,1,2,3, not repeated", all(len(cols(i)) == 6 and cols(i)[:3] == cols(i)[3:] and len(set(cols(i))) == 3 and size(i) == "" for i in (13, 14)), f"{bg(13)} {size(13)}")
         page3.locator(".bf-test button[data-board='four']").tap(); page3.locator(".bf-tile[data-i='12']").tap()
-        check("4-way board: T and S checkered in 4 colours", all(stops(i) == 4 and "transparent" not in bg(i) for i in (13, 14)), bg(13))
+        check("4-way board: T and S checkered in 4 colours", all(stops(i) == 4 and size(i) == "50% 50%" for i in (13, 14)), f"{bg(13)} {size(13)}")
+        check("4-way colours: pink, teal, orange, lime", all(c in bg(13) for c in ("236, 72, 153", "20, 184, 166", "249, 115, 22", "132, 204, 22")), bg(13))
         page3.locator(".bf-test button[data-board='bunny']").tap(); page3.locator(".bf-tile[data-i='1']").tap()
         check("back on the bunny board with your words", "".join(page3.locator(".bf-tile").all_inner_texts()) == "UBPHSNEUTNNDRRTYIAFEESLYA" and page3.locator(".bf-slots").count() == 4)
         page3.locator(".bf-test button[data-mode='blend']").tap()

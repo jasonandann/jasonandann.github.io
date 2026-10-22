@@ -21,7 +21,9 @@ export const FLUENCY_DEFAULT = {
 };
 const BLINK_MS = 2400;
 // Look-ahead branch colours (contrasting, none close to the selected-tile indigo) and tint strength.
-const BRANCH_RGB = ['236, 72, 153', '20, 184, 166', '249, 115, 22', '14, 165, 233', '132, 204, 22', '168, 85, 247', '234, 179, 8', '239, 68, 68'];
+// The first four are spread around the colour wheel (sky blue was too close to teal; violet is avoided
+// early because it is close to the selected-tile indigo).
+const BRANCH_RGB = ['236, 72, 153', '20, 184, 166', '249, 115, 22', '132, 204, 22', '168, 85, 247', '14, 165, 233', '234, 179, 8', '239, 68, 68'];
 const ALPHA_MIN = 0.22;   // a tile on one word's path
 const ALPHA_MAX = 0.6;    // the tile most words pass through
 const CHECK_ALPHA = 0.4;  // checkered tiles use at least this, or the two colours blur into one
@@ -263,19 +265,20 @@ export function mount(root, entries, api) {
           shades[c].push({ rgb, a: +a });
         }
       });
-      // Each repeated cell has 4 quarters, so 2-4 colours make an even checkerboard: 2 alternate, 3 leave
-      // one quarter blank (3 wedges made upward-pointing chevrons). 5+ (never seen in testing): wedges.
+      // 2 or 4 colours: a checkerboard (the 4 quarters of each repeated cell). 3 or 5+: one pie centred
+      // on the letter, each colour twice (1,2,3,1,2,3), cropped by the square; no direction either way.
       const checker = (cs) => {
         const cols = cs.map(({ rgb, a }) => `rgba(${rgb}, ${Math.max(a, CHECK_ALPHA)})`);
-        const seq = cols.length === 2 ? [...cols, ...cols] : cols.length === 3 ? [...cols, 'transparent'] : cols;
+        const seq = cols.length === 2 ? [...cols, ...cols] : cols.length === 4 ? cols : [...cols, ...cols];
         const step = 100 / seq.length;
         return `conic-gradient(${seq.map((c, j) => `${c} ${(j * step).toFixed(1)}% ${((j + 1) * step).toFixed(1)}%`).join(', ')})`;
       };
+      const isPie = (n) => n === 3 || n > 4;
       tiles.forEach((t, i) => {
         const cs = shades[i];
         const checkered = cs.length > 1 && mode !== 'blend';
         t.style.backgroundImage = checkered ? checker(cs) : cs.map(({ rgb, a }) => `linear-gradient(rgba(${rgb}, ${a}), rgba(${rgb}, ${a}))`).join(', ');
-        t.style.backgroundSize = checkered ? '50% 50%' : ''; // 2x2 cells = 4x4 checks per tile
+        t.style.backgroundSize = checkered && !isPie(cs.length) ? '50% 50%' : ''; // checker: 2x2 cells = 4x4 checks
         const k = branches.findIndex((b) => b.first === i);
         t.classList.toggle('next', k >= 0);
         if (k >= 0) t.style.setProperty('--ring', `rgb(${palette[k % palette.length]})`);
