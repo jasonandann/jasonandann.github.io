@@ -1,5 +1,6 @@
 import { el, loadWords } from './util.js';
 import { openParent } from './parent.js';
+import { initOffline, checkForUpdates, reloadIfPending } from './offline.js';
 import * as jumble from './games/jumble.js';
 import * as typeit from './games/typeit.js';
 import * as fillblank from './games/fillblank.js';
@@ -64,6 +65,7 @@ let inGame = false;
 
 function home() {
   if (cleanup) { cleanup(); cleanup = null; }
+  if (reloadIfPending()) return; // an update arrived during the game: load it now, on the way to the menu
   inGame = false;
   backBtn.hidden = true;
   app.replaceChildren(
@@ -85,6 +87,7 @@ function home() {
       ),
     ),
   );
+  checkForUpdates(); // quick probe; reloads here (not in a game) if something changed
 }
 
 function open(game, sec) {
@@ -134,7 +137,12 @@ document.addEventListener('keydown', (e) => {
     const hint = location.protocol === 'file:'
       ? 'Opening the file directly does not work. Run "python3 -m http.server" in this folder and visit http://localhost:8000.'
       : String(err.message || err);
+    window.__started = true; // the code is fine; the list is what failed
+    initOffline(() => true); // still set up the offline copy so the next launch can work offline
     return showError('Could not load the word list.', hint);
   }
   home();
+  window.__started = true; // tells the start-up watchdog in index.html that the app's code loaded and ran
+  // Offline copy + updates. Busy = in a game or a grown-up/options pop-up is open: the update waits for home().
+  initOffline(() => inGame || !!document.querySelector('.overlay'));
 })();
