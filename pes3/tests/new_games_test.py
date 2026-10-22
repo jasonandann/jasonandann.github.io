@@ -1,4 +1,4 @@
-"""Tests for: audio playback/fallback, Spell Catcher, Word Volcano, Wordal, the 7 math games,
+"""Tests for: audio playback/fallback, Spell Catcher, Word Volcano, Wordal, the 6 math games,
 Spot Match, Simon Says, My Garden, and the sectioned menu.
 
 Run from the repo root:   python3 tests/new_games_test.py
@@ -75,7 +75,7 @@ try:
         check("menu has 4 sections", len(heads) == 4, str(heads))
         check("menu has 22 cards", page.locator(".mcard").count() == 22)
         for name in ["Spell Catcher", "Word Volcano", "Wordal", "Number Bubbles", "Number Cascade", "Times Table Explorer",
-                     "Number Maze", "Number Mountain", "Puzzle Pieces", "Number River", "Spot Match", "Simon Says", "My Garden"]:
+                     "Number Maze", "Number Mountain", "Puzzle Pieces", "Lily Pad River", "Spot Match", "Simon Says", "My Garden"]:
             check(f"menu has {name}", page.locator(".mcard", has_text=name).count() == 1)
 
         # ---- audio: recording plays, no speech; missing/blocked file falls back to speech
@@ -193,11 +193,10 @@ try:
 
         g0 = gp()
         play_math("Number Mountain", ".ans", 10)
-        play_math("Number River", ".rv-pad", 10)
         play_math("Number Maze", ".door-n", 8)
         play_math("Number Bubbles", ".bb", 10)
         play_math("Number Cascade", ".cc", 10)
-        check("math games award garden points (48 questions)", gp() - g0 == 48, f"{gp() - g0}")
+        check("math games award garden points (38 questions)", gp() - g0 == 38, f"{gp() - g0}")
 
         # level picker remembered
         open_game("Number Mountain")

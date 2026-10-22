@@ -288,7 +288,7 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .mq { font-size: 3rem; font-weight: 800; color: var(--brand); text-align: center; letter-spacing: .04em; }
 .answers { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 12px; width: min(420px, 100%); }
 .btn.ans { font-size: 1.8rem; min-height: 68px; }
-.btn.ans.right, .rv-pad.right, .cc.right { background: var(--good-bg); border-color: var(--good); }
+.btn.ans.right, .cc.right { background: var(--good-bg); border-color: var(--good); }
 .btn:disabled { opacity: .45; }
 .glow { box-shadow: 0 0 0 4px #fde047, 0 0 18px #facc15; }
 .no { opacity: .35; }
@@ -378,17 +378,11 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .kb .key[data-s="present"] { background: #d97706; color: #fff; }
 .kb .key[data-s="absent"] { background: #d1d5db; color: #6b7280; }
 
-/* ---------- Math: Mountain, River, Maze, Bubbles, Cascade ---------- */
+/* ---------- Math: Mountain, Maze, Bubbles, Cascade ---------- */
 .mt { position: relative; width: min(92vw, 420px); height: 120px; background: linear-gradient(#bae6fd, #f0f9ff); border-radius: var(--radius); overflow: hidden; }
 .mt-peak { position: absolute; right: 8px; top: 8px; font-size: 3rem; }
 .mt-flag { position: absolute; right: 52px; top: 4px; font-size: 1.6rem; }
 .mt-hiker { position: absolute; left: calc(var(--p, 0%) * .8 + 4%); bottom: calc(var(--p, 0%) * .5 + 6px); font-size: 2.2rem; transition: all .8s; }
-.rv { width: min(94vw, 520px); background: linear-gradient(#7dd3fc, #38bdf8); border-radius: var(--radius); padding: 18px 8px; }
-.rv-bank { text-align: center; font-size: 1.6rem; }
-.rv-pads { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; justify-items: center; }
-.rv-pad { position: relative; width: 130px; height: 80px; border-radius: 50%; background: #4ade80; border: 3px solid #16a34a; font-size: 1.8rem; font-weight: 800; }
-.rv-pad.sunk { opacity: .4; transform: scale(.9); }
-.rv-frog { position: absolute; top: -18px; left: 50%; margin-left: -18px; font-size: 2.2rem; }
 .doors { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
 .door { width: 110px; height: 150px; border-radius: 14px 14px 4px 4px; border: 3px solid #92400e; background: #fde68a; font-size: 3rem; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .door-n { font-size: 1.8rem; font-weight: 800; }
@@ -452,3 +446,43 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 }
 .ex-grid { width: min(96vw, 64vh, 620px); }
 .pz-grid { width: min(86vw, 40vh, 330px); }
+
+/* ---------- Lily Pad River ---------- */
+.lp-river {
+  position: relative; width: min(96vw, 760px); border-radius: var(--radius); overflow: hidden;
+  background:
+    repeating-linear-gradient(95deg, transparent 0 46px, rgba(255,255,255,.22) 48px 51px, transparent 53px 110px),
+    linear-gradient(#7dd3fc, #0ea5e9 45%, #0284c7);
+  background-size: 220px 100%, 100% 100%;
+  animation: lp-flow 7s linear infinite;
+}
+@keyframes lp-flow { to { background-position: 220px 0, 0 0; } }
+.lp-bank { position: relative; height: 46px; background: linear-gradient(#86efac, #4ade80); border-bottom: 5px solid #a16207;
+  display: flex; align-items: center; justify-content: flex-end; padding: 0 16px; font-size: 1.4rem; letter-spacing: .25em; }
+.lp-bank.low { height: 32px; border-bottom: 0; border-top: 5px solid #a16207; justify-content: center; font-size: 1.1rem; }
+.lp-home { position: absolute; left: 18px; bottom: -4px; z-index: 2; }
+.lp-frog { font-size: 2.5rem; line-height: 1; letter-spacing: 0; }
+.lp-lane { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px; min-height: 98px; }
+.lp-lane.moving { display: block; padding: 0; height: 98px; }
+.lp-lane.moving .lp-pad { position: absolute; top: 13px; }
+.lp-pad {
+  position: relative; min-width: 108px; height: 72px; padding: 0 30px 0 20px; border-radius: 50%; border: 3px solid #15803d;
+  background: radial-gradient(circle at 38% 32%, #dcfce7, #86efac 35%, #22c55e 80%);
+  box-shadow: 0 5px 0 rgba(7, 89, 133, .45); font-size: 1.9rem; font-weight: 800; color: #14532d; white-space: nowrap;
+  transition: opacity .3s, scale .3s, filter .3s;
+}
+.lp-pad.word { font-size: 1.5rem; letter-spacing: .02em; }
+/* the notch that makes it read as a lily pad */
+.lp-pad::after { content: ''; position: absolute; right: -3px; top: 50%; width: 24px; height: 14px; margin-top: -7px;
+  background: #0ea5e9; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+.lp-pad.sunk { opacity: .35; scale: .85; filter: saturate(.3); }
+.lp-pad.glow { animation: lp-glow 1s ease-in-out infinite alternate; }
+@keyframes lp-glow { from { box-shadow: 0 0 0 3px #fde047; } to { box-shadow: 0 0 0 9px #fde047; } }
+.lp-pad.right { background: radial-gradient(circle at 38% 32%, #fefce8, #fde047 40%, #4ade80 85%); border-color: var(--good); }
+.lp-pad .lp-frog { position: absolute; top: -34px; left: 50%; margin-left: -1.25rem; }
+.lp-frog.hop { animation: lp-hop .55s ease-out; }
+@keyframes lp-hop { 0% { transform: translate(-30px, -70px) scale(1.25); } 60% { transform: translate(0, -18px) scale(1.1); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .lp-river, .lp-frog.hop, .lp-pad.glow { animation: none; }
+  .lp-pad.glow { box-shadow: 0 0 0 6px #fde047; }
+}
