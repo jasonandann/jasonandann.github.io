@@ -64,7 +64,8 @@ try:
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
         check("menu: Lily Pad River is in the Fun section",
               page.locator(".sect", has_text="Fun").locator(".mcard", has_text="Lily Pad River").count() == 1)
-        check("menu: old Number River is gone", page.locator(".mcard", has_text="Number River").count() == 0)
+        check("menu: Number River kept in Math until Lily Pad River is tested on iPad",
+              page.locator(".sect", has_text="Math").locator(".mcard", has_text="Number River").count() == 1)
 
         # ---- setup
         page.locator(".mcard", has_text="Lily Pad River").first.tap()

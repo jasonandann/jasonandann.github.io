@@ -23,7 +23,7 @@ js/util.js                         el, parseWords/loadWords, progress, garden, s
 js/math.js                         makeQuestion(s), choices, pickLevel, quiz() loop
 js/parent.js                       grown-ups panel
 js/games/*.js                      jumble typeit fillblank catcher volcano wordal memory wordsearch lcwc words
-                                   baffle  zombie  river  mathquiz(mountain maze bubbles cascade)  puzzle explorer
+                                   baffle  zombie  river  mathquiz(mountain river maze bubbles cascade)  puzzle explorer
                                    spotmatch simon garden
 audio/manifest.json (+*.m4a, pronunciations.txt)   optional recordings
 dict/words.txt                     generated: ENABLE 3-12 letters minus tools/blocklist.txt
@@ -32,8 +32,8 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.p
 ```
 
 ## Contracts
-- Game module: `export function mount(root, entries, api)`; `api={home}`; may return a cleanup fn. `mathquiz.js` exports objects `{mount}` (e.g. `mq.maze`).
-- `app.js` `SECTIONS=[{title,needsWords?,games:[{icon,name,blurb,needsWords?,mod}]}]`. Adding a game = new file + one entry. Menu currently 22 cards (tests assert this).
+- Game module: `export function mount(root, entries, api)`; `api={home}`; may return a cleanup fn. `mathquiz.js` exports objects `{mount}` (e.g. `mq.river`).
+- `app.js` `SECTIONS=[{title,needsWords?,games:[{icon,name,blurb,needsWords?,mod}]}]`. Adding a game = new file + one entry. Menu currently 23 cards (tests assert this; back to 22 when Number River is removed).
 - `words.txt`: first `#` line = list title; `word | optional sentence`; dupes ignored; lowercase.
 - Spelling games use `rounds(root, entries, api, renderRound, {perRound=10})`; `renderRound({entry,next,root,later,onLeave})`; call `logRound(word, firstTry)` **once** per word. `chooseWords` quietly favours missed words.
 - `logRound` also calls `award()` (+1 garden point per finished word, right or not). Math games call `award()` per answered question via `quiz()`. Garden: 4 pts/flower, cap 30 plots, only grows. Keys: `spelling-games.progress.v1` (hidden), `spelling-games.garden.v1`, `spelling-games.mathlevel`. `clearProgress()` must NOT clear the garden.
@@ -46,7 +46,7 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.p
 - Math levels: add (within 100), t5, t10, div. Kid-gentle copy: "Try again!", never "wrong".
 - Spelling menu order (Jason's choice, 2026-10-22): See the Words, Jumble, Fill the Blanks, LCWC, Spell Catcher, Volcano, Memory, Baffle, Word Search, Wordal, Listen & Type.
 - Word Volcano win: `erupt()` adds `.vo-flow` (cap + 3 clip-path lava rivers pouring into the lake) and `.vo-crater` (30 looping `.vo-blob` arcs + smoke); `.vo-slots` sits above so the word stays readable. Reduced motion hides blobs/smoke.
-- Lily Pad River (issue #8; replaced Number River, moved Math -> Fun): setup Spelling/Math/Both (key `spelling-games.river.mode`, default both; Spelling hidden if no words) + math level (shared `spelling-games.mathlevel`). 10 questions, 2 lanes x the same 4 choices, moved with the Web Animations API (not CSS vars in keyframes), even spacing so pads never overlap; reduced motion = static wrapped pads. Wrong value sinks in both lanes; answer glows after 2 misses. Spelling: `misspellings(word, avoid)` = y/ie/ies traps first, then doubling, vowel swaps, vowel-pair swaps, silent e; drops real `inDictionary` words and list words; tops up with list words for short words (`put`). Spelling q: `logRound` once; math q: `award()`. A Next button (not a timer) precedes each spelling question so iOS speech runs inside a tap.
+- Lily Pad River (issue #8; in Fun). Number River (`mq.river`, `.rv-*` CSS) stays in Math as the known-good version until Jason tests Lily Pad River on the live site on an iPad; then delete it (mathquiz.js block, `.rv-*` CSS, app.js entry, `play_math("Number River")` + menu name in new_games_test, 23 -> 22 in all suites). Lily Pad River: setup Spelling/Math/Both (key `spelling-games.river.mode`, default both; Spelling hidden if no words) + math level (shared `spelling-games.mathlevel`). 10 questions, 2 lanes x the same 4 choices, moved with the Web Animations API (not CSS vars in keyframes), even spacing so pads never overlap; reduced motion = static wrapped pads. Wrong value sinks in both lanes; answer glows after 2 misses. Spelling: `misspellings(word, avoid)` = y/ie/ies traps first, then doubling, vowel swaps, vowel-pair swaps, silent e; drops real `inDictionary` words and list words; tops up with list words for short words (`put`). Spelling q: `logRound` once; math q: `award()`. A Next button (not a timer) precedes each spelling question so iOS speech runs inside a tap.
 - Zombie Trail: 6x6 serpentine (0..35), 4 shortcuts (+5..10), 5 zombies (-4..-9), no exact finish, clamp at 0, Second chance default ON; DOM exposes `data-pos`, `data-kind`, `data-to` for tests.
 
 ## Commands

@@ -42,6 +42,7 @@ const SECTIONS = [
     { icon: '🚪', name: 'Number Maze', blurb: 'Pick the right door', mod: mq.maze },
     { icon: '⛰️', name: 'Number Mountain', blurb: 'Climb to the top', mod: mq.mountain },
     { icon: '🧩', name: 'Puzzle Pieces', blurb: 'Uncover the picture', mod: puzzle },
+    { icon: '🐸', name: 'Number River', blurb: 'Hop across the lily pads', mod: mq.river },
   ] },
   { title: '🎲 Fun', games: [
     { icon: '🧟', name: 'Zombie Trail', blurb: 'Race to the finish', needsWords: true, mod: zombie },
