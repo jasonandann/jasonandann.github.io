@@ -1,6 +1,7 @@
 // Hidden "grown-ups" panel. Opened by tapping the page title 5 times quickly,
 // or by typing "parent" on the home screen. Nothing on the child-facing screens links here.
-import { el, getProgress, clearProgress } from './util.js';
+import { el, getProgress, clearProgress, isLetters } from './util.js';
+import { lookaheadMode, setLookaheadMode, getStats, clearStats, isFluent, fluentCount, fluentNeeded, getFluency, setFluency } from './games/baffle.js';
 
 export function openParent(entries) {
   if (document.querySelector('.overlay')) return;
@@ -13,6 +14,27 @@ export function openParent(entries) {
     .sort((a, b) => b.m - a.m || (b.m + b.c) - (a.m + a.c) || a.word.localeCompare(b.word));
   const days = Object.entries(p.days).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 14);
   const focus = rows.filter((r) => r.m > 0 && r.m >= r.c).map((r) => r.word);
+  // Baffle helpers: look-ahead setting + per-word finds (Baffle keeps its own stats).
+  const bf = getStats();
+  const bfWords = entries.map((e) => e.word).filter((w) => isLetters(w) && w.length >= 2);
+  const fl = getFluency();
+  const fluent = fluentCount(bfWords, bf, fl);
+  const need = fluentNeeded(bfWords, fl);
+  const mode = lookaheadMode();
+  const lookNote = mode === 'on' ? 'Always on.' : mode === 'off' ? 'Off.'
+    : `Auto: ${fluent < need ? 'on' : 'off'} now. ${fluent} of ${bfWords.length} words found ${fl.streak}+ times in a row with no hint; it turns off at ${need} (checked when a new board starts).`;
+  const modeBtn = (m, label) => el('button', {
+    class: `btn${m === mode ? ' primary' : ''}`, type: 'button', 'aria-pressed': String(m === mode),
+    onclick: () => { setLookaheadMode(m); reopen(); },
+  }, label);
+  const bfRows = bfWords.filter((w) => bf.words[w]);
+  const reopen = () => { close(); openParent(entries); };
+  const picker = (label, value, options, save) => el('label', { class: 'pick' }, label,
+    el('select', { onchange: (e) => { save(Number(e.target.value)); reopen(); } },
+      options.map(([v, text]) => el('option', { value: v, selected: v === value }, text))));
+  const fluencyRow = el('div', { class: 'row' },
+    picker('Fluent after ', fl.streak, [1, 2, 3, 4, 5].map((n) => [n, `${n} in a row`]), (n) => setFluency({ streak: n })),
+    picker('Auto off at ', fl.share, [0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1].map((x) => [x, `${Math.round(x * 100)}% of list`]), (x) => setFluency({ share: x })));
 
   const onKey = (e) => { if (e.key === 'Escape') close(); };
   function close() {
@@ -34,6 +56,20 @@ export function openParent(entries) {
           el('tr', {}, el('td', {}, r.word), el('td', {}, r.c + r.m), el('td', {}, r.c), el('td', { class: r.m > r.c ? 'flag' : '' }, r.m)),
         )),
       ),
+      el('h3', {}, 'Baffle look-ahead'),
+      el('p', { class: 'small' }, 'Lights up letters that can still make one of this week’s words. ' + lookNote),
+      el('div', { class: 'row' }, modeBtn('auto', 'Auto'), modeBtn('on', 'Always on'), modeBtn('off', 'Off')),
+      fluencyRow,
+      bfRows.length
+        ? el('table', {},
+          el('thead', {}, el('tr', {}, ['Word', 'Found, no hint', 'Look-ahead off', 'With hint', 'In a row'].map((h) => el('th', {}, h)))),
+          el('tbody', {}, bfRows.map((w) => {
+            const r = bf.words[w];
+            return el('tr', {}, el('td', {}, w), el('td', {}, r.solo), el('td', {}, r.free || 0),
+              el('td', { class: r.helped > r.solo ? 'flag' : '' }, r.helped), el('td', {}, isFluent(r) ? `${r.streak} ✓` : r.streak));
+          })))
+        : el('p', {}, `No Baffle words found yet${bf.games ? '' : ' (no boards played)'}.`),
+      bf.games ? el('p', { class: 'small' }, `${bf.games} Baffle boards with at least one spelling word found.`) : null,
       el('h3', {}, 'Recent practice days'),
       days.length
         ? el('table', {}, el('tbody', {}, days.map(([d, v]) => el('tr', {}, el('td', {}, d), el('td', {}, `${v.c + v.m} rounds`)))))
@@ -43,7 +79,7 @@ export function openParent(entries) {
         el('button', {
           class: 'btn', type: 'button',
           onclick: () => {
-            if (confirm('Erase all saved practice history on this device?')) { clearProgress(); close(); openParent(entries); }
+            if (confirm('Erase all saved practice history on this device?')) { clearProgress(); clearStats(); close(); openParent(entries); }
           },
         }, 'Erase history'),
       ),
