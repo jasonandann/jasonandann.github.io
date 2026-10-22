@@ -1,7 +1,7 @@
 // Zombie Trail: a board-game race. Roll a die, answer a problem.
 // Right = move ahead by the roll. Wrong = move back by the roll.
 // Shortcut squares (🚀) jump you ahead; zombie squares (🧟) send you back.
-import { el, chooseWords, hearBar, speakSentence, cheer, retry, logRound, celebrate, keyboard, listenKeys, extraChars, scope } from '../util.js';
+import { el, chooseWords, hearBar, speakSentence, cheer, retry, logRound, celebrate, keyboard, listenKeys, extraChars, scope, opKind } from '../util.js';
 
 const COLS = 6;
 const ROWS = 6;
@@ -341,7 +341,7 @@ export function mount(root, entries, api) {
           stop();
           if (!isMath) logRound(answer, misses === 0);
           shown.classList.add('good');
-          note.textContent = cheer();
+          note.textContent = cheer(isMath ? opKind(problem.text) : 'spell');
           later(() => finishOnce(true), 900);
           return;
         }

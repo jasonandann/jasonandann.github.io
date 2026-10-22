@@ -66,7 +66,7 @@ export function mount(root, _e, api) {
             class: 'btn big ans', type: 'button',
             onclick: (e) => {
               if (locked) return;
-              if (o === v) { locked = true; award(); known.add(`${r}x${c}`); panel.replaceChildren(); info.textContent = cheer(); drawGrid(); }
+              if (o === v) { locked = true; award(); known.add(`${r}x${c}`); panel.replaceChildren(); info.textContent = cheer('mul'); drawGrid(); }
               else { e.currentTarget.disabled = true; info.textContent = nudge(); }
             },
           }, o),

@@ -1,6 +1,6 @@
 // Five themed math games that share one idea: answer the question, move the game forward.
 // Mountain, River, Maze, Bubbles, Cascade. Each exports mount(root, entries, api).
-import { el, shuffle, celebrate, cheer } from '../util.js';
+import { el, shuffle, celebrate, cheer, opKind } from '../util.js';
 import { quiz, nudge } from '../math.js';
 
 const qHeader = (q, i, count) => [
@@ -22,7 +22,7 @@ export const mountain = {
         if (c === q.answer) {
           locked = true;
           b.classList.add('right');
-          msg.textContent = cheer();
+          msg.textContent = cheer(opKind(q.text));
           hiker.style.setProperty('--p', `${((i + 1) / (count - 1)) * 100}%`);
           later(done, 1100);
         } else {
@@ -55,7 +55,7 @@ export const river = {
               locked = true;
               b.classList.add('right');
               b.append(frog);
-              msg.textContent = cheer();
+              msg.textContent = cheer(opKind(q.text));
               later(done, 1200);
             } else {
               b.classList.add('sunk');
@@ -86,7 +86,7 @@ export const maze = {
             if (c === q.answer) {
               locked = true;
               b.classList.add('open');
-              msg.textContent = cheer();
+              msg.textContent = cheer(opKind(q.text));
               later(done, 1100);
             } else {
               b.disabled = true;
@@ -120,7 +120,7 @@ export const bubbles = {
               if (c === q.answer) {
                 locked = true;
                 sea.querySelectorAll('.bb').forEach((x) => x.classList.add('pop'));
-                msg.textContent = cheer();
+                msg.textContent = cheer(opKind(q.text));
                 later(done, 900);
               } else {
                 b.classList.add('pop');
@@ -158,7 +158,7 @@ export const cascade = {
             if (c === q.answer) {
               locked = true;
               b.classList.add('right');
-              msg.textContent = cheer();
+              msg.textContent = cheer(opKind(q.text));
               tiles.forEach((t, j) => {
                 const dist = Math.abs((j % 4) - (k % 4)) + Math.abs(Math.floor(j / 4) - Math.floor(k / 4));
                 later(() => t.classList.add('ripple'), dist * 90);

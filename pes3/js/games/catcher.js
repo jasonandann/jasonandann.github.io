@@ -40,7 +40,7 @@ export function mount(root, entries, api) {
         if (pos === chars.length) {
           done = true;
           logRound(word, misses === 0);
-          msg.textContent = cheer();
+          msg.textContent = cheer('spell');
           nextBtn.hidden = false;
           sky.querySelectorAll('.sc-letter').forEach((b) => b.remove());
           celebrate(root);

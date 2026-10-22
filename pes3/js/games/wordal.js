@@ -85,7 +85,7 @@ export function mount(root, entries, api) {
         if (guess === word) {
           done = true;
           logRound(word, guesses <= 2);
-          msg.textContent = cheer();
+          msg.textContent = cheer('spell');
           nextBtn.hidden = false;
           celebrate(root);
         } else if (guesses >= MAX_GUESSES) {

@@ -84,20 +84,27 @@ try:
         time.sleep(0.6)
         x1 = page.evaluate("[...document.querySelectorAll('.lp-pad')].map(e => e.getBoundingClientRect().x)")
         check("math: pads float to the right", all(b > a for a, b in zip(x0, x1)), f"{x0} -> {x1}")
-        overlap = page.evaluate("""() => [...document.querySelectorAll('.lp-lane')].some(l => {
+        OVERLAP = """() => [...document.querySelectorAll('.lp-lane')].some(l => {
             const r = [...l.children].map(e => e.getBoundingClientRect()).sort((a, b) => a.x - b.x);
-            return r.some((a, i) => i && a.x < r[i - 1].x + r[i - 1].width - 1); })""")
-        check("math: pads in a lane never overlap", not overlap)
+            return r.some((a, i) => i && a.x < r[i - 1].x + r[i - 1].width - 1); })"""
+        check("math: pads in a lane never overlap", not page.evaluate(OVERLAP))
         for i in range(10):
             page.wait_for_function(f"document.querySelector('.prompt') && document.querySelector('.prompt').textContent.includes('{i + 1} of')", timeout=6000)
             ans = evalmath(page.locator(".mq").inner_text())
             vals = pad_values()
-            check(f"math q{i + 1}: each lane has the answer once", vals[:4].count(str(ans)) == 1 and vals[4:].count(str(ans)) == 1, str(vals)) if i in (0, 9) else None
+            if i in (0, 9):
+                check(f"math q{i + 1}: each lane has the answer once", vals[:4].count(str(ans)) == 1 and vals[4:].count(str(ans)) == 1, str(vals))
+                check(f"math q{i + 1}: 6 different wrong answers", len(set(vals)) == 7, str(vals))
             if i == 0:
                 wrong = next(v for v in vals if v != str(ans))
                 click_pad(wrong)
                 check("math: wrong answer is gentle", msg() != "" and "wrong" not in msg().lower(), msg())
-                check("math: wrong value sinks in both lanes", page.locator(f".lp-pad.sunk[data-v='{wrong}']").count() == 2)
+                check("math: only the tapped pad sinks", page.locator(".lp-pad.sunk").count() == 1)
+                sx = lambda: page.evaluate("document.querySelector('.lp-pad.sunk').parentElement.getBoundingClientRect().x")
+                a0 = sx(); time.sleep(0.5); a1 = sx()
+                check("math: sunk pad keeps floating down the river", a1 > a0 + 5, f"{a0} -> {a1}")
+                check("math: pads still never overlap after a sink", not page.evaluate(OVERLAP))
+                page.screenshot(path=f"{SHOTS}/river_math_sunk.png")
                 click_pad(next(v for v in vals if v not in (wrong, str(ans))))
                 check("math: answer glows after 2 tries", page.locator(f".lp-pad.glow[data-v='{ans}']").count() == 2)
             click_pad(ans)
@@ -118,10 +125,10 @@ try:
             vals = pad_values()
             if i == 0:
                 page.screenshot(path=f"{SHOTS}/river_spelling.png")
-                lane = vals[:4]
                 check("spelling: says a list word", word in LIST, word)
-                check("spelling: 4 different choices, one is the word", len(set(lane)) == 4 and word in lane, str(lane))
-                check("spelling: misspellings are not other list words", not [v for v in lane if v != word and v in LIST] or len(word) <= 3, str(lane))
+                check("spelling: the word once per lane, 6 different wrong pads", vals[:4].count(word) == 1 and vals[4:].count(word) == 1 and len(set(vals)) == 7, str(vals))
+                listed = [v for v in vals if v != word and v in LIST]
+                check("spelling: wrong pads = misspellings + 2 list words", len(listed) == 2 or len(word) <= 3, str(vals))
                 click_pad(next(v for v in vals if v != word))
                 check("spelling: wrong pick is gentle", "wrong" not in msg().lower() and msg() != "", msg())
             click_pad(word)
@@ -163,6 +170,16 @@ try:
         check("misspell: bunnies -> bunnys/bunnyes trap", any(m in res["bunnies"][:2] for m in ["bunnys", "bunnyes", "bunneys", "bunnees"]), str(res["bunnies"][:3]))
         check("misspell: friend -> freind available", "freind" in res["friend"], str(res["friend"]))
         check("misspell: no duplicates", all(len(v) == len(set(v)) for k, v in res.items() if not k.startswith("__")))
+
+        # ---- praise matches the question (Jason saw "Great spelling!" in Number River)
+        praise = page.evaluate("""async () => { const u = await import('./js/util.js');
+            const run = (k) => Array.from({ length: 300 }, () => u.cheer(k));
+            return { ops: ['3 + 4', '9 − 2', '7 × 8', '56 ÷ 7', 'cat'].map(u.opKind),
+                     mathSpell: ['add', 'sub', 'mul', 'div', undefined].flatMap(run).filter(c => /spell/i.test(c)).length,
+                     spell: [...new Set(run('spell'))], mul: [...new Set(run('mul'))] }; }""")
+        check("praise: opKind reads the operation", praise["ops"] == ["add", "sub", "mul", "div", None], str(praise["ops"]))
+        check("praise: math and general praise never mention spelling", praise["mathSpell"] == 0)
+        check("praise: spelling and times-table praise name the skill", any("spell" in c.lower() for c in praise["spell"]) and any("multipl" in c.lower() or "times" in c.lower() for c in praise["mul"]))
 
         # ---- small screens + reduced motion
         page.set_viewport_size({"width": 390, "height": 760})
