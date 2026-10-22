@@ -30,6 +30,7 @@ try:
         b = p.chromium.launch()
         ctx = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True, is_mobile=False)
         ctx.add_init_script(FAKE_TTS)
+        ctx.route(URL + "words.txt", lambda r: r.fulfill(path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "words.txt")))  # fixed list, not the weekly one
         page = ctx.new_page()
         page.on("console", lambda m: errors.append(f"console.{m.type}: {m.text}") if m.type == "error" else None)
         page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
@@ -49,7 +50,7 @@ try:
 
         # ---- load + menu
         page.goto(URL); page.wait_for_selector(".mcard")
-        check("menu shows 21 cards", page.locator(".mcard").count() == 21)
+        check("menu shows 22 cards", page.locator(".mcard").count() == 22)
         check("list title shown", "Week of Oct 26" in page.locator(".listname").inner_text())
         page.screenshot(path=f"{SHOTS}/menu.png")
 

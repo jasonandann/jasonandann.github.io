@@ -5,6 +5,7 @@ import * as typeit from './games/typeit.js';
 import * as fillblank from './games/fillblank.js';
 import * as memory from './games/memory.js';
 import * as wordsearch from './games/wordsearch.js';
+import * as baffle from './games/baffle.js';
 import * as lcwc from './games/lcwc.js';
 import * as zombie from './games/zombie.js';
 import * as words from './games/words.js';
@@ -29,6 +30,7 @@ const SECTIONS = [
     { icon: '🟩', name: 'Wordal', blurb: 'Guess the word in six tries', mod: wordal },
     { icon: '🃏', name: 'Memory Match', blurb: 'Match the word pairs', mod: memory },
     { icon: '🔎', name: 'Word Search', blurb: 'Find the hidden words', mod: wordsearch },
+    { icon: '🤯', name: 'Baffle', blurb: 'Make words from touching letters', mod: baffle },
     { icon: '👀', name: 'Look, Cover, Write, Check', blurb: 'Study it, hide it, spell it', mod: lcwc },
     { icon: '📖', name: 'See the Words', blurb: 'Tap a word to hear it', mod: words },
   ] },

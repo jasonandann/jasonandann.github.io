@@ -45,6 +45,7 @@ try:
         b = p.chromium.launch()
         ctx = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True)
         ctx.add_init_script(INIT)
+        ctx.route(URL + "words.txt", lambda r: r.fulfill(path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "words.txt")))  # fixed list, not the weekly one
         ctx.route("**/audio/manifest.json", lambda r: r.fulfill(
             status=200, content_type="application/json",
             body=json.dumps({"words": ["because", "friend"], "sentences": {"because": "I stayed inside because it was raining."}})))
@@ -68,7 +69,7 @@ try:
         # ---- menu sections
         heads = page.locator(".sect h2").all_inner_texts()
         check("menu has 4 sections", len(heads) == 4, str(heads))
-        check("menu has 21 cards", page.locator(".mcard").count() == 21)
+        check("menu has 22 cards", page.locator(".mcard").count() == 22)
         for name in ["Spell Catcher", "Word Volcano", "Wordal", "Number Bubbles", "Number Cascade", "Times Table Explorer",
                      "Number Maze", "Number Mountain", "Puzzle Pieces", "Number River", "Spot Match", "Simon Says", "My Garden"]:
             check(f"menu has {name}", page.locator(".mcard", has_text=name).count() == 1)

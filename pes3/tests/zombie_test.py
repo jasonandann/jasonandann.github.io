@@ -28,6 +28,7 @@ try:
         b = p.chromium.launch()
         ctx = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True)
         ctx.add_init_script(FAKE_TTS)
+        ctx.route(URL + "words.txt", lambda r: r.fulfill(path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "words.txt")))  # fixed list, not the weekly one
         page = ctx.new_page()
         page.on("console", lambda m: errors.append(f"console.{m.type}: {m.text}") if m.type == "error" else None)
         page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
@@ -174,7 +175,7 @@ try:
         tap("button:has-text('Roll')"); page.wait_for_selector(".zt-q")
         tap("#back")
         page.keyboard.type("hello"); time.sleep(1.2)
-        check("home after leaving mid-question", page.locator(".mcard").count() == 21)
+        check("home after leaving mid-question", page.locator(".mcard").count() == 22)
 
         # ---------- phone layout
         page.set_viewport_size({"width": 390, "height": 800})
