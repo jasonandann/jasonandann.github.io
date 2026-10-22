@@ -64,8 +64,7 @@ try:
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
         check("menu: Lily Pad River is in the Fun section",
               page.locator(".sect", has_text="Fun").locator(".mcard", has_text="Lily Pad River").count() == 1)
-        check("menu: Number River kept in Math until Lily Pad River is tested on iPad",
-              page.locator(".sect", has_text="Math").locator(".mcard", has_text="Number River").count() == 1)
+        check("menu: old Number River is gone (replaced by Lily Pad River)", page.locator(".mcard", has_text="Number River").count() == 0)
 
         # ---- setup
         page.locator(".mcard", has_text="Lily Pad River").first.tap()
@@ -83,7 +82,8 @@ try:
         x0 = page.evaluate("[...document.querySelectorAll('.lp-pad')].map(e => e.getBoundingClientRect().x)")
         time.sleep(0.6)
         x1 = page.evaluate("[...document.querySelectorAll('.lp-pad')].map(e => e.getBoundingClientRect().x)")
-        check("math: pads float to the right", all(b > a for a, b in zip(x0, x1)), f"{x0} -> {x1}")
+        # a pad can loop back to the left edge between samples: that counts as moving too
+        check("math: pads float to the right", all(b > a or a - b > 300 for a, b in zip(x0, x1)), f"{x0} -> {x1}")
         OVERLAP = """() => [...document.querySelectorAll('.lp-lane')].some(l => {
             const r = [...l.children].map(e => e.getBoundingClientRect()).sort((a, b) => a.x - b.x);
             return r.some((a, i) => i && a.x < r[i - 1].x + r[i - 1].width - 1); })"""

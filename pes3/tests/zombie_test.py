@@ -217,7 +217,7 @@ try:
         tap("button:has-text('Roll')"); page.wait_for_selector(".zt-q")
         tap("#back")
         page.keyboard.type("hello"); time.sleep(1.2)
-        check("home after leaving mid-question", page.locator(".mcard").count() == 23)
+        check("home after leaving mid-question", page.locator(".mcard").count() == 22)
 
         # ---------- "fade away": steer onto a zombie, it leaves the board
         open_zombie(); pick("1 player"); pick("Math")
@@ -234,7 +234,11 @@ try:
             ans = str({"+": int(m[1]) + int(m[3]), "−": int(m[1]) - int(m[3]), "×": int(m[1]) * int(m[3]), "÷": int(m[1]) // int(m[3])}[m[2]])
             right = not (max(0, cur - n) in zb and min(35, cur + n) not in zb)
             if right: type_text(ans); tap(".zt-q button:has-text('Check')")
-            else: type_text("0"); tap(".zt-q button:has-text('Check')"); type_text("0"); tap(".zt-q button:has-text('Check')"); tap(".zt-q button:has-text('OK')")
+            else:
+                type_text("0"); tap(".zt-q button:has-text('Check')")
+                # Second chance was switched off (and remembered) earlier in this run; only retry if it is on.
+                if not page.locator(".zt-q button:has-text('OK')").count(): type_text("0"); tap(".zt-q button:has-text('Check')")
+                tap(".zt-q button:has-text('OK')")
             target = min(35, cur + n) if right else max(0, cur - n)
             if target in zb:
                 try: page.wait_for_selector(".zt-panel .msg:has-text('wanders off')", timeout=5000); saw_msg = True
