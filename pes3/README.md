@@ -42,7 +42,7 @@ Home screen sections: **Spelling**, **Math**, **Fun**, **Rewards**.
 | Look, Cover, Write, Check | Studies the word, hides it, writes it from memory, compares |
 | See the Words | Study list; tap a word to hear it |
 
-**Math** (grade-3 style; each game starts with a level choice that is remembered: add/subtract within 100, times tables 2-5, 2-10, or times and division). Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces, Number River (the original static version, kept until Lily Pad River is checked on an iPad). Not recorded in the hidden progress.
+**Math** (grade-3 style; each game starts with a level choice that is remembered: add/subtract within 100, times tables 2-5, 2-10, or times and division). Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Fun) can also do math. Not recorded in the hidden progress.
 
 **Fun**: Zombie Trail (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 

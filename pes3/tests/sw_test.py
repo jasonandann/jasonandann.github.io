@@ -138,7 +138,7 @@ try:
 
         # ---- first visit online: worker installs, takes over, and saves everything
         page.goto(URL)
-        check("menu shows 23 cards", page.locator(".mcard").count() == 23)
+        check("menu shows 22 cards", page.locator(".mcard").count() == 22)
         want = expected_urls()
         c = wait_cached(len(want) - 1)  # (+1 for "./" vs index.html both cached; "" is the directory URL)
         missing = [u for u in want if u not in c["urls"]]
@@ -154,7 +154,7 @@ try:
         # ---- offline: opens from the saved copy, every game opens, no errors from the check
         stop()
         page.reload()
-        check("offline: menu loads", page.locator(".mcard").count() == 23)
+        check("offline: menu loads", page.locator(".mcard").count() == 22)
         check("offline: last list shown", "Week of Oct 26" in listname(), listname())
         names = page.locator(".mcard .name").all_inner_texts()
         failed = []
@@ -165,7 +165,7 @@ try:
                 failed.append(name)
             page.locator("#back").click()
             page.wait_for_selector(".mcard")
-        check("offline: all 23 games open", not failed, ", ".join(failed))
+        check("offline: all 22 games open", not failed, ", ".join(failed))
         page.locator(".mcard", has_text="Baffle").first.tap()
         page.wait_for_selector(".bf-tile")
         ready = page.evaluate("async () => { const d = await import('./js/dictionary.js'); await d.loadDictionary(); return d.dictionaryReady() && d.inDictionary('cat'); }")

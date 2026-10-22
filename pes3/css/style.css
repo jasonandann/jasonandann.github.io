@@ -302,7 +302,7 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .mq { font-size: 3rem; font-weight: 800; color: var(--brand); text-align: center; letter-spacing: .04em; }
 .answers { display: grid; grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 12px; width: min(420px, 100%); }
 .btn.ans { font-size: 1.8rem; min-height: 68px; }
-.btn.ans.right, .rv-pad.right, .cc.right { background: var(--good-bg); border-color: var(--good); }
+.btn.ans.right, .cc.right { background: var(--good-bg); border-color: var(--good); }
 .btn:disabled { opacity: .45; }
 .glow { box-shadow: 0 0 0 4px #fde047, 0 0 18px #facc15; }
 .no { opacity: .35; }
@@ -392,17 +392,11 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .kb .key[data-s="present"] { background: #d97706; color: #fff; }
 .kb .key[data-s="absent"] { background: #d1d5db; color: #6b7280; }
 
-/* ---------- Math: Mountain, River, Maze, Bubbles, Cascade ---------- */
+/* ---------- Math: Mountain, Maze, Bubbles, Cascade ---------- */
 .mt { position: relative; width: min(92vw, 420px); height: 120px; background: linear-gradient(#bae6fd, #f0f9ff); border-radius: var(--radius); overflow: hidden; }
 .mt-peak { position: absolute; right: 8px; top: 8px; font-size: 3rem; }
 .mt-flag { position: absolute; right: 52px; top: 4px; font-size: 1.6rem; }
 .mt-hiker { position: absolute; left: calc(var(--p, 0%) * .8 + 4%); bottom: calc(var(--p, 0%) * .5 + 6px); font-size: 2.2rem; transition: all .8s; }
-.rv { width: min(94vw, 520px); background: linear-gradient(#7dd3fc, #38bdf8); border-radius: var(--radius); padding: 18px 8px; }
-.rv-bank { text-align: center; font-size: 1.6rem; }
-.rv-pads { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; justify-items: center; }
-.rv-pad { position: relative; width: 130px; height: 80px; border-radius: 50%; background: #4ade80; border: 3px solid #16a34a; font-size: 1.8rem; font-weight: 800; }
-.rv-pad.sunk { opacity: .4; transform: scale(.9); }
-.rv-frog { position: absolute; top: -18px; left: 50%; margin-left: -18px; font-size: 2.2rem; }
 .doors { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
 .door { width: 110px; height: 150px; border-radius: 14px 14px 4px 4px; border: 3px solid #92400e; background: #fde68a; font-size: 3rem; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .door-n { font-size: 1.8rem; font-weight: 800; }
