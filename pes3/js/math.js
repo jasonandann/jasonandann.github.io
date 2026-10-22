@@ -60,6 +60,10 @@ export function savedLevel() {
   return 't10';
 }
 
+export function saveLevel(id) {
+  try { localStorage.setItem(LEVEL_KEY, id); } catch { /* ignore */ }
+}
+
 // Level chooser shown at the start of each math game; remembers the last choice.
 export function pickLevel(root, title, onPick) {
   const cur = savedLevel();
@@ -72,7 +76,7 @@ export function pickLevel(root, title, onPick) {
           el('button', {
             class: 'btn big' + (l.id === cur ? ' primary' : ''), type: 'button',
             onclick: () => {
-              try { localStorage.setItem(LEVEL_KEY, l.id); } catch { /* ignore */ }
+              saveLevel(l.id);
               onPick(l.id);
             },
           }, l.name),
