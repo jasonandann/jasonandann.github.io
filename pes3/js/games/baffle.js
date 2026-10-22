@@ -123,33 +123,22 @@ export function generate(words, { restarts = 8, iters = 4000, budgetMs = 400 } =
 }
 
 /* ---------- game ---------- */
-// Look-ahead: every way `path` can be finished into one of `words`, grouped by the next tile.
+// Look-ahead: one way to finish `path` into each of `words` (the route findPath, and so the Hint,
+// would take), grouped by the next tile. Showing every route lit up nearly every repeated letter
+// (two R's usable in either order, two Y's, two S's) and blended all branches into one colour.
 // Returns [{first, tiles: Map(cell -> number of words through it)}], sorted by first cell.
 export function lookaheadBranches(g, words, path) {
   const branches = new Map();
   for (const w of words) {
-    if (w.length <= path.length || path.some((i, k) => g[i] !== w[k])) continue;
-    const used = new Set(path);
-    const route = [];
-    const grow = () => {
-      if (path.length + route.length === w.length) {
-        const b = branches.get(route[0]) || new Map();
-        branches.set(route[0], b);
-        for (const c of route) (b.get(c) || b.set(c, new Set()).get(c)).add(w);
-        return;
-      }
-      const ch = w[path.length + route.length];
-      for (const j of NB[route.length ? route[route.length - 1] : path[path.length - 1]]) {
-        if (used.has(j) || g[j] !== ch) continue;
-        used.add(j); route.push(j);
-        grow();
-        used.delete(j); route.pop();
-      }
-    };
-    grow();
+    if (w.length <= path.length) continue;
+    const route = findPath(g, w, path);
+    if (!route) continue;
+    const rest = route.slice(path.length);
+    const b = branches.get(rest[0]) || new Map();
+    branches.set(rest[0], b);
+    for (const c of rest) b.set(c, (b.get(c) || 0) + 1);
   }
-  return [...branches.keys()].sort((a, b) => a - b)
-    .map((first) => ({ first, tiles: new Map([...branches.get(first)].map(([c, ws]) => [c, ws.size])) }));
+  return [...branches.keys()].sort((a, b) => a - b).map((first) => ({ first, tiles: branches.get(first) }));
 }
 
 /* ---------- look-ahead setting + hidden per-word stats (shown in the parent panel) ---------- */

@@ -102,6 +102,11 @@ try:
         check("look-ahead: one branch per next tile", [b[0] for b in br] == [2, 6], str(br))
         check("look-ahead: word counts per tile", dict(br[1][1]) == {6: 2, 7: 1, 11: 1} and dict(br[0][1]) == {2: 1, 7: 1}, str(br))
         check("look-ahead: S untinted when 'tips' isn't on the list", all(15 not in dict(t) for _, t in br))
+        # Jason's board: from H-U, hurry/hurries could go R-R either way and end on either Y or S;
+        # only one route per word is tinted, so there's one branch and the spare Y and S stay plain
+        hb = list("hnnrp" "uryes" "yrips" "adppr" "lmuts")
+        br = page.evaluate("async ([g, w]) => (await import('/js/games/baffle.js')).lookaheadBranches(g, w, [0, 5]).map(b => [b.first, [...b.tiles]])", [hb, ["hurry", "hurries"]])
+        check("look-ahead: one route per word, not every route", br == [[6, [[6, 2], [11, 2], [7, 1], [12, 1], [8, 1], [9, 1]]]], str(br))
         yies = "puppy puppies penny pennies study studies carry carries butterfly butterflies lady ladies bunny bunnies dry dries hurry hurries marry marries".split()
         n_yies = page.evaluate("async (w) => (await import('/js/games/baffle.js')).generate(w).hidden.length", yies)
         check("generator: y/ies list hides 10+ of 20", n_yies >= 10, str(n_yies))
@@ -184,7 +189,8 @@ try:
                 if j not in p and g[j] == w[len(p)]: p.append(j); yield from routes(g, w, p); p.pop()
         g = grid(); want = {}
         for w in [w for w in LIST if w not in taken and len(w) > 1 and w[0] == g[tp[0]]]:
-            for r in routes(g, w, [tp[0]]):
+            r = next(routes(g, w, [tp[0]]), None)  # one route per word: the first, as Hint picks it
+            if r:
                 for c in r[1:]: want.setdefault(c, set()).add(r[1])
         layers = page.evaluate("[...document.querySelectorAll('.bf-tile')].map(t => (t.style.backgroundImage.match(/linear-gradient/g) || []).length)")
         check("look-ahead tints exactly the tiles on remaining paths", {i for i, n in enumerate(layers) if n} == set(want), f"{sorted(i for i, n in enumerate(layers) if n)} vs {sorted(want)}")
