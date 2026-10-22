@@ -18,42 +18,64 @@ const svg = (tag, attrs = {}) => {
   return n;
 };
 
-const COUNT_KEY = 'spelling-games.zombie.count';
+// Grown-up options live behind the "More options" button and are remembered on this device.
+const OPTS_KEY = 'spelling-games.zombie.options';
 export const ZOMBIE_COUNTS = [1, 2, 3, 4, 5];
-function savedCount() {
-  try { const n = +localStorage.getItem(COUNT_KEY); return ZOMBIE_COUNTS.includes(n) ? n : 3; } catch { return 3; }
+export const JUMPS = [[3, 5], [4, 6], [5, 7], [6, 8], [7, 9], [8, 10]]; // squares a rocket or zombie moves you
+const DEFAULTS = { zombies: 3, jump: '7-9', fade: false, second: true };
+const jumpRange = (key) => JUMPS.find(([a, b]) => `${a}-${b}` === key) || [7, 9];
+function loadOptions() {
+  try {
+    const o = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(OPTS_KEY) || '{}') };
+    if (!ZOMBIE_COUNTS.includes(o.zombies)) o.zombies = DEFAULTS.zombies;
+    if (!JUMPS.some(([a, b]) => `${a}-${b}` === o.jump)) o.jump = DEFAULTS.jump;
+    o.fade = o.fade === true;
+    o.second = o.second !== false;
+    return o;
+  } catch { return { ...DEFAULTS }; }
 }
-function saveCount(n) { try { localStorage.setItem(COUNT_KEY, String(n)); } catch { /* ignore */ } }
+function saveOptions(o) {
+  try { localStorage.setItem(OPTS_KEY, JSON.stringify({ zombies: o.zombies, jump: o.jump, fade: o.fade, second: o.second })); } catch { /* ignore */ }
+}
 
 // Random board each game. No special square is another special's destination, so jumps never chain.
-// Placement is greedy and can paint itself into a corner, so retry until every piece fits.
-export function makeBoard(zombieCount = 3) {
+// Zombies are never on back-to-back squares. "Safe landing" (strict) also keeps every zombie out of the
+// 6 squares after any zombie's destination, so the next roll after a zombie can't reach another one
+// (with jumps of 7+ it can't reach the same zombie either). If the zombies don't all fit that way, relax it.
+// Placement is greedy and can paint itself into a corner, so retry and keep the fullest board.
+export function makeBoard({ zombies: zombieCount = 3, jump = [7, 9] } = {}) {
   let best = null;
-  for (let attempt = 0; attempt < 50; attempt++) {
-    const b = tryBoard(zombieCount);
-    const n = Object.keys(b.shortcuts).length + Object.keys(b.zombies).length;
-    if (!best || n > best.n) best = { ...b, n };
-    if (n === 4 + zombieCount) break;
+  for (const strict of [true, false]) {
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const b = tryBoard(zombieCount, jump, strict);
+      const n = Object.keys(b.shortcuts).length + Object.keys(b.zombies).length;
+      if (!best || n > best.n) best = { ...b, n, strict };
+      if (n === 4 + zombieCount) return { shortcuts: b.shortcuts, zombies: b.zombies, strict };
+    }
   }
-  return { shortcuts: best.shortcuts, zombies: best.zombies };
+  return { shortcuts: best.shortcuts, zombies: best.zombies, strict: best.strict };
 }
 
-function tryBoard(zombieCount) {
+function tryBoard(zombieCount, [lo, hi], strict) {
   const used = new Set([0, 1, LAST - 1, LAST]);
   const free = (i) => i >= 0 && i <= LAST && !used.has(i);
   const shortcuts = {};
   const zombies = {};
   for (let t = 0; t < 300 && Object.keys(shortcuts).length < 4; t++) {
-    const from = rand(3, LAST - 8);
-    const to = from + rand(5, 10);
+    const from = rand(3, LAST - 1 - lo);
+    const to = from + rand(lo, hi);
     if (to > LAST - 1 || !free(from) || !free(to)) continue;
     shortcuts[from] = to; used.add(from); used.add(to);
   }
   for (let t = 0; t < 1000 && Object.keys(zombies).length < zombieCount; t++) {
-    const from = rand(8, LAST - 2);
-    const to = from - rand(4, 9);
+    const from = rand(Math.max(8, lo + 1), LAST - 2);
+    const to = from - rand(lo, hi);
     if (to < 1 || !free(from) || !free(to)) continue;
     if (zombies[from - 1] != null || zombies[from + 1] != null) continue; // never two in a row along the trail
+    if (strict) {
+      const near = (dest, sq) => sq > dest && sq <= dest + 6;
+      if (Object.keys(zombies).some((z) => near(to, +z)) || Object.values(zombies).some((d) => near(d, from))) continue;
+    }
     zombies[from] = to; used.add(from); used.add(to);
   }
   return { shortcuts, zombies };
@@ -99,7 +121,8 @@ export function mount(root, entries, api) {
   const sc = scope();
   const { later } = sc;
   let offKeys = null;
-  const settings = { players: 1, mode: 'spelling', zombies: savedCount(), second: true };
+  let overlay = null;
+  const settings = { players: 1, mode: 'spelling', ...loadOptions() };
   const textExtras = extraChars(entries);
   const bag = [];
   const nextWord = () => {
@@ -111,35 +134,67 @@ export function mount(root, entries, api) {
     return kind === 'spell' ? { kind, entry: nextWord() } : { kind, ...mathProblem() };
   };
 
-  function setup() {
-    const seg = (label, key, opts, onPick) =>
-      el('div', { class: 'seg' },
-        el('p', { class: 'label' }, label),
-        el('div', { class: 'row' },
-          opts.map(([val, text]) =>
-            el('button', {
-              class: 'btn' + (settings[key] === val ? ' primary' : ''), type: 'button',
-              'aria-pressed': String(settings[key] === val),
-              onclick: () => { settings[key] = val; if (onPick) onPick(val); setup(); },
-            }, text),
-          ),
+  const seg = (label, key, opts, redraw) =>
+    el('div', { class: 'seg' },
+      el('p', { class: 'label' }, label),
+      el('div', { class: 'row' },
+        opts.map(([val, text]) =>
+          el('button', {
+            class: 'btn' + (settings[key] === val ? ' primary' : ''), type: 'button',
+            'aria-pressed': String(settings[key] === val),
+            onclick: () => { settings[key] = val; redraw(); },
+          }, text),
         ),
-      );
+      ),
+    );
+  const enDash = (k) => k.replace('-', '–');
+  const summary = () =>
+    `${settings.zombies} zombie${settings.zombies === 1 ? '' : 's'}${settings.fade ? ' (fade away)' : ''} · jumps ${enDash(settings.jump)} · second chance ${settings.second ? 'on' : 'off'}`;
+
+  function setup() {
     root.replaceChildren(
       el('div', { class: 'zt-setup' },
         el('h2', {}, '🧟 Zombie Trail'),
         el('p', { class: 'prompt' }, 'Roll the die and answer a question. Right: move ahead. Wrong: move back. Find shortcuts and dodge the zombies!'),
-        seg('Players', 'players', [[1, '1 player'], [2, '2 players']]),
-        seg('Questions', 'mode', [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']]),
-        seg('Zombies', 'zombies', ZOMBIE_COUNTS.map((n) => [n, String(n)]), saveCount),
-        seg('Second chance (try once more before moving back)', 'second', [[true, 'On'], [false, 'Off']]),
+        seg('Players', 'players', [[1, '1 player'], [2, '2 players']], setup),
+        seg('Questions', 'mode', [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']], setup),
+        el('div', { class: 'seg' },
+          el('button', { class: 'btn zt-more', type: 'button', onclick: openOptions }, '⚙️ More options'),
+          el('p', { class: 'label zt-summary' }, summary()),
+        ),
         el('button', { class: 'btn primary big', type: 'button', onclick: start }, 'Start!'),
       ),
     );
   }
 
+  function closeOptions() {
+    if (!overlay) return;
+    overlay.remove();
+    overlay = null;
+    document.removeEventListener('keydown', onEsc);
+    setup();
+  }
+  function onEsc(e) { if (e.key === 'Escape') closeOptions(); }
+  function openOptions() {
+    const redraw = () => { saveOptions(settings); fill(); };
+    const panel = el('div', { class: 'panel zt-options' });
+    const fill = () => panel.replaceChildren(
+      el('h2', {}, '⚙️ More options'),
+      seg('Zombies', 'zombies', ZOMBIE_COUNTS.map((n) => [n, String(n)]), redraw),
+      seg('Jump size (squares a 🚀 rocket or 🧟 zombie moves you)', 'jump', JUMPS.map(([a, b]) => [`${a}-${b}`, `${a}–${b}`]), redraw),
+      seg('After a zombie is hit', 'fade', [[false, 'It stays'], [true, 'It fades away']], redraw),
+      seg('Second chance (try once more before moving back)', 'second', [[true, 'On'], [false, 'Off']], redraw),
+      el('button', { class: 'btn primary big', type: 'button', onclick: closeOptions }, 'Done'),
+    );
+    fill();
+    overlay = el('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'More options',
+      onclick: (e) => { if (e.target === overlay) closeOptions(); } }, panel);
+    document.addEventListener('keydown', onEsc);
+    document.body.append(overlay);
+  }
+
   function start() {
-    const board = makeBoard(settings.zombies);
+    const board = makeBoard({ zombies: settings.zombies, jump: jumpRange(settings.jump) });
     const players = [{ name: 'Player 1', emoji: '😎', pos: 0, cls: 'p0' }];
     if (settings.players === 2) players.push({ name: 'Player 2', emoji: '🤠', pos: 0, cls: 'p1' });
     let turn = 0;
@@ -187,10 +242,29 @@ export function mount(root, entries, api) {
         stroke: color, 'stroke-width': '.09', 'stroke-linecap': 'round', opacity: '.5', 'marker-end': `url(#${marker_})`,
       };
       if (dash) attrs['stroke-dasharray'] = '.2 .15';
-      lines.append(svg('line', attrs));
+      const line = svg('line', attrs);
+      lines.append(line);
+      return line;
     };
     for (const [f, t] of Object.entries(board.shortcuts)) addLine(f, t, '#16a34a', 'arrG', false);
-    for (const [f, t] of Object.entries(board.zombies)) addLine(f, t, '#dc2626', 'arrR', true);
+    const zombieLines = {};
+    for (const [f, t] of Object.entries(board.zombies)) zombieLines[f] = addLine(f, t, '#dc2626', 'arrR', true);
+
+    // "Fade away" option: a zombie that has been hit leaves the board for the rest of the game.
+    function fadeZombie(i) {
+      delete board.zombies[i];
+      const sq = grid.querySelector(`.sq[data-i="${i}"]`);
+      sq.classList.add('gone');
+      sq.dataset.kind = 'none';
+      sq.dataset.to = '';
+      zombieLines[i].classList.add('gone');
+      later(() => {
+        sq.classList.remove('zomb', 'gone');
+        sq.querySelector('.ic')?.remove();
+        sq.querySelector('.tg')?.remove();
+        zombieLines[i].remove();
+      }, 900);
+    }
 
     players.forEach((p) => { p.el = el('div', { class: 'pawn ' + p.cls }, p.emoji); });
     function placePawns() {
@@ -310,11 +384,15 @@ export function mount(root, entries, api) {
       const s = board.shortcuts[p.pos];
       const z = board.zombies[p.pos];
       if (s == null && z == null) return cb();
-      say(s != null ? `🚀 Shortcut! Zoom ahead to square ${s}!` : `🧟 A zombie! Shuffle back to square ${z}.`);
+      const fades = z != null && settings.fade;
+      say(s != null ? `🚀 Shortcut! Zoom ahead to square ${s}!`
+        : `🧟 A zombie! Shuffle back to square ${z}.${fades ? ' Then it wanders off!' : ''}`);
       p.el.classList.add('jump');
+      const from = p.pos;
       later(() => {
         p.pos = s != null ? s : z;
         placePawns();
+        if (fades) fadeZombie(from);
         later(() => { p.el.classList.remove('jump'); cb(); }, 1000);
       }, 700);
     }
@@ -364,5 +442,9 @@ export function mount(root, entries, api) {
   }
 
   setup();
-  return () => { sc.dispose(); if (offKeys) offKeys(); };
+  return () => {
+    sc.dispose();
+    if (offKeys) offKeys();
+    if (overlay) { overlay.remove(); document.removeEventListener('keydown', onEsc); }
+  };
 }
