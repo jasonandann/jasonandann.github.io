@@ -20,7 +20,7 @@ const svg = (tag, attrs = {}) => {
 
 // Grown-up options live behind the "More options" button and are remembered on this device.
 const OPTS_KEY = 'spelling-games.zombie.options';
-export const ZOMBIE_COUNTS = [1, 2, 3, 4, 5];
+export const ZOMBIE_COUNTS = [1, 2, 3, 4];
 export const JUMPS = [[3, 5], [4, 6], [5, 7], [6, 8], [7, 9], [8, 10]]; // squares a rocket or zombie moves you
 const DEFAULTS = { zombies: 3, jump: '7-9', fade: false, second: true };
 const jumpRange = (key) => JUMPS.find(([a, b]) => `${a}-${b}` === key) || [7, 9];
