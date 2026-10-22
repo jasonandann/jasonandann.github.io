@@ -133,6 +133,8 @@ try:
         page.screenshot(path=f"{SHOTS}/volcano.png")
         for ch in w: click(f".vo-rock[data-ch='{ch}']")
         check("volcano: completes + erupts", page.locator(".vo-mountain.erupt").count() == 1 and page.locator("button:has-text('Next')").first.is_visible())
+        check("volcano: eruption has lava blobs + flow", page.locator(".vo-blob").count() >= 20 and page.locator(".vo-flow-fill").count() == 1)
+        page.wait_for_timeout(900); page.screenshot(path=f"{SHOTS}/volcano_erupt.png")
         check("volcano: first-try logged as success", json.loads(page.evaluate("localStorage.getItem('spelling-games.progress.v1')"))["words"][w]["c"] == 1)
         home()
 

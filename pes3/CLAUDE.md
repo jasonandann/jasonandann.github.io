@@ -43,6 +43,8 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py zombie_shots
 - Parent panel: 5 taps within 3s on `#title`, or type `parent` on home (not in a game). Nothing visible links to it.
 - Audio: `speakWord(entryOrString)` / `speakSentence(entry)` play `audio/<slug>.m4a` / `<slug>.sentence.m4a` if `audio/manifest.json` `{words:[slug],sentences:{slug:text}}` lists it (sentence text must match words.txt), else fall back to speechSynthesis (also on play() failure). slug = lowercase, non-[a-z0-9] runs -> `_`.
 - Math levels: add (within 100), t5, t10, div. Kid-gentle copy: "Try again!", never "wrong".
+- Spelling menu order (Jason's choice, 2026-10-22): See the Words, Jumble, Fill the Blanks, LCWC, Spell Catcher, Volcano, Memory, Baffle, Word Search, Wordal, Listen & Type.
+- Word Volcano win: `erupt()` adds `.vo-flow` (cap + 3 clip-path lava rivers pouring into the lake) and `.vo-crater` (30 looping `.vo-blob` arcs + smoke); `.vo-slots` sits above so the word stays readable. Reduced motion hides blobs/smoke.
 - Zombie Trail: 6x6 serpentine (0..35), 4 shortcuts (+5..10), 5 zombies (-4..-9), no exact finish, clamp at 0, Second chance default ON; DOM exposes `data-pos`, `data-kind`, `data-to` for tests.
 
 ## Commands
@@ -52,7 +54,7 @@ python3 tools/check_words.py           # validate words.txt
 python3 tools/make_audio.py --dry-run  # macOS only (say + afconvert); see README
 pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
-python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py   # 41 + 28 + 68 + 46 checks
+python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py   # 41 + 28 + 69 + 46 checks
 ```
 Tests start their own `http.server` (ports 8765/8766/8768/8769), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
@@ -60,6 +62,8 @@ Tests start their own `http.server` (ports 8765/8766/8768/8769), stub speechSynt
 Passing: all four suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
 
 ## Not verified / caveats
+- Known test flake (pre-existing): new_games_test Spell Catcher reads the word from `spoken()`, which is stale when the round's word has a mocked recording (`because`/`friend`), so ~1 in 6 runs fail. Fix: read the word another way.
+- Volcano eruption untested on iPad Safari (uses `clip-path`, `-webkit-mask`, CSS vars in keyframes).
 - **Never run on a real iPad/Safari or Chromebook.** iOS audio unlock, `touch-action` drag in Word Search and Baffle, Baffle generation speed on an iPad (about 0.3 s in sandbox Chromium), and speech voices are untested there.
 - `tools/make_audio.py` default path (`say` -> `afconvert -f m4af -d aac -b 64000`) verified on Jason's Mac 2026-10-21; `--direct` (`say -o x.m4a --data-format=aac`) still unverified. Each run writes `review/<timestamp>.m3u8` (gitignored) of files it made. Apple voice redistribution terms unchecked (consider a private repo). Premium voice names unverified.
 - GitHub Pages republish delay (~1 min) not verified for his setup.
