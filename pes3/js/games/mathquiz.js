@@ -1,5 +1,5 @@
 // Five themed math games that share one idea: answer the question, move the game forward.
-// Mountain, River, Maze, Bubbles, Cascade. Each exports mount(root, entries, api).
+// Mountain, Maze, Bubbles, Cascade. Each exports mount(root, entries, api).
 import { el, shuffle, celebrate, cheer, opKind } from '../util.js';
 import { quiz, nudge } from '../math.js';
 
@@ -34,38 +34,6 @@ export const mountain = {
         el('div', { class: 'mt' }, el('div', { class: 'mt-peak' }, '🏔️'), el('div', { class: 'mt-flag' }, '🚩'), hiker),
         ...qHeader(q, i, count), el('div', { class: 'answers' }, btns), msg,
       );
-    });
-  },
-};
-
-/* ---- Number River: hop onto the right lily pad ---- */
-export const river = {
-  mount(root, _e, api) {
-    return quiz(root, api, 'Number River', 10, ({ q, i, count, choices, later, done }) => {
-      const msg = el('div', { class: 'msg', 'aria-live': 'polite' });
-      const frog = el('div', { class: 'rv-frog' }, '🐸');
-      let locked = false;
-      const pads = choices.map((c) =>
-        el('button', {
-          class: 'rv-pad', type: 'button',
-          onclick: (e) => {
-            if (locked) return;
-            const b = e.currentTarget;
-            if (c === q.answer) {
-              locked = true;
-              b.classList.add('right');
-              b.append(frog);
-              msg.textContent = cheer(opKind(q.text));
-              later(done, 1200);
-            } else {
-              b.classList.add('sunk');
-              b.disabled = true;
-              msg.textContent = nudge();
-            }
-          },
-        }, c),
-      );
-      root.append(...qHeader(q, i, count), el('div', { class: 'rv' }, el('div', { class: 'rv-bank' }, '🌾'), el('div', { class: 'rv-pads' }, pads)), msg);
     });
   },
 };
