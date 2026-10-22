@@ -46,8 +46,8 @@ try:
         # ---------- setup screen
         open_zombie()
         check("setup screen shown", page.locator(".zt-setup h2").inner_text().endswith("Zombie Trail"))
-        check("defaults: 1 player / spelling / second chance on",
-              page.locator(".zt-setup .btn.primary").all_inner_texts() == ["1 player", "Spelling", "On", "Start!"],
+        check("defaults: 1 player / spelling / 3 zombies / second chance on",
+              page.locator(".zt-setup .btn.primary").all_inner_texts() == ["1 player", "Spelling", "3", "On", "Start!"],
               str(page.locator(".zt-setup .btn.primary").all_inner_texts()))
         pick("Both")
         tap(".zt-setup .btn:has-text('Start!')")
@@ -59,9 +59,26 @@ try:
         sc = {s["i"]: s["to"] for s in specials if s["k"] == "shortcut"}
         zb = {s["i"]: s["to"] for s in specials if s["k"] == "zombie"}
         check("4 shortcuts go forward 5-10", len(sc) == 4 and all(5 <= t - f <= 10 for f, t in sc.items()), str(sc))
-        check("5 zombies go back 4-9", len(zb) == 5 and all(4 <= f - t <= 9 for f, t in zb.items()), str(zb))
+        check("3 zombies (default) go back 4-9", len(zb) == 3 and all(4 <= f - t <= 9 for f, t in zb.items()), str(zb))
         dests = list(sc.values()) + list(zb.values()); srcs = list(sc) + list(zb)
-        check("no chaining (destinations are never special squares)", not (set(dests) & set(srcs)) and len(set(dests + srcs)) == 18)
+        check("no chaining (destinations are never special squares)", not (set(dests) & set(srcs)) and len(set(dests + srcs)) == 14)
+        # many generated boards: exact zombie count for every option, never two zombies touching (side or corner)
+        gen = page.evaluate("""async () => {
+          const m = await import('./js/games/zombie.js');
+          const cell = (i) => { const r = Math.floor(i / 6), c = i % 6; return [r % 2 ? 5 - c : c, r]; };
+          const bad = [];
+          for (const n of m.ZOMBIE_COUNTS) for (let k = 0; k < 400; k++) {
+            const z = Object.keys(m.makeBoard(n).zombies).map(Number);
+            if (z.length !== n) bad.push(`n=${n} got ${z.length}`);
+            for (const a of z) for (const b of z) if (a < b) {
+              const [p, q] = [cell(a), cell(b)];
+              if (Math.abs(p[0] - q[0]) <= 1 && Math.abs(p[1] - q[1]) <= 1) bad.push(`n=${n} ${a}~${b}`);
+            }
+          }
+          return { counts: m.ZOMBIE_COUNTS, bad: bad.slice(0, 5) };
+        }""")
+        check("zombie options are 1-5", gen["counts"] == [1, 2, 3, 4, 5], str(gen["counts"]))
+        check("2000 boards: exact zombie count, zombies never touch", not gen["bad"], str(gen["bad"]))
         check("squares 0,1,34,35 not special", not ({0, 1, 34, 35} & set(srcs + dests)))
         check("pawn starts at 0", pos() == 0)
         # serpentine geometry: square 5 is far right bottom row, 6 is far right one row up, 11 far left
@@ -150,7 +167,10 @@ try:
         tap(".finish button:has-text('Play again')")
         check("play again returns to setup", page.locator(".zt-setup").count() == 1)
         pick("2 players"); pick("Math"); tap(".zt-setup .btn:has-text('Off')")
+        page.locator(".zt-setup .btn").get_by_text("5", exact=True).tap()
         tap(".zt-setup .btn:has-text('Start!')"); page.wait_for_selector(".zt-board")
+        check("chosen zombie count (5) used on the board", page.locator(".sq[data-kind='zombie']").count() == 5)
+        check("zombie count remembered", page.evaluate("localStorage.getItem('spelling-games.zombie.count')") == "5")
         check("two pawns present", page.locator(".pawn").count() == 2)
         check("P1 status first", "Player 1's turn" in page.locator(".zt-status").inner_text())
         tap("button:has-text('Roll')"); page.wait_for_selector(".zt-q")

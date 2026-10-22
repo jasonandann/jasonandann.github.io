@@ -18,8 +18,34 @@ const svg = (tag, attrs = {}) => {
   return n;
 };
 
+const COUNT_KEY = 'spelling-games.zombie.count';
+export const ZOMBIE_COUNTS = [1, 2, 3, 4, 5];
+function savedCount() {
+  try { const n = +localStorage.getItem(COUNT_KEY); return ZOMBIE_COUNTS.includes(n) ? n : 3; } catch { return 3; }
+}
+function saveCount(n) { try { localStorage.setItem(COUNT_KEY, String(n)); } catch { /* ignore */ } }
+
+// Squares that touch on the board (side or corner), so zombies never sit next to each other.
+const touching = (a, b) => {
+  const p = cell(a);
+  const q = cell(b);
+  return Math.abs(p.col - q.col) <= 1 && Math.abs(p.row - q.row) <= 1;
+};
+
 // Random board each game. No special square is another special's destination, so jumps never chain.
-export function makeBoard() {
+// Placement is greedy and can paint itself into a corner, so retry until every piece fits.
+export function makeBoard(zombieCount = 3) {
+  let best = null;
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const b = tryBoard(zombieCount);
+    const n = Object.keys(b.shortcuts).length + Object.keys(b.zombies).length;
+    if (!best || n > best.n) best = { ...b, n };
+    if (n === 4 + zombieCount) break;
+  }
+  return { shortcuts: best.shortcuts, zombies: best.zombies };
+}
+
+function tryBoard(zombieCount) {
   const used = new Set([0, 1, LAST - 1, LAST]);
   const free = (i) => i >= 0 && i <= LAST && !used.has(i);
   const shortcuts = {};
@@ -30,10 +56,11 @@ export function makeBoard() {
     if (to > LAST - 1 || !free(from) || !free(to)) continue;
     shortcuts[from] = to; used.add(from); used.add(to);
   }
-  for (let t = 0; t < 300 && Object.keys(zombies).length < 5; t++) {
+  for (let t = 0; t < 1000 && Object.keys(zombies).length < zombieCount; t++) {
     const from = rand(8, LAST - 2);
     const to = from - rand(4, 9);
     if (to < 1 || !free(from) || !free(to)) continue;
+    if (Object.keys(zombies).some((z) => touching(+z, from))) continue;
     zombies[from] = to; used.add(from); used.add(to);
   }
   return { shortcuts, zombies };
@@ -79,7 +106,7 @@ export function mount(root, entries, api) {
   const sc = scope();
   const { later } = sc;
   let offKeys = null;
-  const settings = { players: 1, mode: 'spelling', second: true };
+  const settings = { players: 1, mode: 'spelling', zombies: savedCount(), second: true };
   const textExtras = extraChars(entries);
   const bag = [];
   const nextWord = () => {
@@ -92,7 +119,7 @@ export function mount(root, entries, api) {
   };
 
   function setup() {
-    const seg = (label, key, opts) =>
+    const seg = (label, key, opts, onPick) =>
       el('div', { class: 'seg' },
         el('p', { class: 'label' }, label),
         el('div', { class: 'row' },
@@ -100,7 +127,7 @@ export function mount(root, entries, api) {
             el('button', {
               class: 'btn' + (settings[key] === val ? ' primary' : ''), type: 'button',
               'aria-pressed': String(settings[key] === val),
-              onclick: () => { settings[key] = val; setup(); },
+              onclick: () => { settings[key] = val; if (onPick) onPick(val); setup(); },
             }, text),
           ),
         ),
@@ -111,6 +138,7 @@ export function mount(root, entries, api) {
         el('p', { class: 'prompt' }, 'Roll the die and answer a question. Right: move ahead. Wrong: move back. Find shortcuts and dodge the zombies!'),
         seg('Players', 'players', [[1, '1 player'], [2, '2 players']]),
         seg('Questions', 'mode', [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']]),
+        seg('Zombies', 'zombies', ZOMBIE_COUNTS.map((n) => [n, String(n)]), saveCount),
         seg('Second chance (try once more before moving back)', 'second', [[true, 'On'], [false, 'Off']]),
         el('button', { class: 'btn primary big', type: 'button', onclick: start }, 'Start!'),
       ),
@@ -118,7 +146,7 @@ export function mount(root, entries, api) {
   }
 
   function start() {
-    const board = makeBoard();
+    const board = makeBoard(settings.zombies);
     const players = [{ name: 'Player 1', emoji: '😎', pos: 0, cls: 'p0' }];
     if (settings.players === 2) players.push({ name: 'Player 2', emoji: '🤠', pos: 0, cls: 'p1' });
     let turn = 0;

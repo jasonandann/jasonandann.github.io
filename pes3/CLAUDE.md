@@ -46,7 +46,7 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py zombie_shots
 - Math levels: add (within 100), t5, t10, div. Kid-gentle copy: "Try again!", never "wrong".
 - Spelling menu order (Jason's choice, 2026-10-22): See the Words, Jumble, Fill the Blanks, LCWC, Spell Catcher, Volcano, Memory, Baffle, Word Search, Wordal, Listen & Type.
 - Word Volcano win: `erupt()` adds `.vo-flow` (cap + 3 clip-path lava rivers pouring into the lake) and `.vo-crater` (30 looping `.vo-blob` arcs + smoke); `.vo-slots` sits above so the word stays readable. Reduced motion hides blobs/smoke.
-- Zombie Trail: 6x6 serpentine (0..35), 4 shortcuts (+5..10), 5 zombies (-4..-9), no exact finish, clamp at 0, Second chance default ON; DOM exposes `data-pos`, `data-kind`, `data-to` for tests.
+- Zombie Trail: 6x6 serpentine (0..35), 4 shortcuts (+5..10), N zombies (-4..-9; setup choice 1-5, default 3, key `spelling-games.zombie.count`; never touching incl. diagonals; `makeBoard` retries up to 50 greedy attempts), no exact finish, clamp at 0, Second chance default ON; DOM exposes `data-pos`, `data-kind`, `data-to` for tests.
 
 ## Commands
 ```
@@ -55,7 +55,7 @@ python3 tools/check_words.py           # validate words.txt
 python3 tools/make_audio.py --dry-run  # macOS only (say + afconvert); see README
 pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
-python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py   # 41 + 28 + 69 + 46 checks
+python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py   # 41 + 32 + 69 + 46 checks
 ```
 Tests start their own `http.server` (ports 8765/8766/8768/8769), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
