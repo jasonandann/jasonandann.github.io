@@ -65,8 +65,12 @@ A 5×5 grid of letters. Slide a finger across letters that touch (diagonals coun
 
 Roll a die, answer a question. Right: move ahead by the roll. Wrong: move back by the roll. Landing on a 🚀 shortcut jumps you ahead; landing on a 🧟 zombie sends you back (arrows and "→ 23" / "← 11" labels show where). Reach square 35 (🏁) to win; you do not need an exact roll.
 
-- Setup screen: 1 or 2 players (taking turns on one device), questions = Spelling / Math / Both, and **Second chance** (on by default: one more try before moving back; turn it off for the strict rules).
-- A new random board is generated each game (4 shortcuts, 5 zombies; jumps never chain).
+- Setup screen: 1 or 2 players (taking turns on one device) and questions = Spelling / Math / Both. **⚙️ More options** opens a pop-up with the rest (a one-line summary shows under the button; choices are remembered on that device):
+  - **Zombies**: 1-4 (default 3).
+  - **Jump size**: how far a 🚀 rocket sends you ahead and a 🧟 zombie sends you back, 3-5 up to 8-10 (default 7-9).
+  - **After a zombie is hit**: it stays (default) or fades away for the rest of the game.
+  - **Second chance**: on by default (one more try before moving back); turn it off for the strict rules.
+- A new random board is generated each game (4 rockets plus the chosen number of zombies). Jumps never chain, no two zombies sit on consecutive squares, and where it fits, no zombie is within 6 squares after another zombie's landing spot, so the roll right after a zombie can't land on another one. With 7+ jumps it can't land on the same zombie either. With 4 zombies at jump size 5-7 or 6-8 that doesn't always fit, and the game quietly drops that last rule for that board.
 - Spelling questions use your `words.txt` (hear the word, type it) and are recorded in the hidden progress like the other spelling games. Math (grade-3 style add/subtract within 100, times tables up to 10, matching division) is not recorded.
 - Tune the math or the board in `mathProblem()` / `makeBoard()` at the top of `js/games/zombie.js`.
 

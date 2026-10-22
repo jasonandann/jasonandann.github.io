@@ -47,7 +47,7 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.p
 - Spelling menu order (Jason's choice, 2026-10-22): See the Words, Jumble, Fill the Blanks, LCWC, Spell Catcher, Volcano, Memory, Baffle, Word Search, Wordal, Listen & Type.
 - Word Volcano win: `erupt()` adds `.vo-flow` (cap + 3 clip-path lava rivers pouring into the lake) and `.vo-crater` (30 looping `.vo-blob` arcs + smoke); `.vo-slots` sits above so the word stays readable. Reduced motion hides blobs/smoke.
 - Lily Pad River (issue #8; in Fun). Number River (`mq.river`, `.rv-*` CSS) stays in Math as the known-good version until Jason tests Lily Pad River on the live site on an iPad; then delete it (mathquiz.js block, `.rv-*` CSS, app.js entry, `play_math("Number River")` + menu name in new_games_test, 23 -> 22 in all suites). Lily Pad River: setup Spelling/Math/Both (key `spelling-games.river.mode`, default both; Spelling hidden if no words) + math level (shared `spelling-games.mathlevel`). 10 questions, 2 lanes x the same 4 choices, moved with the Web Animations API (not CSS vars in keyframes), even spacing so pads never overlap; reduced motion = static wrapped pads. Wrong value sinks in both lanes; answer glows after 2 misses. Spelling: `misspellings(word, avoid)` = y/ie/ies traps first, then doubling, vowel swaps, vowel-pair swaps, silent e; drops real `inDictionary` words and list words; tops up with list words for short words (`put`). Spelling q: `logRound` once; math q: `award()`. A Next button (not a timer) precedes each spelling question so iOS speech runs inside a tap.
-- Zombie Trail: 6x6 serpentine (0..35), 4 shortcuts (+5..10), 5 zombies (-4..-9), no exact finish, clamp at 0, Second chance default ON; DOM exposes `data-pos`, `data-kind`, `data-to` for tests.
+- Zombie Trail: 6x6 serpentine (0..35), 4 rockets + N zombies, both jump by the 'Jump size' range. Setup shows Players/Questions; '⚙️ More options' (`.overlay` pop-up, `.zt-options`) holds zombies 1-4 (default 3; 5 dropped because it rarely fits safe landing), jump `JUMPS` 3-5..8-10 (default 7-9), fade (zombie removed after a hit, default off), Second chance (default ON); saved as JSON in `spelling-games.zombie.options`. `makeBoard({zombies, jump})`: no chaining, zombies never on consecutive squares, 'safe landing' (no zombie within 6 after any zombie destination) tried 50x, then relaxed 50x; returns `strict`. 1-4 zombies at 7-9 always strict; 4 at 5-7/6-8 sometimes relaxed. No exact finish, clamp at 0; DOM exposes `data-pos`, `data-kind`, `data-to` for tests.
 
 ## Commands
 ```
@@ -56,7 +56,7 @@ python3 tools/check_words.py           # validate words.txt
 python3 tools/make_audio.py --dry-run  # macOS only (say + afconvert); see README
 pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
-python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py
+python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py   # 41 + 42 + 70 + 46 + 32 checks
 ```
 Tests start their own `http.server` (ports 8765/8766/8768/8769/8770), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
