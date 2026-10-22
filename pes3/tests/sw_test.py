@@ -411,6 +411,29 @@ try:
         c = wait_cached(len(want))
         check("parent: Reset makes a fresh offline copy", c["live"] and c["live"] != gen1 and len(c["urls"]) >= len(want), f"{gen1} -> {c['live']}")
         check("parent: Reset keeps the garden (localStorage)", page.evaluate("JSON.parse(localStorage.getItem('spelling-games.garden.v1')).points") == 7)
+
+        # ---- kill switch: tools/sw-off.js pushed as sw.js turns the offline copy off, without a reload loop
+        settle()
+        shutil.copy(SITE / "tools" / "sw-off.js", APP / "sw.js")
+        deploy()
+        page.evaluate("navigator.serviceWorker.getRegistration().then(r => r && r.update())")
+        GONE = """async () => ({ caches: (await caches.keys()).filter(n => n.startsWith('pes3-')).length,
+                                regs: (await navigator.serviceWorker.getRegistrations()).length })"""
+        def wait_gone(timeout=15):
+            end = time.time() + timeout
+            while time.time() < end and page.evaluate(GONE) != {"caches": 0, "regs": 0}:
+                time.sleep(0.3)
+            return page.evaluate(GONE)
+        g = wait_gone()
+        check("kill switch: offline copy deleted and worker unregistered", g == {"caches": 0, "regs": 0}, str(g))
+        for n in range(2):  # two launches: each registers the kill switch again, which removes itself again
+            page.reload()
+            page.wait_for_selector(".mcard")
+            mark()
+            time.sleep(4)
+            g = wait_gone()
+            check(f"kill switch launch {n + 1}: app works from the site, no reload, stays off",
+                  marked() and page.locator(".mcard").count() == 22 and g == {"caches": 0, "regs": 0}, str(g))
         b.close()
 finally:
     try:

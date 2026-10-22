@@ -121,9 +121,37 @@ The site saves an offline copy of itself (every game, the dictionary, the record
 - **Avoiding a half-updated app:** a push can land while the app is checking, and the CDN can briefly hand out an old copy of a file. A new copy is used only if all its code and text files carry the same deploy time (within 20 s); otherwise the app keeps its current copy and tries again a few seconds later, then at the next check. The grown-ups panel shows the last result. This relies on GitHub's current ETag format (not documented by GitHub); see CLAUDE.md for the assumptions.
 - **Self-repair:** a small script in `index.html` (outside the app's code) asks for a full re-check and reloads if the app has not started within 10 seconds or hits a script error while starting. After start-up, a script error also triggers a full re-check (applied on the home menu). Details in issue #13.
 
+### Turning the offline copy off
+
+If the offline copy ever misbehaves and you want the plain online site back on every device:
+
+```
+cp tools/sw-off.js sw.js
+git commit -am "Turn off the offline copy" && git push
+```
+
+Leave that file in place. **Don't just delete `sw.js` or revert the change:** a device that already has the offline copy keeps it when `sw.js` disappears, and would stay on the old copy with nothing left to update it. Browsers re-download `sw.js` on every launch, so each device picks up the kill switch the next time the app opens with internet; it deletes the saved files and switches itself off (progress, Baffle stats and the garden are kept). To turn offline back on later, `git checkout <commit> -- sw.js` with the real one and push.
+
+### Try it on your Mac
+
+Service workers only run over https or on `localhost`, so test on the Mac itself (an iPad pointed at the Mac's address over plain http gets no offline copy). Use the bundled server, not `python3 -m http.server`: it sends GitHub Pages-style ETags, which the update check relies on (with plain `http.server` updates are never applied).
+
+```
+python3 tools/serve.py          # serves the whole repository; open http://localhost:8000/pes3/
+```
+
+1. **First load:** open the page in Chrome (or Safari). In Chrome, DevTools > Application shows the service worker and, under Cache storage, a `pes3-c1-…` cache. Type `parent` on the home screen: App updates should say "Offline copy: N files".
+2. **Offline:** stop the server (Ctrl-C) and reload: the app still opens; open a few games, including Baffle and one with recordings.
+3. **New list at the menu:** start the server again, change the first line of `words.txt` (the list title), switch to another tab and back. The menu should reload with the new title.
+4. **New list during a game:** open a game, change the title again, switch away and back: the game must not reset. Tap Home: the new title appears.
+5. **Code change:** edit any file under `js/`; the next return to the tab picks it up the same way.
+6. **Install as an app (optional):** Chrome's install icon in the address bar opens it in its own window, like the Chromebook app.
+7. **Kill switch (optional):** `cp tools/sw-off.js sw.js`, reload twice: DevTools shows no service worker and no `pes3-` cache. Then `git checkout sw.js` to restore the real one (don't commit the kill switch by accident).
+8. **Clean up:** grown-ups panel > Reset offline copy, or DevTools > Application > Clear site data. `localhost` has its own storage, separate from the real site, so this doesn't touch her data on jasonandann.net.
+
 ## Test locally
 
-`fetch()` does not work from `file://`, so serve the folder:
+`fetch()` does not work from `file://`, so serve the folder (`python3 tools/serve.py` from `pes3/` also works and is needed for the offline copy to pick up edits, see above):
 
 ```
 python3 -m http.server 8000
@@ -162,6 +190,8 @@ CLAUDE.md            context for Claude Code
 tools/check_words.py optional list checker
 tools/make_audio.py  optional macOS audio generator
 tools/make_dictionary.py + blocklist.txt   rebuilds dict/words.txt
+tools/serve.py       local server that behaves like GitHub Pages (for trying the offline copy)
+tools/sw-off.js      kill switch: copy over sw.js to turn the offline copy off everywhere
 ```
 
 ## Known limits
