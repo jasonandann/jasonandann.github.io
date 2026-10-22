@@ -1,13 +1,15 @@
 // Lily Pad River: lily pads float down the river, each carrying an answer.
 // Tap the pad with the right answer and the frog hops on. Questions: spelling, math, or both.
 // Pads loop forever and wrong pads just sink a little, so nothing is ever lost or missed.
-import { el, shuffle, chooseWords, hearBar, speakWord, cheer, logRound, award, celebrate, scope, finish } from '../util.js';
+import { el, shuffle, chooseWords, hearBar, speakWord, cheer, opKind, logRound, award, celebrate, scope, finish } from '../util.js';
 import { LEVELS, savedLevel, saveLevel, makeQuestion, choices as mathChoices, nudge } from '../math.js';
 import { loadDictionary, inDictionary } from '../dictionary.js';
 
 const COUNT = 10;
 const MODE_KEY = 'spelling-games.river.mode';
 const LANE_SPEED = [40, 30]; // px per second; the lower lane drifts a little slower
+const PER_LANE = 4; // pads per lane: the answer + 3 different wrong ones (6 wrong answers in all)
+const LIST_DECOYS = 2; // spelling: how many of the wrong pads are other words from the list
 const VOWELS = 'aeiou';
 const VOWEL_SWAPS = { a: 'e', e: 'ia', i: 'ey', o: 'u', u: 'o' };
 
@@ -48,12 +50,17 @@ export function misspellings(word, avoid = new Set()) {
   return [...nearAll.slice(0, 2), ...rest, ...nearAll.slice(2)];
 }
 
-function wordChoices(entry, entries) {
-  const list = new Set(entries.map((e) => e.word));
-  const wrong = misspellings(entry.word, list).slice(0, 3);
-  // Very short words may not have 3 good misspellings: top up with other list words.
-  for (const e of shuffle(entries)) if (wrong.length < 3 && e.word !== entry.word) wrong.push(e.word);
-  return shuffle([entry.word, ...wrong]);
+// Six different wrong answers for a spelling question: misspellings plus a couple of other list words.
+function wordWrongs(entry, entries) {
+  const want = 2 * (PER_LANE - 1);
+  const others = shuffle(entries.map((e) => e.word).filter((w) => w !== entry.word));
+  const misses = misspellings(entry.word, new Set(entries.map((e) => e.word)));
+  const nList = Math.min(LIST_DECOYS, others.length);
+  const wrong = [...misses.slice(0, want - nList), ...others.slice(0, nList)];
+  // Short words (put) have few misspellings: top up with more list words, then repeats as a last resort.
+  for (const w of others.slice(nList)) if (wrong.length < want) wrong.push(w);
+  for (let k = 0; wrong.length && wrong.length < want; k++) wrong.push(wrong[k]);
+  return shuffle(wrong);
 }
 
 const readMode = () => {
@@ -103,12 +110,12 @@ export function mount(root, entries, api) {
       const kind = settings.mode === 'both' ? (Math.random() < 0.5 ? 'spell' : 'math') : settings.mode === 'spelling' ? 'spell' : 'math';
       if (kind === 'spell') {
         const entry = words[i++ % words.length];
-        qs.push({ kind, entry, answer: entry.word, choices: wordChoices(entry, entries) });
+        qs.push({ kind, entry, answer: entry.word, wrongs: wordWrongs(entry, entries) });
       } else {
         const q = makeQuestion(settings.level);
         if (seen.has(q.text)) continue;
         seen.add(q.text);
-        qs.push({ kind, text: q.text, answer: q.answer, choices: mathChoices(q) });
+        qs.push({ kind, text: q.text, answer: q.answer, wrongs: mathChoices(q, 2 * PER_LANE - 1).filter((c) => c !== q.answer) });
       }
     }
     return qs;
@@ -148,7 +155,7 @@ export function mount(root, entries, api) {
         pad.classList.add('right');
         pad.append(frog);
         frog.classList.add('hop');
-        msg.textContent = cheer();
+        msg.textContent = cheer(q.kind === 'spell' ? 'spell' : opKind(q.text));
         if (q.kind === 'spell') logRound(q.entry.word, misses === 0);
         else award();
         if (i === count - 1) celebrate(root);
@@ -156,16 +163,21 @@ export function mount(root, entries, api) {
         else later(done, 1300);
       } else {
         misses++;
-        river.querySelectorAll(`.lp-pad[data-v="${CSS.escape(pad.dataset.v)}"]`).forEach((b) => { b.classList.add('sunk'); b.disabled = true; });
+        pad.classList.add('sunk'); // only this pad: every wrong answer is on the river once
+        pad.disabled = true;
         msg.textContent = nudge();
         if (misses >= 2) river.querySelectorAll(`.lp-pad[data-v="${CSS.escape(String(q.answer))}"]`).forEach((b) => b.classList.add('glow'));
       }
     }
 
-    lanes.forEach((lane) =>
-      shuffle(q.choices).forEach((c) =>
-        lane.append(el('button', { class: 'lp-pad' + (q.kind === 'spell' ? ' word' : ''), type: 'button', 'data-v': String(c), onclick: (e) => tap(e.currentTarget) },
-          el('span', {}, String(c)))),
+    // The answer once per lane; each wrong answer appears once on the whole river.
+    // The slot moves; the pad inside it fades and shrinks, so styling never touches the moving element
+    // (changing a moving element's look made Safari stall its animation).
+    lanes.forEach((lane, li) =>
+      shuffle([q.answer, ...q.wrongs.slice(li * (PER_LANE - 1), (li + 1) * (PER_LANE - 1))]).forEach((c) =>
+        lane.append(el('div', { class: 'lp-slot' },
+          el('button', { class: 'lp-pad' + (q.kind === 'spell' ? ' word' : ''), type: 'button', 'data-v': String(c), onclick: (e) => tap(e.currentTarget) },
+            el('span', {}, String(c))))),
       ),
     );
     river.append(el('div', { class: 'lp-bank' }, el('span', { class: 'lp-home' }, frog), '🌾 🌿 🌾'), ...lanes, el('div', { class: 'lp-bank low' }, '🌿 🪨 🌾 🌿'));
@@ -188,18 +200,18 @@ export function mount(root, entries, api) {
 function float(lanes, anims) {
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return; // pads sit still, wrapped
   lanes.forEach((lane, li) => {
-    const pads = [...lane.children];
-    const w = Math.max(...pads.map((p) => p.offsetWidth));
+    const slots = [...lane.children];
+    const w = Math.max(...slots.map((s) => s.offsetWidth));
     const riverW = lane.clientWidth;
-    const travel = Math.max(riverW + w, pads.length * (w + 18));
+    const travel = Math.max(riverW + w, slots.length * (w + 18));
     const dur = (travel / LANE_SPEED[li]) * 1000;
     const offset = Math.random();
     lane.classList.add('moving');
-    pads.forEach((p, k) => {
-      p.style.width = `${w}px`;
-      p.style.left = `${-w}px`;
-      const a = p.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${travel}px)` }], { duration: dur, iterations: Infinity });
-      a.currentTime = ((k / pads.length + offset) % 1) * dur;
+    slots.forEach((s, k) => {
+      s.firstChild.style.width = `${w}px`;
+      s.style.left = `${-w}px`;
+      const a = s.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${travel}px)` }], { duration: dur, iterations: Infinity });
+      a.currentTime = ((k / slots.length + offset) % 1) * dur;
       anims.push(a);
     });
   });

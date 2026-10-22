@@ -58,7 +58,7 @@ export function mount(root, entries, api) {
     function win() {
       done = true;
       slotRow.classList.add('good');
-      msg.textContent = cheer();
+      msg.textContent = cheer('spell');
       nextBtn.hidden = false;
       celebrate(root);
     }

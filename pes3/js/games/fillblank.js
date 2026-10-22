@@ -37,7 +37,7 @@ export function mount(root, entries, api) {
       done = true;
       logRound(word, misses === 0);
       row.classList.add('good');
-      msg.textContent = cheer();
+      msg.textContent = cheer('spell');
       nextBtn.hidden = false;
       celebrate(root);
     }

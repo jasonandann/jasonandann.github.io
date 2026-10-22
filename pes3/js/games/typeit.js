@@ -24,7 +24,7 @@ export function mount(root, entries, api) {
         done = true;
         logRound(word, misses === 0);
         shown.classList.add('good');
-        msg.textContent = cheer();
+        msg.textContent = cheer('spell');
         checkBtn.hidden = true;
         nextBtn.hidden = false;
         celebrate(root);

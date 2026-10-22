@@ -1,5 +1,5 @@
 // Puzzle Pieces: tap a piece, answer its question, and the piece of the picture appears.
-import { el, shuffle, scope, celebrate, cheer, award } from '../util.js';
+import { el, shuffle, scope, celebrate, cheer, opKind, award } from '../util.js';
 import { pickLevel, makeQuestions, choices, nudge } from '../math.js';
 
 const PICTURES = [
@@ -48,7 +48,7 @@ export function mount(root, _e, api) {
                   locked = true;
                   award();
                   revealed.add(i);
-                  msg.textContent = cheer();
+                  msg.textContent = cheer(opKind(q.text));
                   panel.replaceChildren();
                   draw();
                   if (revealed.size === 9) {

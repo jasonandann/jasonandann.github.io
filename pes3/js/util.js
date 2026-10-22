@@ -191,10 +191,21 @@ export function hearBar(entry) {
 }
 
 /* ---------- gentle feedback ---------- */
-const CHEERS = ['Nice!', 'You got it!', 'Great spelling!', 'Awesome!', 'Well done!', 'Super!', 'Yes!'];
+const CHEERS = ['Nice!', 'You got it!', 'Awesome!', 'Well done!', 'Super!', 'Yes!']; // fit any game
+// Praise that names the skill: 'spell', or the math operation from opKind().
+const KIND_CHEERS = {
+  spell: ['Great spelling!', 'Super speller!', 'Spelled just right!'],
+  add: ['Great adding!', 'Super addition!', 'Adding pro!'],
+  sub: ['Great subtracting!', 'Super subtraction!', 'Taking away like a pro!'],
+  mul: ['Great multiplying!', 'Times tables star!', 'Super multiplication!'],
+  div: ['Great dividing!', 'Super division!', 'Dividing pro!'],
+};
 const RETRIES = ['Almost! Try again.', 'So close! Have another go.', 'Not quite — you can do it!'];
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
-export const cheer = () => pick(CHEERS);
+// cheer() = general praise; cheer(kind) names the skill most of the time.
+export const cheer = (kind) => (KIND_CHEERS[kind] && Math.random() < 0.7 ? pick(KIND_CHEERS[kind]) : pick(CHEERS));
+// '7 × 8' -> 'mul' (also 'add', 'sub', 'div'); undefined if there is no operator.
+export const opKind = (text) => ({ '+': 'add', '−': 'sub', '-': 'sub', '×': 'mul', '÷': 'div' })[(String(text).match(/[+−×÷-]/) || [])[0]];
 export const retry = () => pick(RETRIES);
 
 export function celebrate(host) {

@@ -92,7 +92,7 @@ export function mount(root, entries, api) {
           logRound(word, misses === 0);
           mountain.querySelectorAll('.vo-rock').forEach((b) => b.remove());
           erupt(mountain);
-          msg.textContent = cheer();
+          msg.textContent = cheer('spell');
           nextBtn.hidden = false;
           celebrate(root);
         }

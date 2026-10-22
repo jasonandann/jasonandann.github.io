@@ -50,7 +50,7 @@ export function mount(root, entries, api) {
       const mine = el('div', { class: 'compare' }, [...typed].map((ch, i) => el('span', { class: ch === word[i] ? 'ok' : 'off' }, ch)));
       if (typed === word) {
         logRound(word, attempts === 0);
-        stage.replaceChildren(prompt('3. Check it.'), mine, el('div', { class: 'msg' }, cheer()), nextBtn());
+        stage.replaceChildren(prompt('3. Check it.'), mine, el('div', { class: 'msg' }, cheer('spell')), nextBtn());
         celebrate(root);
         return;
       }
