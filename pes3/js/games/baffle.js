@@ -21,9 +21,11 @@ export const FLUENCY_DEFAULT = {
 };
 const BLINK_MS = 2400;
 // Look-ahead branch colours (contrasting, none close to the selected-tile indigo) and tint strength.
-// The first four are spread around the colour wheel (sky blue was too close to teal; violet is avoided
-// early because it is close to the selected-tile indigo).
-const BRANCH_RGB = ['236, 72, 153', '20, 184, 166', '249, 115, 22', '132, 204, 22', '168, 85, 247', '14, 165, 233', '234, 179, 8', '239, 68, 68'];
+// Colour-blind-friendly: first four picked from Okabe-Ito (jfly.uni-koeln.de/color) and Paul Tol
+// (personal.sron.nl/~pault) colours so that, simulated for protan/deutan/tritan vision at the tile tint,
+// every pair stays distinct (the old pink/teal were nearly identical with deuteranopia). Branches 1-2
+// (the common case) are the most distinct pair. 5-8 are the remaining Okabe-Ito colours.
+const BRANCH_RGB = ['230, 159, 0', '102, 204, 238', '170, 51, 119', '34, 136, 51', '0, 114, 178', '240, 228, 66', '213, 94, 0', '204, 121, 167'];
 const ALPHA_MIN = 0.22;   // a tile on one word's path
 const ALPHA_MAX = 0.6;    // the tile most words pass through
 const CHECK_ALPHA = 0.4;  // checkered tiles use at least this, or the two colours blur into one
@@ -266,10 +268,12 @@ export function mount(root, entries, api) {
         }
       });
       // 2 or 4 colours: a checkerboard (the 4 quarters of each repeated cell). 3 or 5+: one pie centred
-      // on the letter, each colour twice (1,2,3,1,2,3), cropped by the square; no direction either way.
+      // on the letter, cropped by the square. A colour must never face itself across the centre, or
+      // it reads as a line: 3 colours repeat 3 times (9 slices, 120 deg apart; 6 or 12 slices put a
+      // colour opposite itself), 5+ distinct colours go round once.
       const checker = (cs) => {
         const cols = cs.map(({ rgb, a }) => `rgba(${rgb}, ${Math.max(a, CHECK_ALPHA)})`);
-        const seq = cols.length === 2 ? [...cols, ...cols] : cols.length === 4 ? cols : [...cols, ...cols];
+        const seq = cols.length === 2 ? [...cols, ...cols] : cols.length === 3 ? [...cols, ...cols, ...cols] : cols;
         const step = 100 / seq.length;
         return `conic-gradient(${seq.map((c, j) => `${c} ${(j * step).toFixed(1)}% ${((j + 1) * step).toFixed(1)}%`).join(', ')})`;
       };
