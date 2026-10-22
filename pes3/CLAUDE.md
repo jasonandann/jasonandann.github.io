@@ -15,20 +15,21 @@ Java dev + cybersecurity background, learning Python (prefer Python for tooling)
 
 ## Layout
 ```
-index.html  words.txt  README.md  CLAUDE.md
+index.html  words.txt  README.md  CLAUDE.md  sw.js  manifest.webmanifest  icons/icon-{192,512}.png
 css/style.css                      all styles (sections per game)
 js/app.js                          SECTIONS menu, open()/home(), hidden parent triggers
 js/dictionary.js                   loadDictionary/inDictionary (dict/words.txt, shared by word games)
 js/util.js                         el, parseWords/loadWords, progress, garden, speech+audio, keyboard, scope, finish, rounds
 js/math.js                         makeQuestion(s), choices, pickLevel, quiz() loop
-js/parent.js                       grown-ups panel
+js/parent.js                       grown-ups panel (+ App updates: status, Check for updates, Reset offline copy)
+js/offline.js                      registers sw.js, warm list, update checks, reloadIfPending()
 js/games/*.js                      jumble typeit fillblank catcher volcano wordal memory wordsearch lcwc words
                                    baffle  zombie  river  mathquiz(mountain river maze bubbles cascade)  puzzle explorer
                                    spotmatch simon garden
 audio/manifest.json (+*.m4a, pronunciations.txt)   optional recordings
 dict/words.txt                     generated: ENABLE 3-12 letters minus tools/blocklist.txt
 tools/check_words.py  tools/make_audio.py  tools/make_dictionary.py (+ blocklist.txt)
-tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.py zombie_shots.py  tests/fixtures/words.txt
+tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.py sw_test.py zombie_shots.py  tests/fixtures/words.txt
 ```
 
 ## Contracts
@@ -48,6 +49,7 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.p
 - Spelling menu order (Jason's choice, 2026-10-22): See the Words, Jumble, Fill the Blanks, LCWC, Spell Catcher, Volcano, Memory, Baffle, Word Search, Wordal, Listen & Type.
 - Word Volcano win: `erupt()` adds `.vo-flow` (cap + 3 clip-path lava rivers pouring into the lake) and `.vo-crater` (30 looping `.vo-blob` arcs + smoke); `.vo-slots` sits above so the word stays readable. Reduced motion hides blobs/smoke.
 - Lily Pad River (issue #8; in Fun). Number River (`mq.river`, `.rv-*` CSS) stays in Math as the known-good version until Jason tests Lily Pad River on the live site on an iPad; then delete it (mathquiz.js block, `.rv-*` CSS, app.js entry, `play_math("Number River")` + menu name in new_games_test, 23 -> 22 in all suites). Lily Pad River: setup Spelling/Math/Both (key `spelling-games.river.mode`, default both; Spelling hidden if no words) + math level (shared `spelling-games.mathlevel`). 10 questions, 2 lanes x 4 pads: the answer once per lane + 6 different wrong answers (`PER_LANE`), so a wrong tap sinks only that pad; answer glows after 2 misses. Each pad is a `.lp-pad` button inside a `.lp-slot`; only the slot is moved (Web Animations API, not CSS vars in keyframes) and only the button is styled (sunk = opacity + transform scale), because restyling the moving element made iPad Safari stall it (Jason, 2026-10-22). Even spacing so pads never overlap; reduced motion = static wrapped pads. Spelling wrongs = 4 misspellings + `LIST_DECOYS` (2) other list words (`wordWrongs`). `misspellings(word, avoid)` = y/ie/ies traps first, then doubling, vowel swaps, vowel-pair swaps, silent e; drops real `inDictionary` words and list words; tops up with list words for short words (`put`). Spelling q: `logRound` once; math q: `award()`. A Next button (not a timer) precedes each spelling question so iOS speech runs inside a tap.
+- Offline + updates (issue #13; design and measured GitHub Pages headers in the issue comments). `sw.js` scope `/pes3/`: cache-first from the newest complete generation `pes3-c1-<ms>` (has `__complete__`); misses are cached; byte-range requests answered from cache (Safari audio). Every stored/served response gets `Cache-Control: no-cache` (`keep()`): with Pages' `max-age=600`, Chrome reused fresh in-memory modules on reload and skipped the worker. Page (`js/offline.js`, called from `app.js` after the menu): register, `warm` (performance resource entries + dict + recordings + icons + logo), full `check` on launch, probe on `visibilitychange` and every `home()`. Probe = GET `words.txt` (bytes) + HEAD `js/app.js` (ETag vs its own stored ETag; non-`"hex-hex"` ETag -> full). Full = per file: text GET + byte compare (same bytes -> stored in place so the new ETag is remembered), `BIG` (audio/dict/icons/images) HEAD + size suffix; changes go into a new generation, swapped when complete, then `steady()` re-HEADs app.js and repeats (max 3) if a deploy landed mid-check. Update applies via `location.reload()` only when not busy (`inGame` or `.overlay`); else `reloadIfPending()` in `home()`. Never compare ETags across files or encodings (per-file mtimes can differ by 1 s). Existing suites use `service_workers="block"` (their `page.route` fixtures would not reach worker fetches); `sw_test.py` serves a temp copy at `/pes3/` with Pages-style ETags/304/max-age and simulates deploys by re-stamping mtimes.
 - Zombie Trail: 6x6 serpentine (0..35), 4 rockets + N zombies, both jump by the 'Jump size' range. Setup shows Players/Questions; '⚙️ More options' (`.overlay` pop-up, `.zt-options`) holds zombies 1-4 (default 3; 5 dropped because it rarely fits safe landing), jump `JUMPS` 3-5..8-10 (default 7-9), fade (zombie removed after a hit, default off), Second chance (default ON); saved as JSON in `spelling-games.zombie.options`. `makeBoard({zombies, jump})`: no chaining, zombies never on consecutive squares, 'safe landing' (no zombie within 6 after any zombie destination) tried 50x, then relaxed 50x; returns `strict`. 1-4 zombies at 7-9 always strict; 4 at 5-7/6-8 sometimes relaxed. No exact finish, clamp at 0; DOM exposes `data-pos`, `data-kind`, `data-to` for tests.
 
 ## Commands
@@ -57,12 +59,12 @@ python3 tools/check_words.py           # validate words.txt
 python3 tools/make_audio.py --dry-run  # macOS only (say + afconvert); see README
 pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
-python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py   # 41 + 42 + 70 + 68 + 39 checks
+python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py && python3 tests/sw_test.py   # 41 + 42 + 70 + 68 + 39 + 29 checks
 ```
-Tests start their own `http.server` (ports 8765/8766/8768/8769/8770), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
+Tests start their own `http.server` (ports 8765/8766/8768/8769/8770/8771), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
 ## Status / verified
-Passing: all five suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
+Passing: all six suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
 
 ## Not verified / caveats
 - Volcano eruption untested on iPad Safari (uses `clip-path`, `-webkit-mask`, CSS vars in keyframes).
@@ -70,7 +72,8 @@ Passing: all five suites above on desktop Chromium with touch emulation; layouts
 - Lily Pad River: the slot/pad split fix for the iPad sunk-pad glitch is unverified on Safari (WebKit can't be downloaded in the sandbox); pad speed (30–40 px/s) is a guess, tune `LANE_SPEED` in `js/games/river.js`.
 - **Never run on a real iPad/Safari or Chromebook.** iOS audio unlock, `touch-action` drag in Word Search and Baffle, Baffle generation speed on an iPad (about 0.3 s in sandbox Chromium), and speech voices are untested there.
 - `tools/make_audio.py` default path (`say` -> `afconvert -f m4af -d aac -b 64000`) verified on Jason's Mac 2026-10-21; `--direct` (`say -o x.m4a --data-format=aac`) still unverified. Each run writes `review/<timestamp>.m3u8` (gitignored) of files it made. Apple voice redistribution terms unchecked (consider a private repo). Premium voice names unverified.
-- GitHub Pages republish delay (~1 min) not verified for his setup.
+- GitHub Pages republish delay: 41 s and 36 s measured (#15, #16, 2026-10-22). Pages: ETag `"<hex mtime>-<hex size>"`, `max-age=600`, Fastly, 304 on weak ETags (Jason's curl, same day).
+- Offline copy/updates untested in Safari and on a Chromebook (Chromium only). Unverified there: range-served audio from the worker, `navigator.storage.persist()`, whether the iPad Home Screen app keeps storage separate from Safari. Residual risk: on the very first visit modules come from the network with max-age=600, so an update within ~10 min of that first load might reload into a stale in-memory module once; the next launch fixes it. Icons are upscaled from the 180 px logo (soft).
 - Sandbox emoji font lacked some glyphs in screenshots (blank garden cell); likely fine on Apple devices, unchecked.
 - Spellbound math "spaced repetition" stats and unlock gating were deliberately not ported.
 
@@ -78,4 +81,4 @@ Passing: all five suites above on desktop Chromium with touch emulation; layouts
 Wordscapes-style "Word Wheel" (letter wheel + crossword) discussed; needs a word-frequency source for crossword fillers (SCOWL sizes) — reuse js/dictionary.js. Per-word pronunciation overrides are only in `make_audio.py` (not browser TTS); reduce Wordal/Puzzle height on short screens; Google Cloud TTS was discussed as an alternative; it needs an API key, so on a static site it only works if audio is pre-generated and committed (same pipeline as `make_audio.py`).
 
 ## Working style for this repo
-Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all five suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.
+Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all six suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.
