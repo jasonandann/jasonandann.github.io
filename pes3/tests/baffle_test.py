@@ -70,6 +70,12 @@ try:
                     cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x1 + (x2 - x1) * t / 4, "y": y1 + (y2 - y1) * t / 4}]})
             cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
             time.sleep(0.15)
+        def done(w): return page.locator(f".bf-slots.done[data-w='{w}']").count() == 1
+        def lit(cls): return page.evaluate(f"[...document.querySelectorAll('.bf-tile.{cls}')].map(t => +t.dataset.i)")
+        def stats(): return page.evaluate("JSON.parse(localStorage.getItem('spelling-games.baffle.stats.v1')||'{\"words\":{}}')")
+        def hint(): tap("button:has-text('Hint')"); time.sleep(0.05)
+        def fits(word, start):  # can `word` be traced starting with exactly these tiles?
+            return page.evaluate("async ([g, w, s]) => !!(await import('/js/games/baffle.js')).findPath(g, w, s)", [grid(), word, start])
         def mouse_drag(path):
             pts = [center(i) for i in path]
             page.mouse.move(*pts[0]); page.mouse.down()
@@ -95,19 +101,22 @@ try:
         check("generator: y/ies list hides 10+ of 20", n_yies >= 10, str(n_yies))
 
         # ---- play
-        page.evaluate("localStorage.removeItem('spelling-games.baffle.hints')")
+        page.evaluate("['lookahead', 'stats.v1'].forEach(k => localStorage.removeItem('spelling-games.baffle.' + k))")
         open_game("Baffle")
         check("25 tiles", page.locator(".bf-tile").count() == 25)
-        check("no slots shown by default", page.locator(".bf-slots").count() == 0)
         page.wait_for_function("fetch('/dict/words.txt').then(() => true)")
         g = grid()
         hidden = [w for w in LIST if path_of(w)]
         check("board hides some list words", len(hidden) >= 3, str(hidden))
+        check("slots always shown, one row per hidden word", page.locator(".bf-slots").count() == len(hidden), f"{page.locator('.bf-slots').count()} vs {len(hidden)}")
+        check("no Hints toggle any more", page.locator("button:has-text('Hide hints')").count() == 0)
         page.screenshot(path=f"{SHOTS}/baffle.png")
 
         before, n_spoken = gp(), len(spoken())
         touch_drag(path_of(hidden[0]))
-        check("touch drag finds a list word", page.locator(".chip.got", has_text=hidden[0]).count() == 1, msg())
+        check("touch drag finds a list word", done(hidden[0]), msg())
+        r0 = stats()["words"].get(hidden[0], {})
+        check("unhinted find counts toward fluency", r0.get("solo") == 1 and r0.get("streak") == 1 and r0.get("helped") == 0, str(r0))
         check("found word is spoken", hidden[0] in " ".join(spoken()[n_spoken:]), str(spoken()[n_spoken:]))
         check("found word grows the garden", gp() == before + 1, f"{before}->{gp()}")
         mouse_drag(path_of(hidden[0]))
@@ -120,7 +129,7 @@ try:
         check("tapping letters builds the word", page.locator(".bf-current").inner_text().lower() == hidden[1])
         check("Check / Clear shown in tap mode", page.locator("button:has-text('Check')").is_visible() and page.locator("button:has-text('Clear')").is_visible())
         page.touchscreen.tap(*center(p1[-1]))
-        check("tapping the last letter again checks it", page.locator(".chip.got", has_text=hidden[1]).count() == 1, msg())
+        check("tapping the last letter again checks it", done(hidden[1]), msg())
 
         # bonus word + nonsense, found by scanning the real dictionary against this board
         extra = page.evaluate("""async ([g, list]) => { const m = await import('/js/games/baffle.js');
@@ -146,16 +155,94 @@ try:
         check("non-word does not award", gp() == before)
         page.touchscreen.tap(*center(0)); tap("button:has-text('Clear')")
         check("Clear empties the current word", page.locator(".bf-current").inner_text() == "")
-
-        # hints
-        tap("button:has-text('Hints')")
-        check("hints show one slot row per hidden word", page.locator(".bf-slots").count() == len(hidden), f"{page.locator('.bf-slots').count()} vs {len(hidden)}")
         check("found words fill their slots", page.locator(".bf-slots.done").count() == 2)
-        page.screenshot(path=f"{SHOTS}/baffle_hints.png")
+
+        # look-ahead (auto, nothing fluent yet -> on): lit tiles = neighbours that lead to an unfound word
+        taken = [hidden[0], hidden[1]] + ([extra["bonus"]] if extra["bonus"] else [])
+        check("no look-ahead before the first letter", lit("next") == [])
+        target = hidden[2]
+        tp = path_of(target)
+        page.touchscreen.tap(*center(tp[0]))
+        nxt = lit("next")
+        check("look-ahead lights the next letter of a hidden word", tp[1] in nxt, f"{nxt} {tp}")
+        expect = page.evaluate("""async ([g, start, list, taken]) => { const m = await import('/js/games/baffle.js');
+          const words = list.filter(w => !taken.includes(w) && w.startsWith(g[start]));
+          return m.neighbours(start).filter(j => words.some(w => m.findPath(g, w, [start, j]))).sort((a, b) => a - b); }""", [grid(), tp[0], LIST, taken])
+        check("look-ahead = only tiles toward unfound spelling words", sorted(nxt) == expect, f"{sorted(nxt)} vs {expect}")
+        page.touchscreen.tap(*center(tp[1]))
+        check("look-ahead follows the path", tp[0] not in lit("next") and tp[1] not in lit("next") and (len(tp) < 3 or tp[2] in lit("next")), str(lit("next")))
+        page.screenshot(path=f"{SHOTS}/baffle_lookahead.png")
+        tap("button:has-text('Clear')")
+
+        # Hint button: blinks the start, then each next letter on her path; drops a wrong start
+        left = sorted([w for w in hidden if w not in taken], key=lambda w: (len(w), w))
+        n_spoken = len(spoken())
+        hint()
+        bl = lit("blink")
+        check("hint blinks one tile", len(bl) == 1, str(bl))
+        check("hint with no letters blinks the start of the first open slot", bl and fits(left[0], bl), f"{left[0]} {bl}")
+        check("hint speaks that word", left[0] in " ".join(spoken()[n_spoken:]), str(spoken()[n_spoken:]))
+        check("hinted slot is marked", page.locator(f".bf-slots.now[data-w='{left[0]}']").count() == 1)
+        trail = [bl[0]]
+        page.touchscreen.tap(*center(bl[0]))
+        while len(trail) < len(left[0]):
+            hint(); bl = lit("blink")
+            if len(bl) != 1 or not fits(left[0], trail + bl): break
+            trail += bl; page.touchscreen.tap(*center(bl[0]))
+        check("each hint blinks the right next letter (right copy of repeated letters)", len(trail) == len(left[0]), f"{left[0]} {trail}")
+        hint()
+        check("hint on a finished word says to check it", "Check" in msg(), msg())
+        page.touchscreen.tap(*center(trail[-1]))
+        check("hinted word is found", done(left[0]), msg())
+        r = stats()["words"].get(left[0], {})
+        check("hinted find is logged as helped, streak reset", r.get("helped") == 1 and r.get("streak") == 0, str(r))
+        # start on a letter no open slot begins with: the hint drops it and blinks a start instead
+        firsts = {w[0] for w in left[1:]}
+        wrong = next((i for i, c in enumerate(grid()) if c not in firsts), None)
+        if wrong is not None and len(left) > 1:
+            page.touchscreen.tap(*center(wrong)); hint()
+            check("hint drops letters that lead away", page.locator(".bf-current").inner_text() == "", page.locator(".bf-current").inner_text())
+            check("then blinks the start of the next open slot", fits(left[1], lit("blink")), f"{left[1]} {lit('blink')}")
+        page.screenshot(path=f"{SHOTS}/baffle_hint.png")
+
+        # fluency: auto turns look-ahead off once most list words were found twice in a row unhinted
+        page.evaluate("""(list) => localStorage.setItem('spelling-games.baffle.stats.v1',
+          JSON.stringify({games: 3, words: Object.fromEntries(list.map(w => [w, {solo: 2, helped: 0, free: 0, streak: 2}]))}))""", LIST)
         home(); open_game("Baffle")
-        check("hints setting is remembered", page.locator(".bf-slots").count() > 0)
-        tap("button:has-text('Hide hints')")
-        check("hints can be hidden", page.locator(".bf-slots").count() == 0)
+        page.touchscreen.tap(*center(path_of([w for w in LIST if path_of(w)][0])[0]))
+        check("auto: look-ahead off once the list is fluent", lit("next") == [], str(lit("next")))
+        page.evaluate("localStorage.setItem('spelling-games.baffle.lookahead', 'on')")
+        home(); open_game("Baffle")
+        page.touchscreen.tap(*center(path_of([w for w in LIST if path_of(w)][0])[0]))
+        check("'Always on' overrides fluency", len(lit("next")) > 0)
+        page.evaluate("localStorage.setItem('spelling-games.baffle.lookahead', 'off')")
+        page.evaluate("localStorage.removeItem('spelling-games.baffle.stats.v1')")
+        home(); open_game("Baffle")
+        page.touchscreen.tap(*center(path_of([w for w in LIST if path_of(w)][0])[0]))
+        check("'Off' turns look-ahead off", lit("next") == [])
+        home()
+        page.keyboard.type("parent"); page.wait_for_selector(".overlay")
+        check("parent panel shows Baffle look-ahead", "Baffle look-ahead" in page.locator(".panel").inner_text())
+        tap(".panel button:has-text('Auto')")
+        check("parent panel sets look-ahead to Auto", page.evaluate("localStorage.getItem('spelling-games.baffle.lookahead')") == "auto")
+        check("parent panel explains auto state", "Auto: on now" in page.locator(".panel").inner_text(), page.locator(".panel").inner_text()[:300])
+        page.locator(".panel .pick select").nth(0).select_option("1")
+        page.locator(".panel .pick select").nth(1).select_option("0.5")
+        fl = page.evaluate("JSON.parse(localStorage.getItem('spelling-games.baffle.fluency'))")
+        check("parent panel saves the fluency rule", fl == {"streak": 1, "share": 0.5}, str(fl))
+        check("panel text follows the new rule", "1+ times in a row" in page.locator(".panel").inner_text() and f"turns off at {(len(LIST) + 1) // 2}" in page.locator(".panel").inner_text())
+        page.keyboard.press("Escape")
+        # with streak 1 / 50%, half the list found once unhinted is enough to turn auto off
+        page.evaluate("""(list) => localStorage.setItem('spelling-games.baffle.stats.v1',
+          JSON.stringify({games: 1, words: Object.fromEntries(list.slice(0, Math.ceil(list.length / 2)).map(w => [w, {solo: 1, helped: 0, free: 0, streak: 1}]))}))""", LIST)
+        open_game("Baffle")
+        page.touchscreen.tap(*center(path_of([w for w in LIST if path_of(w)][0])[0]))
+        check("auto uses the parent's fluency rule", lit("next") == [], str(lit("next")))
+        page.evaluate("['fluency', 'stats.v1'].forEach(k => localStorage.removeItem('spelling-games.baffle.' + k))")
+        home()
+        page.keyboard.type("parent"); page.wait_for_selector(".overlay")
+        page.keyboard.press("Escape")
+        open_game("Baffle")
 
         # break prompt after many tries with nothing new; Keep playing, then All done -> peek
         g = grid()
@@ -177,7 +264,7 @@ try:
             peek.first.tap()
             check("peek reveals hiding words", page.locator(".finish .chips:not([hidden]) .chip").count() > 0)
         tap("button:has-text('New letters')")
-        check("New letters starts a fresh board", page.locator(".bf-tile").count() == 25 and page.locator(".chip.got").count() == 0)
+        check("New letters starts a fresh board", page.locator(".bf-tile").count() == 25 and page.locator(".bf-slots.done").count() == 0)
         home()
 
         # dictionary missing: list words still work, others are not called fake
