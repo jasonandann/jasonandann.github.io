@@ -459,3 +459,43 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 }
 .ex-grid { width: min(96vw, 64vh, 620px); }
 .pz-grid { width: min(86vw, 40vh, 330px); }
+
+/* ---------- Lily Pad River ---------- */
+.lp-river {
+  position: relative; width: min(96vw, 760px); border-radius: var(--radius); overflow: hidden;
+  background:
+    repeating-linear-gradient(95deg, transparent 0 46px, rgba(255,255,255,.22) 48px 51px, transparent 53px 110px),
+    linear-gradient(#7dd3fc, #0ea5e9 45%, #0284c7);
+  background-size: 220px 100%, 100% 100%;
+  animation: lp-flow 7s linear infinite;
+}
+@keyframes lp-flow { to { background-position: 220px 0, 0 0; } }
+.lp-bank { position: relative; height: 46px; background: linear-gradient(#86efac, #4ade80); border-bottom: 5px solid #a16207;
+  display: flex; align-items: center; justify-content: flex-end; padding: 0 16px; font-size: 1.4rem; letter-spacing: .25em; }
+.lp-bank.low { height: 32px; border-bottom: 0; border-top: 5px solid #a16207; justify-content: center; font-size: 1.1rem; }
+.lp-home { position: absolute; left: 18px; bottom: -4px; z-index: 2; }
+.lp-frog { font-size: 2.5rem; line-height: 1; letter-spacing: 0; }
+.lp-lane { position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px; min-height: 98px; }
+.lp-lane.moving { display: block; padding: 0; height: 98px; }
+.lp-lane.moving .lp-pad { position: absolute; top: 13px; }
+.lp-pad {
+  position: relative; min-width: 108px; height: 72px; padding: 0 30px 0 20px; border-radius: 50%; border: 3px solid #15803d;
+  background: radial-gradient(circle at 38% 32%, #dcfce7, #86efac 35%, #22c55e 80%);
+  box-shadow: 0 5px 0 rgba(7, 89, 133, .45); font-size: 1.9rem; font-weight: 800; color: #14532d; white-space: nowrap;
+  transition: opacity .3s, scale .3s, filter .3s;
+}
+.lp-pad.word { font-size: 1.5rem; letter-spacing: .02em; }
+/* the notch that makes it read as a lily pad */
+.lp-pad::after { content: ''; position: absolute; right: -3px; top: 50%; width: 24px; height: 14px; margin-top: -7px;
+  background: #0ea5e9; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+.lp-pad.sunk { opacity: .35; scale: .85; filter: saturate(.3); }
+.lp-pad.glow { animation: lp-glow 1s ease-in-out infinite alternate; }
+@keyframes lp-glow { from { box-shadow: 0 0 0 3px #fde047; } to { box-shadow: 0 0 0 9px #fde047; } }
+.lp-pad.right { background: radial-gradient(circle at 38% 32%, #fefce8, #fde047 40%, #4ade80 85%); border-color: var(--good); }
+.lp-pad .lp-frog { position: absolute; top: -34px; left: 50%; margin-left: -1.25rem; }
+.lp-frog.hop { animation: lp-hop .55s ease-out; }
+@keyframes lp-hop { 0% { transform: translate(-30px, -70px) scale(1.25); } 60% { transform: translate(0, -18px) scale(1.1); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .lp-river, .lp-frog.hop, .lp-pad.glow { animation: none; }
+  .lp-pad.glow { box-shadow: 0 0 0 6px #fde047; }
+}

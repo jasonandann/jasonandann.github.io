@@ -23,17 +23,17 @@ js/util.js                         el, parseWords/loadWords, progress, garden, s
 js/math.js                         makeQuestion(s), choices, pickLevel, quiz() loop
 js/parent.js                       grown-ups panel
 js/games/*.js                      jumble typeit fillblank catcher volcano wordal memory wordsearch lcwc words
-                                   baffle  zombie  mathquiz(mountain river maze bubbles cascade)  puzzle explorer
+                                   baffle  zombie  river  mathquiz(mountain river maze bubbles cascade)  puzzle explorer
                                    spotmatch simon garden
 audio/manifest.json (+*.m4a, pronunciations.txt)   optional recordings
 dict/words.txt                     generated: ENABLE 3-12 letters minus tools/blocklist.txt
 tools/check_words.py  tools/make_audio.py  tools/make_dictionary.py (+ blocklist.txt)
-tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py zombie_shots.py  tests/fixtures/words.txt
+tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.py zombie_shots.py  tests/fixtures/words.txt
 ```
 
 ## Contracts
 - Game module: `export function mount(root, entries, api)`; `api={home}`; may return a cleanup fn. `mathquiz.js` exports objects `{mount}` (e.g. `mq.river`).
-- `app.js` `SECTIONS=[{title,needsWords?,games:[{icon,name,blurb,needsWords?,mod}]}]`. Adding a game = new file + one entry. Menu currently 22 cards (tests assert this).
+- `app.js` `SECTIONS=[{title,needsWords?,games:[{icon,name,blurb,needsWords?,mod}]}]`. Adding a game = new file + one entry. Menu currently 23 cards (tests assert this; back to 22 when Number River is removed).
 - `words.txt`: first `#` line = list title; `word | optional sentence`; dupes ignored; lowercase.
 - Spelling games use `rounds(root, entries, api, renderRound, {perRound=10})`; `renderRound({entry,next,root,later,onLeave})`; call `logRound(word, firstTry)` **once** per word. `chooseWords` quietly favours missed words.
 - `logRound` also calls `award()` (+1 garden point per finished word, right or not). Math games call `award()` per answered question via `quiz()`. Garden: 4 pts/flower, cap 30 plots, only grows. Keys: `spelling-games.progress.v1` (hidden), `spelling-games.garden.v1`, `spelling-games.mathlevel`. `clearProgress()` must NOT clear the garden.
@@ -46,6 +46,7 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py zombie_shots
 - Math levels: add (within 100), t5, t10, div. Kid-gentle copy: "Try again!", never "wrong".
 - Spelling menu order (Jason's choice, 2026-10-22): See the Words, Jumble, Fill the Blanks, LCWC, Spell Catcher, Volcano, Memory, Baffle, Word Search, Wordal, Listen & Type.
 - Word Volcano win: `erupt()` adds `.vo-flow` (cap + 3 clip-path lava rivers pouring into the lake) and `.vo-crater` (30 looping `.vo-blob` arcs + smoke); `.vo-slots` sits above so the word stays readable. Reduced motion hides blobs/smoke.
+- Lily Pad River (issue #8; in Fun). Number River (`mq.river`, `.rv-*` CSS) stays in Math as the known-good version until Jason tests Lily Pad River on the live site on an iPad; then delete it (mathquiz.js block, `.rv-*` CSS, app.js entry, `play_math("Number River")` + menu name in new_games_test, 23 -> 22 in all suites). Lily Pad River: setup Spelling/Math/Both (key `spelling-games.river.mode`, default both; Spelling hidden if no words) + math level (shared `spelling-games.mathlevel`). 10 questions, 2 lanes x the same 4 choices, moved with the Web Animations API (not CSS vars in keyframes), even spacing so pads never overlap; reduced motion = static wrapped pads. Wrong value sinks in both lanes; answer glows after 2 misses. Spelling: `misspellings(word, avoid)` = y/ie/ies traps first, then doubling, vowel swaps, vowel-pair swaps, silent e; drops real `inDictionary` words and list words; tops up with list words for short words (`put`). Spelling q: `logRound` once; math q: `award()`. A Next button (not a timer) precedes each spelling question so iOS speech runs inside a tap.
 - Zombie Trail: 6x6 serpentine (0..35), 4 rockets + N zombies, both jump by the 'Jump size' range. Setup shows Players/Questions; '⚙️ More options' (`.overlay` pop-up, `.zt-options`) holds zombies 1-4 (default 3; 5 dropped because it rarely fits safe landing), jump `JUMPS` 3-5..8-10 (default 7-9), fade (zombie removed after a hit, default off), Second chance (default ON); saved as JSON in `spelling-games.zombie.options`. `makeBoard({zombies, jump})`: no chaining, zombies never on consecutive squares, 'safe landing' (no zombie within 6 after any zombie destination) tried 50x, then relaxed 50x; returns `strict`. 1-4 zombies at 7-9 always strict; 4 at 5-7/6-8 sometimes relaxed. No exact finish, clamp at 0; DOM exposes `data-pos`, `data-kind`, `data-to` for tests.
 
 ## Commands
@@ -55,15 +56,16 @@ python3 tools/check_words.py           # validate words.txt
 python3 tools/make_audio.py --dry-run  # macOS only (say + afconvert); see README
 pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
-python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py   # 41 + 42 + 69 + 46 checks
+python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py   # 41 + 42 + 70 + 46 + 32 checks
 ```
-Tests start their own `http.server` (ports 8765/8766/8768/8769), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
+Tests start their own `http.server` (ports 8765/8766/8768/8769/8770), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
 ## Status / verified
-Passing: all four suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
+Passing: all five suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
 
 ## Not verified / caveats
 - Volcano eruption untested on iPad Safari (uses `clip-path`, `-webkit-mask`, CSS vars in keyframes).
+- Lily Pad River: Web Animations API `currentTime`/`pause()` and CSS `scale` (Safari 14.1+) untested on iPad; pad speed (30–40 px/s) is a guess, tune `LANE_SPEED` in `js/games/river.js`.
 - **Never run on a real iPad/Safari or Chromebook.** iOS audio unlock, `touch-action` drag in Word Search and Baffle, Baffle generation speed on an iPad (about 0.3 s in sandbox Chromium), and speech voices are untested there.
 - `tools/make_audio.py` default path (`say` -> `afconvert -f m4af -d aac -b 64000`) verified on Jason's Mac 2026-10-21; `--direct` (`say -o x.m4a --data-format=aac`) still unverified. Each run writes `review/<timestamp>.m3u8` (gitignored) of files it made. Apple voice redistribution terms unchecked (consider a private repo). Premium voice names unverified.
 - GitHub Pages republish delay (~1 min) not verified for his setup.
@@ -74,4 +76,4 @@ Passing: all four suites above on desktop Chromium with touch emulation; layouts
 Wordscapes-style "Word Wheel" (letter wheel + crossword) discussed; needs a word-frequency source for crossword fillers (SCOWL sizes) — reuse js/dictionary.js. Per-word pronunciation overrides are only in `make_audio.py` (not browser TTS); reduce Wordal/Puzzle height on short screens; Google Cloud TTS was discussed as an alternative; it needs an API key, so on a static site it only works if audio is pre-generated and committed (same pipeline as `make_audio.py`).
 
 ## Working style for this repo
-Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all four suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.
+Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all five suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.

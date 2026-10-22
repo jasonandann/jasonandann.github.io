@@ -42,9 +42,9 @@ Home screen sections: **Spelling**, **Math**, **Fun**, **Rewards**.
 | Look, Cover, Write, Check | Studies the word, hides it, writes it from memory, compares |
 | See the Words | Study list; tap a word to hear it |
 
-**Math** (grade-3 style; each game starts with a level choice that is remembered: add/subtract within 100, times tables 2-5, 2-10, or times and division). Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces, Number River. Not recorded in the hidden progress.
+**Math** (grade-3 style; each game starts with a level choice that is remembered: add/subtract within 100, times tables 2-5, 2-10, or times and division). Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces, Number River (the original static version, kept until Lily Pad River is checked on an iPad). Not recorded in the hidden progress.
 
-**Fun**: Zombie Trail (below), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
+**Fun**: Zombie Trail (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*. Wrong pads just sink a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 
 **Rewards**: My Garden. Every finished question in any game (right first time or not) is one point; every 4 points grows a flower, and butterflies and bees arrive later. It only grows, never shrinks, and shows no numbers. Stored in `localStorage` (`spelling-games.garden.v1`); the parent panel's "Erase history" does not touch it.
 
@@ -115,7 +115,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`. The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`. The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 
