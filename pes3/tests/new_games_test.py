@@ -15,13 +15,15 @@ SHOTS = os.path.join(tempfile.gettempdir(), "spelling-shots")
 os.makedirs(SHOTS, exist_ok=True)
 
 INIT = """
-window.__spoken = []; window.__played = [];
-const fake = { speak(u){ window.__spoken.push(u.text); }, cancel(){}, getVoices(){ return []; }, onvoiceschanged: null };
+window.__spoken = []; window.__played = []; window.__heard = [];
+const fake = { speak(u){ window.__spoken.push(u.text); window.__heard.push(u.text); }, cancel(){}, getVoices(){ return []; }, onvoiceschanged: null };
 Object.defineProperty(window, 'speechSynthesis', { value: fake, configurable: true });
 window.SpeechSynthesisUtterance = function(t){ this.text = t; };
 HTMLMediaElement.prototype.play = function(){
   window.__played.push(this.src);
-  return /friend/.test(this.src) ? Promise.reject(new Error('blocked')) : Promise.resolve();
+  if (/friend/.test(this.src)) return Promise.reject(new Error('blocked'));
+  window.__heard.push(decodeURIComponent(this.src.split('/').pop()));  // e.g. "because.m4a"
+  return Promise.resolve();
 };
 """
 WAV = (b"RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00@\x1f\x00\x00@\x1f\x00\x00\x01\x00\x08\x00data\x00\x00\x00\x00")
@@ -61,6 +63,8 @@ try:
         def home(): tap("#back")
         def msg(): return page.locator(".msg").first.inner_text()
         def spoken(): return page.evaluate("window.__spoken")
+        # The word a round just said, whether by speech or by a recording (recorded words never reach __spoken).
+        def heard_word(): return page.evaluate("window.__heard.at(-1)").split(".")[0].strip()
         def played(): return page.evaluate("window.__played")
         def gp(): return page.evaluate("JSON.parse(localStorage.getItem('spelling-games.garden.v1')||'{\"pts\":0}').pts")
 
@@ -93,7 +97,7 @@ try:
               and st[2]["sprout"] == 1 and st[3]["flowers"] == 30 and st[3]["critters"] == 6, str(st))
         before = gp()
         open_game("Word Jumble")
-        w = spoken()[-1].split(".")[0].strip()
+        w = heard_word()
         for ch in w: page.locator(".tray .tile", has_text=ch).first.tap()
         check("finishing a spelling word awards a garden point", gp() == before + 1, f"{before}->{gp()}")
         home()
@@ -109,7 +113,7 @@ try:
 
         # ---- Spell Catcher
         open_game("Spell Catcher")
-        w = spoken()[-1].split(".")[0].strip()
+        w = heard_word()
         n_letters = page.locator(".sc-letter").count()
         check("catcher: word letters + 4-6 decoys", len(w) + 4 <= n_letters <= len(w) + 6, f"{w} {n_letters}")
         page.screenshot(path=f"{SHOTS}/catcher.png")
@@ -124,7 +128,7 @@ try:
 
         # ---- Word Volcano
         open_game("Word Volcano")
-        w = spoken()[-1].split(".")[0].strip()
+        w = heard_word()
         rocks = page.locator(".vo-rock").count()
         check("volcano: word letters + 2-3 decoys", len(w) + 2 <= rocks <= len(w) + 3, f"{w} {rocks}")
         pos = page.evaluate("[...document.querySelectorAll('.vo-rock')].map(r=>[parseFloat(r.style.left),parseFloat(r.style.top)])")
@@ -133,7 +137,7 @@ try:
         page.screenshot(path=f"{SHOTS}/volcano.png")
         for ch in w: click(f".vo-rock[data-ch='{ch}']")
         check("volcano: completes + erupts", page.locator(".vo-mountain.erupt").count() == 1 and page.locator("button:has-text('Next')").first.is_visible())
-        check("volcano: eruption has lava blobs + flow", page.locator(".vo-blob").count() >= 20 and page.locator(".vo-flow-fill").count() == 1)
+        check("volcano: eruption has lava blobs + flow", page.locator(".vo-blob").count() >= 20 and page.locator(".vo-flow-fill").count() == 4)  # cap + 3 rivers
         page.wait_for_timeout(900); page.screenshot(path=f"{SHOTS}/volcano_erupt.png")
         check("volcano: first-try logged as success", json.loads(page.evaluate("localStorage.getItem('spelling-games.progress.v1')"))["words"][w]["c"] == 1)
         home()
@@ -144,7 +148,7 @@ try:
         check("wordal evaluate: duplicates", ev[0] == ["present", "present", "correct", "present", "absent"]
               and ev[1] == ["correct", "present", "absent", "absent", "correct"] and ev[2] == ["correct"] * 5, str(ev))
         open_game("Wordal")
-        w = spoken()[-1].split(".")[0].strip(); n = len(w)
+        w = heard_word(); n = len(w)
         page.keyboard.type("q" * (n - 1)); page.keyboard.press("Enter")
         check("wordal: short guess asks for more letters", f"{n} letters" in msg(), msg())
         page.keyboard.type("q"); page.keyboard.press("Enter")
@@ -159,7 +163,7 @@ try:
         check("wordal: win", page.locator(".wd-row").nth(1).locator(".wd-cell.correct").count() == n and page.locator("button:has-text('Next')").first.is_visible())
         check("wordal: solved on 2nd guess counts as first try", prog() == c0 + 1, f"{c0}->{prog()}")
         tap("button:has-text('Next')")
-        w = spoken()[-1].split(".")[0].strip(); n = len(w)
+        w = heard_word(); n = len(w)
         for _ in range(6):
             page.keyboard.type("q" * n if "q" not in w else "z" * n); page.keyboard.press("Enter"); time.sleep(n * 0.15 + 0.5)
         check("wordal: loss reveals the word", w in msg() and page.locator("button:has-text('Next')").first.is_visible(), msg())

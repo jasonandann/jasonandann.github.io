@@ -39,6 +39,7 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py zombie_shots
 - `logRound` also calls `award()` (+1 garden point per finished word, right or not). Math games call `award()` per answered question via `quiz()`. Garden: 4 pts/flower, cap 30 plots, only grows. Keys: `spelling-games.progress.v1` (hidden), `spelling-games.garden.v1`, `spelling-games.mathlevel`. `clearProgress()` must NOT clear the garden.
 - Wordal "first try" = solved within 2 guesses. Math, Spot Match, Simon, Memory, Word Search, Baffle don't log progress.
 - Baffle: 5x5, `generate(words)` (greedy embed + simulated annealing, 8 restarts x 4000 iters, 400 ms budget) maximises how many list words are traceable; `findPath(grid, word)`. Targets = list words on the board; any other `inDictionary` word (3+ letters) = bonus; list words always valid. `award()` per new word. No visible count; hints (slots) off by default, key `spelling-games.baffle.hints`. Break prompt after 8 min / 40 tries / 12 stuck tries. Blocklist lines ending `+` also drop s/es/ed/ing/er/ers forms; others are exact.
+- new_games_test: get a round's word with `heard_word()` (last of `__heard`: speech text or recording filename), not `spoken()[-1]`, which misses words that played a recording (`because`).
 - Tests route `words.txt` to `tests/fixtures/words.txt` (12 words, "Week of Oct 26") so the weekly list never breaks them.
 - Parent panel: 5 taps within 3s on `#title`, or type `parent` on home (not in a game). Nothing visible links to it.
 - Audio: `speakWord(entryOrString)` / `speakSentence(entry)` play `audio/<slug>.m4a` / `<slug>.sentence.m4a` if `audio/manifest.json` `{words:[slug],sentences:{slug:text}}` lists it (sentence text must match words.txt), else fall back to speechSynthesis (also on play() failure). slug = lowercase, non-[a-z0-9] runs -> `_`.
@@ -62,7 +63,6 @@ Tests start their own `http.server` (ports 8765/8766/8768/8769), stub speechSynt
 Passing: all four suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
 
 ## Not verified / caveats
-- Known test flake (pre-existing): new_games_test Spell Catcher reads the word from `spoken()`, which is stale when the round's word has a mocked recording (`because`/`friend`), so ~1 in 6 runs fail. Fix: read the word another way.
 - Volcano eruption untested on iPad Safari (uses `clip-path`, `-webkit-mask`, CSS vars in keyframes).
 - **Never run on a real iPad/Safari or Chromebook.** iOS audio unlock, `touch-action` drag in Word Search and Baffle, Baffle generation speed on an iPad (about 0.3 s in sandbox Chromium), and speech voices are untested there.
 - `tools/make_audio.py` default path (`say` -> `afconvert -f m4af -d aac -b 64000`) verified on Jason's Mac 2026-10-21; `--direct` (`say -o x.m4a --data-format=aac`) still unverified. Each run writes `review/<timestamp>.m3u8` (gitignored) of files it made. Apple voice redistribution terms unchecked (consider a private repo). Premium voice names unverified.
