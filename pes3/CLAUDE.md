@@ -18,7 +18,7 @@ Java dev + cybersecurity background, learning Python (prefer Python for tooling)
 index.html  words.txt  README.md  CLAUDE.md
 css/style.css                      all styles (sections per game)
 js/app.js                          SECTIONS menu, open()/home(), hidden parent triggers
-js/dictionary.js                   loadDictionary/inDictionary (dict/words.txt, shared by word games)
+js/dictionary.js                   loadDictionary/inDictionary/hasPrefix (dict/words.txt, shared by word games)
 js/util.js                         el, parseWords/loadWords, progress, garden, speech+audio, keyboard, scope, finish, rounds
 js/math.js                         makeQuestion(s), choices, pickLevel, quiz() loop
 js/parent.js                       grown-ups panel
@@ -37,8 +37,8 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py zombie_shots
 - `words.txt`: first `#` line = list title; `word | optional sentence`; dupes ignored; lowercase.
 - Spelling games use `rounds(root, entries, api, renderRound, {perRound=10})`; `renderRound({entry,next,root,later,onLeave})`; call `logRound(word, firstTry)` **once** per word. `chooseWords` quietly favours missed words.
 - `logRound` also calls `award()` (+1 garden point per finished word, right or not). Math games call `award()` per answered question via `quiz()`. Garden: 4 pts/flower, cap 30 plots, only grows. Keys: `spelling-games.progress.v1` (hidden), `spelling-games.garden.v1`, `spelling-games.mathlevel`. `clearProgress()` must NOT clear the garden.
-- Wordal "first try" = solved within 2 guesses. Math, Spot Match, Simon, Memory, Word Search, Baffle don't log progress.
-- Baffle: 5x5, `generate(words)` (greedy embed + simulated annealing, 8 restarts x 4000 iters, 400 ms budget) maximises how many list words are traceable; `findPath(grid, word)`. Targets = list words on the board; any other `inDictionary` word (3+ letters) = bonus; list words always valid. `award()` per new word. No visible count; hints (slots) off by default, key `spelling-games.baffle.hints`. Break prompt after 8 min / 40 tries / 12 stuck tries. Blocklist lines ending `+` also drop s/es/ed/ing/er/ers forms; others are exact.
+- Wordal "first try" = solved within 2 guesses. Math, Spot Match, Simon, Memory, Word Search, Baffle don't log progress (Baffle keeps its own stats key).
+- Baffle: 5x5, `generate(words)` (greedy embed + simulated annealing, 8 restarts x 4000 iters, 400 ms budget) maximises how many list words are traceable; `findPath(grid, word, start=[])` (start = required leading cells). Targets = list words on the board; any other `inDictionary` word (3+ letters) = bonus; list words always valid. `award()` per new word. No visible count; slots always shown (`.bf-slots[data-w]`, `.done`, hinted `.now`). 💡 Hint blinks (`.bf-tile.blink`) the next cell of the open target that keeps the most of her path (trims the rest), else first open slot (speaks it). Look-ahead `.bf-tile.next` = unused neighbours from which DFS (pruned by `hasPrefix`/list prefixes) reaches an unfound word; `.bf-current.word` = path is a new word. Mode key `spelling-games.baffle.lookahead` auto|on|off (parent panel); stats `spelling-games.baffle.stats.v1` `{games, words:{w:{solo,helped,free,streak}}}`; fluent = streak>=2, auto off when >=75% of list fluent, decided per board. Parent "Erase history" also clears Baffle stats. Break prompt after 8 min / 40 tries / 12 stuck tries. Blocklist lines ending `+` also drop s/es/ed/ing/er/ers forms; others are exact.
 - new_games_test: get a round's word with `heard_word()` (last of `__heard`: speech text or recording filename), not `spoken()[-1]`, which misses words that played a recording (`because`).
 - Tests route `words.txt` to `tests/fixtures/words.txt` (12 words, "Week of Oct 26") so the weekly list never breaks them.
 - Parent panel: 5 taps within 3s on `#title`, or type `parent` on home (not in a game). Nothing visible links to it.
@@ -55,7 +55,7 @@ python3 tools/check_words.py           # validate words.txt
 python3 tools/make_audio.py --dry-run  # macOS only (say + afconvert); see README
 pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
-python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py   # 41 + 28 + 69 + 46 checks
+python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py   # 41 + 28 + 69 + 65 checks
 ```
 Tests start their own `http.server` (ports 8765/8766/8768/8769), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
@@ -64,6 +64,7 @@ Passing: all four suites above on desktop Chromium with touch emulation; layouts
 
 ## Not verified / caveats
 - Volcano eruption untested on iPad Safari (uses `clip-path`, `-webkit-mask`, CSS vars in keyframes).
+- Baffle look-ahead: ~1 ms per tap in sandbox Chromium (dictionary sort adds a one-time cost on load); iPad untested. Fluency thresholds (2 in a row, 75%) are guesses, not tuned with her.
 - **Never run on a real iPad/Safari or Chromebook.** iOS audio unlock, `touch-action` drag in Word Search and Baffle, Baffle generation speed on an iPad (about 0.3 s in sandbox Chromium), and speech voices are untested there.
 - `tools/make_audio.py` default path (`say` -> `afconvert -f m4af -d aac -b 64000`) verified on Jason's Mac 2026-10-21; `--direct` (`say -o x.m4a --data-format=aac`) still unverified. Each run writes `review/<timestamp>.m3u8` (gitignored) of files it made. Apple voice redistribution terms unchecked (consider a private repo). Premium voice names unverified.
 - GitHub Pages republish delay (~1 min) not verified for his setup.

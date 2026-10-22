@@ -166,6 +166,9 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
   aspect-ratio: 1; display: grid; place-items: center; background: #fff; border-radius: 14px;
   box-shadow: 0 3px 0 #c9cde8; font-weight: 800; font-size: clamp(1.4rem, 7vw, 2.6rem); transition: background .12s;
 }
+.bf-tile.next { background: #fef9c3; box-shadow: 0 3px 0 #c9cde8, inset 0 0 0 3px #facc15; }
+.bf-tile.blink { background: #fde68a; box-shadow: 0 3px 0 #c9cde8, inset 0 0 0 4px #f59e0b; animation: bf-blink .6s ease-in-out 4; }
+@keyframes bf-blink { 50% { background: #fff; box-shadow: 0 3px 0 #c9cde8; transform: scale(1.08); } }
 .bf-tile.sel { background: #c7d2fe; }
 .bf-tile.last { background: #a5b4fc; }
 .bf-tile.good { background: var(--good-bg); }
@@ -179,6 +182,8 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .bf-slots { display: flex; gap: 3px; padding: 2px; border: 0; background: none; }
 .bf-slots span { width: 28px; height: 32px; display: grid; place-items: center; border-radius: 6px; background: #fff; border: 2px solid var(--soft); font-weight: 800; font-size: 1.1rem; }
 .bf-slots.done span { background: var(--good-bg); border-color: var(--good); }
+.bf-slots.now span { border-color: #f59e0b; background: #fef9c3; }
+.bf-current.word { color: var(--good); }
 .finish .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
 .chip.got { background: var(--good-bg); border-color: var(--good); }
 .chip.bonus { background: var(--warm-bg); border-color: var(--warm); }

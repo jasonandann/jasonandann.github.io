@@ -1,15 +1,22 @@
 // Baffle: a Boggle-style 5x5 letter grid. Drag (or tap) across touching letters to make words.
 // The grid is generated so it hides as many words.txt words as possible; any other real word
 // (dict/words.txt) goes in the bonus jar. No timer, no score; after a while it offers a break.
+// Helpers: blank slots for the list words are always shown; 💡 Hint blinks the next letter of a
+// list word; look-ahead lights the tiles that can still lead to a word. Look-ahead switches itself
+// off once most of the week's words are found without hints (parent panel can force it on/off).
 import { el, chooseWords, isLetters, speakWord, celebrate, noWords, award, scope, cheer } from '../util.js';
-import { loadDictionary, dictionaryReady, inDictionary, MIN_LEN } from '../dictionary.js';
+import { loadDictionary, dictionaryReady, inDictionary, hasPrefix, MIN_LEN } from '../dictionary.js';
 
 export const N = 5;
 const MAX_TARGETS = 24;           // most list words to aim for on one board
 const BREAK_MINUTES = 8;          // offer a break after this long...
 const BREAK_TRIES = 40;           // ...or this many tries...
 const BREAK_STUCK = 12;           // ...or this many tries in a row with nothing new
-const HINTS_KEY = 'spelling-games.baffle.hints';
+const LOOK_KEY = 'spelling-games.baffle.lookahead';   // 'auto' (default) | 'on' | 'off'
+const STATS_KEY = 'spelling-games.baffle.stats.v1';   // {games, words: {w: {solo, helped, free, streak}}}
+export const FLUENT_STREAK = 2;   // a word is fluent after this many finds in a row with no hint
+export const FLUENT_SHARE = 0.75; // auto look-ahead turns off once this share of the list is fluent
+const BLINK_MS = 2400;
 
 /* ---------- grid generation ---------- */
 const NB = Array.from({ length: N * N }, (_, i) => {
@@ -26,23 +33,32 @@ const NB = Array.from({ length: N * N }, (_, i) => {
   return out;
 });
 export const touching = (a, b) => NB[a].includes(b);
+export const neighbours = (i) => [...NB[i]];
 
 const rnd = (n) => Math.floor(Math.random() * n);
 const shuffled = (a) => { const r = [...a]; for (let i = r.length - 1; i > 0; i--) { const j = rnd(i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; };
 
+const ALL = [...Array(N * N).keys()];
+
 // Cell indexes that spell `word` on grid g (25 letters, each cell used once), or null.
-export function findPath(g, word) {
+// With `start` (a path of touching cells), only paths that begin with those cells count.
+export function findPath(g, word, start = []) {
+  if (start.length > word.length || start.some((i, k) => g[i] !== word[k])) return null;
   const used = new Array(g.length).fill(false);
-  const path = [];
-  const dfs = (i, k) => {
-    used[i] = true; path.push(i);
-    if (k === word.length - 1) return true;
-    for (const j of NB[i]) if (!used[j] && g[j] === word[k + 1] && dfs(j, k + 1)) return true;
-    used[i] = false; path.pop();
+  const path = [...start];
+  path.forEach((i) => { used[i] = true; });
+  const grow = () => {
+    if (path.length === word.length) return true;
+    const ch = word[path.length];
+    for (const j of path.length ? NB[path[path.length - 1]] : ALL) {
+      if (used[j] || g[j] !== ch) continue;
+      used[j] = true; path.push(j);
+      if (grow()) return true;
+      used[j] = false; path.pop();
+    }
     return false;
   };
-  for (let i = 0; i < g.length; i++) if (g[i] === word[0] && dfs(i, 0)) return path;
-  return null;
+  return grow() ? path : null;
 }
 
 // Try to lay `word` along a random path through empty cells or cells already holding the right letter.
@@ -100,15 +116,35 @@ export function generate(words, { restarts = 8, iters = 4000, budgetMs = 400 } =
 }
 
 /* ---------- game ---------- */
-function hintsOn() { try { return localStorage.getItem(HINTS_KEY) === '1'; } catch { return false; } }
-function saveHints(on) { try { localStorage.setItem(HINTS_KEY, on ? '1' : '0'); } catch { /* ignore */ } }
+/* ---------- look-ahead setting + hidden per-word stats (shown in the parent panel) ---------- */
+export function lookaheadMode() {
+  try { const m = localStorage.getItem(LOOK_KEY); return m === 'on' || m === 'off' ? m : 'auto'; } catch { return 'auto'; }
+}
+export function setLookaheadMode(m) { try { localStorage.setItem(LOOK_KEY, m); } catch { /* ignore */ } }
+export function getStats() {
+  try { const s = JSON.parse(localStorage.getItem(STATS_KEY)); if (s && s.words) return s; } catch { /* ignore */ }
+  return { games: 0, words: {} };
+}
+function saveStats(s) { try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch { /* ignore */ } }
+export function clearStats() { try { localStorage.removeItem(STATS_KEY); } catch { /* ignore */ } }
+export const isFluent = (r) => !!r && r.streak >= FLUENT_STREAK;
+export function fluentCount(words, stats = getStats()) { return words.filter((w) => isFluent(stats.words[w])).length; }
+// Decided once per board, so tiles never stop lighting up halfway through a game.
+export function lookaheadOn(words) {
+  const m = lookaheadMode();
+  return m === 'on' || (m === 'auto' && fluentCount(words) < FLUENT_SHARE * words.length);
+}
 
 export function mount(root, entries, api) {
   const pool = entries.filter((e) => isLetters(e.word) && e.word.length >= 2);
   if (!pool.length) return noWords(root);
-  loadDictionary();
   const listWords = new Set(pool.map((e) => e.word));
+  const listPrefixes = new Set([...listWords].flatMap((w) => [...w].map((_, k) => w.slice(0, k + 1))));
+  const isWord = (s) => listWords.has(s) || inDictionary(s);
+  const isPrefix = (s) => listPrefixes.has(s) || hasPrefix(s);
   let sc = scope();
+  let refresh = () => {};
+  loadDictionary().then(() => refresh()); // look-ahead knows only list words until the dictionary arrives
 
   function play() {
     sc.dispose();
@@ -118,7 +154,10 @@ export function mount(root, entries, api) {
     const targets = new Map(hidden.map((w) => [w, pool.find((e) => e.word === w)]));
     const found = new Set();   // list words found
     const bonus = new Set();   // other real words found
-    let showHints = hintsOn();
+    const hinted = new Set();  // list words the Hint button helped with on this board
+    const look = lookaheadOn([...listWords]);
+    let hintWord = null;       // slot the last hint was for
+    let counted = false;       // this board counted in stats.games yet?
     let tries = 0;
     let stuck = 0;
     let started = Date.now();
@@ -130,43 +169,99 @@ export function mount(root, entries, api) {
     const msg = el('div', { class: 'msg', 'aria-live': 'polite' });
     const checkBtn = el('button', { class: 'btn primary', type: 'button', hidden: true, onclick: () => submit() }, '✔ Check');
     const clearBtn = el('button', { class: 'btn', type: 'button', hidden: true, onclick: () => setPath([]) }, '✖ Clear');
-    const hintBtn = el('button', { class: 'btn', type: 'button', onclick: toggleHints });
+    const hintBtn = el('button', { class: 'btn', type: 'button', onclick: () => hint() }, '💡 Hint');
     const listArea = el('div', { class: 'bf-list' });
     const bonusArea = el('div', { class: 'bf-list' });
+    const slotWords = [...targets.keys()].sort((a, b) => a.length - b.length || a.localeCompare(b));
+
+    /* --- look-ahead: does path p lead to a word nobody has found yet? --- */
+    const spell = (p) => p.map((i) => grid[i]).join('');
+    const unfound = (s) => !found.has(s) && !bonus.has(s) && isWord(s);
+    function leads(p) {
+      const s = spell(p);
+      if (!isPrefix(s)) return false;
+      if (p.length >= 2 && unfound(s)) return true;
+      return NB[p[p.length - 1]].some((k) => !p.includes(k) && leads([...p, k]));
+    }
+    const nextTiles = (p) => NB[p[p.length - 1]].filter((j) => !p.includes(j) && leads([...p, j]));
 
     /* --- current path --- */
     let path = [];
     function setPath(p) {
       path = p;
-      tiles.forEach((t, i) => t.classList.toggle('sel', path.includes(i)));
-      tiles.forEach((t) => t.classList.remove('last'));
-      if (path.length) tiles[path[path.length - 1]].classList.add('last');
-      current.textContent = path.map((i) => grid[i]).join('').toUpperCase();
+      const next = look && path.length ? nextTiles(path) : [];
+      tiles.forEach((t, i) => {
+        t.classList.toggle('sel', path.includes(i));
+        t.classList.toggle('last', i === path[path.length - 1]);
+        t.classList.toggle('next', next.includes(i));
+      });
+      current.textContent = spell(path).toUpperCase();
+      current.classList.toggle('word', look && path.length >= 2 && unfound(spell(path)));
       checkBtn.hidden = clearBtn.hidden = path.length === 0 || dragging;
     }
+    refresh = () => setPath(path);
 
-    /* --- word lists --- */
+    /* --- hint: blink the next letter of a spelling word, keeping as much of her path as fits --- */
+    let blinkTimer = null;
+    function blink(i) {
+      clearTimeout(blinkTimer);
+      tiles.forEach((t) => t.classList.remove('blink'));
+      void tiles[i].offsetWidth; // restart the animation if the same tile blinks again
+      tiles[i].classList.add('blink');
+      blinkTimer = sc.later(() => tiles[i].classList.remove('blink'), BLINK_MS);
+    }
+    function hint() {
+      const left = slotWords.filter((w) => !found.has(w));
+      if (!left.length) { msg.textContent = 'You found every spelling word! Look for bonus words. 🫙'; return; }
+      // The word her letters already start (most letters kept wins), else the next empty slot.
+      let best = { w: left[0], k: 0, route: findPath(grid, left[0]) };
+      for (const w of left) {
+        for (let k = path.length; k > best.k; k--) {
+          const route = findPath(grid, w, path.slice(0, k));
+          if (route) { best = { w, k, route }; break; }
+        }
+      }
+      const { w, k, route } = best;
+      hinted.add(w);
+      hintWord = w;
+      drawLists();
+      if (k < path.length) setPath(route.slice(0, k)); // drop letters that lead away from it
+      if (k === w.length) {
+        msg.textContent = 'That spells it! Tap ✔ Check. ⭐';
+        return blink(route[k - 1]);
+      }
+      if (k === 0) speakWord(targets.get(w)); // in the tap, so iOS lets it play
+      msg.textContent = k === 0 ? 'Listen! Start with the blinking letter. 💡' : 'The blinking letter comes next! 💡';
+      blink(route[k]);
+    }
+
+    /* --- word lists: blank slots for each hidden spelling word, filled in when found --- */
     const chip = (w, cls) => el('button', { class: `chip ${cls}`, type: 'button', onclick: () => speakWord(targets.get(w) || w) }, w);
     function drawLists() {
-      hintBtn.textContent = showHints ? '💡 Hide hints' : '💡 Hints';
       listArea.replaceChildren();
-      if (showHints) {
-        const words = [...targets.keys()].sort((a, b) => a.length - b.length || a.localeCompare(b));
+      if (slotWords.length) {
         listArea.append(
           el('h3', {}, '⭐ Spelling words'),
-          ...words.map((w) => (found.has(w)
-            ? el('button', { class: 'bf-slots done', type: 'button', onclick: () => speakWord(targets.get(w)) }, [...w].map((c) => el('span', {}, c)))
-            : el('div', { class: 'bf-slots' }, [...w].map(() => el('span', {}, ''))))),
+          ...slotWords.map((w) => (found.has(w)
+            ? el('button', { class: 'bf-slots done', type: 'button', 'data-w': w, onclick: () => speakWord(targets.get(w)) }, [...w].map((c) => el('span', {}, c)))
+            : el('div', { class: `bf-slots${w === hintWord ? ' now' : ''}`, 'data-w': w }, [...w].map(() => el('span', {}, ''))))),
         );
-      } else if (found.size) {
-        listArea.append(el('h3', {}, '⭐ Spelling words'), el('div', { class: 'chips' }, [...found].map((w) => chip(w, 'got'))));
       } else if (!bonus.size) {
         listArea.append(el('p', { class: 'small' }, 'Words you find go here.'));
       }
       bonusArea.replaceChildren();
       if (bonus.size) bonusArea.append(el('h3', {}, '🫙 Bonus words'), el('div', { class: 'chips' }, [...bonus].map((w) => chip(w, 'bonus'))));
     }
-    function toggleHints() { showHints = !showHints; saveHints(showHints); drawLists(); }
+
+    // Hidden stats: a find with no hint for that word grows its streak; a hinted find resets it.
+    function record(w) {
+      const s = getStats();
+      const r = s.words[w] || { solo: 0, helped: 0, free: 0, streak: 0 };
+      if (hinted.has(w)) { r.helped++; r.streak = 0; } else { r.solo++; r.streak++; if (!look) r.free++; }
+      if (!counted) { s.games = (s.games || 0) + 1; counted = true; }
+      s.words[w] = r;
+      saveStats(s);
+    }
 
     /* --- checking a word --- */
     function flash(cls) {
@@ -183,6 +278,7 @@ export function mount(root, entries, api) {
         msg.textContent = 'You found that one already! ⭐';
       } else if (targets.has(word)) {
         found.add(word); isNew = true;
+        record(word);
         speakWord(targets.get(word));
         msg.textContent = `${cheer()} ⭐`;
         flash('good');

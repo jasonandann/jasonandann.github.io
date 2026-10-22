@@ -5,6 +5,7 @@
 export const MIN_LEN = 3;
 let loading = null;
 let words = null;
+let sorted = [];   // the same words in order, for prefix lookups
 
 // Starts the download once; later calls reuse it. Resolves to a Set (empty if the file is missing).
 export function loadDictionary(url = 'dict/words.txt') {
@@ -12,7 +13,11 @@ export function loadDictionary(url = 'dict/words.txt') {
     loading = fetch(url)
       .then((r) => (r.ok ? r.text() : ''))
       .catch(() => '')
-      .then((text) => (words = new Set(text.split('\n').map((w) => w.trim()).filter(Boolean))));
+      .then((text) => {
+        sorted = text.split('\n').map((w) => w.trim()).filter(Boolean).sort();
+        words = new Set(sorted);
+        return words;
+      });
   }
   return loading;
 }
@@ -24,4 +29,15 @@ export function dictionaryReady() {
 
 export function inDictionary(word) {
   return !!words && word.length >= MIN_LEN && words.has(word);
+}
+
+// True if some dictionary word starts with p (binary search; false while loading).
+export function hasPrefix(p) {
+  let lo = 0;
+  let hi = sorted.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid] < p) lo = mid + 1; else hi = mid;
+  }
+  return lo < sorted.length && sorted[lo].startsWith(p);
 }
