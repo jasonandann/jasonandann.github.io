@@ -44,7 +44,7 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
 
 **Math** (grade-3 style; each game starts with a level choice that is remembered: add/subtract within 100, times tables 2-5, 2-10, or times and division). Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Fun) can also do math. Not recorded in the hidden progress.
 
-**Coding**: Robot Course and Turtle Draw (below). Code Studio is planned (issue #19) and will share the same engine in `js/code/`.
+**Coding**: Robot Course, Turtle Draw and Code Studio (below). All three share one engine in `js/code/`.
 
 **Fun**: Zombie Trail (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 
@@ -65,6 +65,18 @@ A 5×5 grid of letters. Slide a finger across letters that touch (diagonals coun
 - After 8 minutes, 40 tries, or 12 tries in a row with nothing new, it offers "Getting tired? Let's take a break!" (Keep playing / All done). All done shows what she found and an optional "Peek at the hiding words". Tune these at the top of `js/games/baffle.js`.
 - Every new word (list or bonus) is a garden point. Baffle keeps its own hidden per-word stats (found with no hint / with look-ahead off / with a hint / in a row), shown in the parent panel; it does not touch the main progress table.
 - Dictionary: `dict/words.txt`, built by `python3 tools/make_dictionary.py` from the public-domain [ENABLE list](https://github.com/dolph/dictionary) (3–12 letters, about 152k words, 1.4 MB; downloaded only when Baffle opens). ENABLE is from about 2000, so newer words (email, selfie) are missing, and it includes Scrabble oddities (aah, zax). `tools/blocklist.txt` removes swear words and slurs; add to it and re-run the script. To switch to [SCOWL](http://wordlist.aspell.net/) later, pass its word file to the script.
+
+### Code Studio
+
+A small sprite playground in the style of [ScratchJr](https://www.scratchjr.org/): emoji sprites on a stage, each with picture-block scripts.
+
+- **Stage:** 20×15 squares; 🖼️ picks one of 8 backdrops (plain, sky, grass, space, ocean, city, sunset, night). 1–4 sprites from an emoji list (➕ adds one; tap the selected sprite's button to change or remove it). Drag a sprite on the stage, or tap an empty spot, to set where it starts.
+- **Scripts:** each sprite has one or more scripts. The yellow block at the start says when it runs: 🏁 when ▶ is tapped, or 👆 when that sprite is tapped (also while other scripts are running). Tap it to switch or remove the script; ➕ New script adds another.
+- **Blocks** (tabs): **Move** ➡️ ⬅️ ⬆️ ⬇️ *n* squares, ¼ / ½ turns (arrow + word), 🏠 go home; **Looks** 💬 say (a phrase list or ⌨️ type your own), 🎈 grow, 🤏 shrink, 🙈 hide, 👀 show; **Sound** 🎵 note (do re mi…), 💥 pop; **Control** ⏱️ wait (half-seconds), 🔁 repeat *n*, ♾️ forever, ⏹️ stop. Tap a chip to change it or remove it; drag to reorder. 🔁/♾️ open a box like Turtle Draw (one box inside another at most).
+- **▶** puts every sprite back where it starts, then runs all 🏁 scripts at the same time; **⏹** stops everything (forever too). Leaving the game also stops it. Moves stop at the edge of the stage. Code can't be changed while it runs ("Tap ⏹ to change the code").
+- **💾 Save** with a picture and an optional name; **📂** lists projects to open or delete (asks first); up to 12. What she is working on is also kept as a draft, so Home doesn't lose it.
+- No garden points (there is no "finished" moment, and points per run would be easy to farm).
+- Stored on the device only: `spelling-games.studio.projects.v1`, `.studio.draft.v1`.
 
 ### Turtle Draw
 
@@ -109,7 +121,7 @@ The on-screen keyboard avoids iPad autocorrect and predictive text. A physical k
 
 ## Hidden progress (grown-ups only)
 
-Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, and Zombie Trail record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Spot Match, Simon Says, and Zombie Trail math questions do not record anything. In Wordal, "first try" means solved within the first two guesses.
+Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, and Zombie Trail record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Code Studio, Spot Match, Simon Says, and Zombie Trail math questions do not record anything. In Wordal, "first try" means solved within the first two guesses.
 
 Open the panel from the home screen by either:
 - tapping the **"Spelling Time" title 5 times within 3 seconds**, or
@@ -184,7 +196,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 
