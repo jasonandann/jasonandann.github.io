@@ -608,6 +608,7 @@ button.rb-cell:active { background: #dcfce7; }
 .rb-tool[aria-pressed="true"] { border-color: var(--brand); background: #eef2ff; box-shadow: 0 0 0 3px #c7d2fe; }
 .rb-tool[data-tool="wall"] .ci { display: inline-block; width: 1.3em; height: 1em; background: repeating-linear-gradient(0deg, #b45309 0 6px, #fcd9b6 6px 8px); border-radius: 3px; font-size: 1.4rem; color: transparent; }
 .rb-edit .rb-board-wrap { width: min(92vw, 50vh, 420px); }
+.rb-edit .rb-board { touch-action: none; } /* dragging builds walls instead of scrolling */
 .rb-naming .typed { min-width: 240px; }
 
 @media (max-width: 560px) {

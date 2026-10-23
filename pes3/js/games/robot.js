@@ -123,7 +123,7 @@ function drawBoard(map, { tag = 'div', onCell, showBot = false } = {}) {
   const cells = map.map((row, y) => [...row].map((ch, x) => {
     const [kind, icon] = PIECES[ch] || ['empty', ''];
     const attrs = { class: `rb-cell k-${kind}`, 'data-x': x, 'data-y': y };
-    if (tag === 'button') Object.assign(attrs, { type: 'button', 'aria-label': `square ${x + 1}, ${y + 1}: ${kind}`, onclick: () => onCell(x, y) });
+    if (tag === 'button') Object.assign(attrs, { type: 'button', 'aria-label': `square ${x + 1}, ${y + 1}: ${kind}`, onclick: (e) => onCell(x, y, e) });
     const cell = el(tag, attrs, kind === 'cone' ? coneEl('rb-piece rb-cone') : icon ? el('span', { class: 'rb-piece' }, icon) : null);
     if (showBot && FACING.includes(ch)) {
       cell.classList.add('k-start');
@@ -227,7 +227,8 @@ export function mount(root, _entries, api) {
     let tool = 'wall';
     const TOOLS = [['wall', '🧱', 'Wall', '#'], ['cone', '🚧', 'Cone', 'c'], ['gem', '💎', 'Gem', '*'],
       ['flag', '🏁', 'Flag', 'F'], ['robot', '🤖', 'Robot', '^'], ['erase', '🧽', 'Eraser', '.']];
-    const msg = el('div', { class: 'msg', 'aria-live': 'polite' }, 'Pick a piece, then tap squares.');
+    const WALL_HINT = 'Tap a square, or drag across squares to build a long wall.';
+    const msg = el('div', { class: 'msg', 'aria-live': 'polite' }, WALL_HINT);
     const palette = el('div', { class: 'rb-palette' });
     const holder = el('div', { class: 'rb-board-wrap' });
     const map = () => grid.map((r) => r.join(''));
@@ -235,10 +236,58 @@ export function mount(root, _entries, api) {
 
     function drawPalette() {
       palette.replaceChildren(...TOOLS.map(([id, icon, label]) =>
-        el('button', { class: 'rb-tool', type: 'button', 'data-tool': id, 'aria-pressed': String(tool === id), onclick: () => { tool = id; drawPalette(); } },
+        el('button', { class: 'rb-tool', type: 'button', 'data-tool': id, 'aria-pressed': String(tool === id), onclick: () => { tool = id; msg.textContent = id === 'wall' ? WALL_HINT : 'Tap a square.'; drawPalette(); } },
           id === 'cone' ? coneEl('ci rb-cone') : el('span', { class: 'ci' }, icon), el('span', { class: 'cw' }, label))));
     }
-    function draw() { holder.replaceChildren(drawBoard(map(), { tag: 'button', onCell: tapCell, showBot: true }).board); }
+    // Squares react on pointerdown (below). The click that follows a pointerdown is ignored, so a click
+    // only acts for the keyboard. (Not event.detail: Chromium sent detail 0 for a touch tap after a mouse drag.)
+    let pressedAt = -1e9;
+    const onCell = (x, y) => { if (performance.now() - pressedAt > 800) tapCell(x, y); };
+    function draw() { holder.replaceChildren(drawBoard(map(), { tag: 'button', onCell, showBot: true }).board); }
+
+    // Walls are many pieces, so 🧱 can be dragged across squares to build (or, starting on a wall,
+    // take away) a continuous wall. Other pieces are one square each: tap only.
+    let paint = null; // { add: bool, last: [x, y] } while a wall drag is going
+    const cellAt = (e) => {
+      const c = document.elementFromPoint(e.clientX, e.clientY)?.closest('.rb-cell');
+      return c && holder.contains(c) ? [+c.dataset.x, +c.dataset.y] : null;
+    };
+    function paintWall([x, y], first) {
+      const ch = grid[y][x];
+      if (FACING.includes(ch) || ch === 'F') {
+        if (first) msg.textContent = FACING.includes(ch) ? 'Tap 🤖 Robot to move or turn the robot.' : 'Tap 🏁 Flag to move the flag.';
+        return;
+      }
+      const next = paint.add ? '#' : ch === '#' ? '.' : ch;
+      if (next === ch) return;
+      grid[y][x] = next;
+      tone(paint.add ? BEEP.fwd : BEEP.undo, 50);
+      draw();
+    }
+    holder.addEventListener('pointerdown', (e) => {
+      const at = cellAt(e);
+      if (!at) return;
+      e.preventDefault();
+      pressedAt = performance.now();
+      if (tool !== 'wall') { tapCell(...at); return; }
+      msg.textContent = '';
+      paint = { add: grid[at[1]][at[0]] !== '#', last: at };
+      try { holder.setPointerCapture(e.pointerId); } catch { /* old browser: still works square by square */ }
+      paintWall(at, true);
+    });
+    holder.addEventListener('pointermove', (e) => {
+      if (!paint) return;
+      const at = cellAt(e);
+      if (!at || (at[0] === paint.last[0] && at[1] === paint.last[1])) return;
+      // A fast finger can skip squares: fill in the ones between, so the wall has no gaps.
+      const [x0, y0] = paint.last;
+      const n = Math.max(Math.abs(at[0] - x0), Math.abs(at[1] - y0));
+      for (let i = 1; i <= n; i++) paintWall([Math.round(x0 + ((at[0] - x0) * i) / n), Math.round(y0 + ((at[1] - y0) * i) / n)], false);
+      paint.last = at;
+    });
+    const endPaint = () => { paint = null; };
+    holder.addEventListener('pointerup', endPaint);
+    holder.addEventListener('pointercancel', endPaint);
 
     function tapCell(x, y) {
       const ch = grid[y][x];
