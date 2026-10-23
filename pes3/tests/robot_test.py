@@ -174,6 +174,11 @@ try:
         check("✕ removes only the last step", chips() == ["fwd", "fwd"], str(chips()))
         keys("r"); tap(".code-chip >> nth=0")
         check("tapping a chip opens its menu (no instant delete)", page.locator(".overlay [data-act='remove']").count() == 1 and chips() == ["fwd", "fwd", "right"], str(chips()))
+        check("menu title looks like the chip (same colour, icon, word)", page.evaluate("""(sel) => { const c = document.querySelector(sel), f = document.querySelector('.overlay .code-menu-title .code-face');
+            const col = (e) => [...e.classList].find(k => k.startsWith('c-'));
+            return !!f && col(f) === col(c) && f.querySelector('.ci').textContent === c.querySelector('.ci').textContent
+              && f.querySelector('.cw').textContent === c.querySelector('.cw').textContent
+              && getComputedStyle(f).borderColor === getComputedStyle(c).borderColor && getComputedStyle(f).backgroundColor === getComputedStyle(c).backgroundColor; }""", ".code-chip[data-i='0']"))
         check("…first chip can't move left", page.locator(".overlay [data-act='shift-left']").is_disabled() and not page.locator(".overlay [data-act='shift-right']").is_disabled())
         tap(".overlay [data-act='remove']"); time.sleep(0.35)
         check("🗑️ Remove in the menu deletes that chip", chips() == ["fwd", "right"] and page.locator(".overlay").count() == 0, str(chips()))

@@ -2,7 +2,7 @@
 // robot's head, press the orange key, watch it go. Plan first, then run; bumps are "Let's fix the plan!".
 import { el, scope, celebrate, award, cheer, keyboard, listenKeys } from '../util.js';
 import { runner } from '../code/engine.js';
-import { chipStrip, shiftButtons } from '../code/chips.js';
+import { chipStrip, shiftButtons, chipTitle } from '../code/chips.js';
 import { ROBOT_OPS } from '../code/blocks.js';
 import { tone, tune } from '../code/sound.js';
 import { LEVELS } from './robot-levels.js';
@@ -155,10 +155,10 @@ export function mount(root, _entries, api) {
   function closeAsk() {
     if (overlay) { overlay.remove(); overlay = null; }
   }
-  function menu(title, ...content) {
+  function menu(label, title, ...content) {
     closeAsk();
-    overlay = el('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': title,
-      onclick: (e) => { if (e.target === overlay) closeAsk(); } }, el('div', { class: 'panel rb-ask' }, el('h2', {}, title), ...content));
+    overlay = el('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': label,
+      onclick: (e) => { if (e.target === overlay) closeAsk(); } }, el('div', { class: 'panel rb-ask' }, title, ...content));
     document.body.append(overlay);
   }
   function ask(text, yesLabel, onYes, noLabel = 'No, keep them') {
@@ -504,7 +504,7 @@ export function mount(root, _entries, api) {
       if (locked()) return;
       const i = path[0];
       const o = ROBOT_OPS[program[i].op];
-      menu(`${o.icon} ${o.word}`,
+      menu(o.say, chipTitle(ROBOT_OPS, program[i]),
         shiftButtons(i, program.length, (d) => { moveStep([], i, i + d); chipMenu([i + d]); }),
         el('div', { class: 'row' },
           el('button', { class: 'btn', type: 'button', 'data-act': 'remove', onclick: () => { closeAsk(); removeAt(path); } }, '🗑️ Remove'),

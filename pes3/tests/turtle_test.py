@@ -169,6 +169,11 @@ try:
         chip_drag(".code-chip[data-path='0.0.0']", ".code-chip[data-path='0.2']", "after")
         check("a step can't be dragged out of its box (stays put)", "REPEAT 2 [REPEAT 4 [FORWARD 50] RIGHT 90 FORWARD 80]" in page.locator(".tt-logo").inner_text() and page.locator(".overlay").count() == 0)
         tap(".code-chip[data-path='0.2']")
+        check("menu title looks like the chip", page.evaluate("""(sel) => { const c = document.querySelector(sel), f = document.querySelector('.overlay .code-menu-title .code-face');
+            const col = (e) => [...e.classList].find(k => k.startsWith('c-'));
+            return !!f && col(f) === col(c) && f.querySelector('.ci').textContent === c.querySelector('.ci').textContent
+              && f.querySelector('.cw').textContent === c.querySelector('.cw').textContent
+              && getComputedStyle(f).borderColor === getComputedStyle(c).borderColor && getComputedStyle(f).backgroundColor === getComputedStyle(c).backgroundColor; }""", ".code-chip[data-path='0.2']"))
         check("chip menu has ◀ / ▶ (last in its box: ▶ greyed)", page.locator(".overlay [data-act='shift-left']").count() == 1 and page.locator(".overlay [data-act='shift-right']").is_disabled())
         tap(".overlay [data-act='shift-left']"); tap(".overlay button:has-text('Done')")
         check("◀ moves a step within its box", "REPEAT 2 [REPEAT 4 [FORWARD 50] FORWARD 80 RIGHT 90]" in page.locator(".tt-logo").inner_text(), page.locator(".tt-logo").inner_text())
@@ -178,6 +183,7 @@ try:
         check("✕ Undo removes the last top-level step (the box)", program() == [], str(program()))
         keys("fwd", "penup", "fwd", "pendown", "color")
         check("🎨 opens the colour picker", page.locator(".overlay .tt-swatch").count() == 8)
+        check("colour menu title shows the colour swatch", page.locator(".overlay .code-face .csw").count() == 1)
         tap(".overlay .tt-swatch[data-v='1']")
         check("colour chip shows its colour", "blue" in page.locator(".code-chip[data-op='color']").inner_text() and "SETPENCOLOR 1" in page.locator(".tt-logo").inner_text())
         key("fwd")

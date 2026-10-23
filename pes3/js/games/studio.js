@@ -4,7 +4,7 @@
 // can also be dragged to reorder). No garden points in v1 (no natural "finished" moment).
 import { el, scope, keyboard } from '../util.js';
 import { threads } from '../code/engine.js';
-import { chipStrip, shiftButtons } from '../code/chips.js';
+import { chipStrip, shiftButtons, chipTitle } from '../code/chips.js';
 import { STUDIO_OPS, NOTES, halfSeconds } from '../code/blocks.js';
 import { tone } from '../code/sound.js';
 
@@ -345,7 +345,7 @@ export function mount(root, _entries, api) {
     const set = (arg) => { b.arg = arg; closePop(); edited(); };
     const grid = (vals, label, fmt = String, onPick = set) => el('div', { class: 'tt-nums', role: 'group', 'aria-label': label }, vals.map((v) =>
       el('button', { class: `btn tt-num${v === b.arg ? ' on' : ''}`, type: 'button', 'data-v': v, onclick: () => onPick(v) }, fmt(v))));
-    const parts = [el('h2', {}, `${o.icon} ${word}`)];
+    const parts = [chipTitle(STUDIO_OPS, b)];
     if (MOVES[b.op]) parts.push(el('p', { class: 'label' }, 'How many squares?'), grid([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'How far'));
     if (b.op === 'repeat') parts.push(el('p', { class: 'label' }, 'How many times?'), grid([2, 3, 4, 5, 6, 7, 8, 9, 10], 'How many times'));
     if (b.op === 'wait') parts.push(el('p', { class: 'label' }, 'How long? (seconds)'), grid([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'How long', (v) => `${halfSeconds(v)}`));

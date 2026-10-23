@@ -6,7 +6,16 @@ import { el } from '../util.js';
 
 const key = (path) => path.join('.');
 const asPath = (p) => (Array.isArray(p) ? p : [p]);
-const DRAG_PX = 10; // finger must move this far before a press becomes a drag (smaller = tap)
+const DRAG_PX = 10;
+const val = (v, b) => (typeof v === 'function' ? v(b) : v);
+const opOf = (ops, b) => ops[b.op] || { icon: '?', word: b.op, say: b.op, color: 'grey' };
+// What a chip shows: icon (+ class, e.g. the flipped pencil), word, optional colour swatch.
+function face(o, b) {
+  const sw = o.swatch && val(o.swatch, b);
+  return [el('span', { class: `ci${o.iconClass ? ` ${o.iconClass}` : ''}` }, o.icon),
+    el('span', { class: 'cw' }, val(o.word, b)),
+    sw ? el('span', { class: 'csw', style: `background:${sw}` }) : null];
+} // finger must move this far before a press becomes a drag (smaller = tap)
 
 // ops: {op: {icon, word, say, color, iconClass?, swatch?}}; word/say/swatch may be fn(block).
 // onTap(path, block) when a chip (or a box's header chip) is tapped.
@@ -15,23 +24,19 @@ const DRAG_PX = 10; // finger must move this far before a press becomes a drag (
 export function chipStrip({ ops, onTap, onMove, canDrag = () => true, empty = 'Your steps go here.' }) {
   const strip = el('div', { class: `code-chips${onMove ? ' can-drag' : ''}`, role: 'list', 'aria-label': 'Your program' });
   const find = (path) => path && strip.querySelector(`.code-chip[data-path="${key(asPath(path))}"]`);
-  const val = (v, b) => (typeof v === 'function' ? v(b) : v);
   let open = null;
   let dragged = false; // the click that ends a drag is not a tap (cleared by the next press)
 
   function chip(b, path) {
-    const o = ops[b.op] || { icon: '?', word: b.op, say: b.op, color: 'grey' };
+    const o = opOf(ops, b);
     const isBox = Array.isArray(b.body); // repeat, forever
-    const sw = o.swatch && val(o.swatch, b);
     const btn = el('button', {
       class: `code-chip c-${o.color}${isBox ? ' code-rep' : ''}`, type: 'button', role: 'listitem',
       'data-op': b.op, 'data-i': path[path.length - 1], 'data-path': key(path),
       'aria-label': `Step ${key(path.map((i) => i + 1))}: ${val(o.say, b)}`,
       onclick: () => { if (dragged) { dragged = false; return; } if (onTap) onTap(path, b); },
     },
-    el('span', { class: `ci${o.iconClass ? ` ${o.iconClass}` : ''}` }, o.icon),
-    el('span', { class: 'cw' }, val(o.word, b)),
-    sw ? el('span', { class: 'csw', style: `background:${sw}` }) : null);
+    ...face(o, b));
     if (onMove) btn.addEventListener('pointerdown', (e) => press(e, btn, path));
     if (!isBox) return btn;
     const isOpen = open && key(open) === key(path);
@@ -159,4 +164,12 @@ export function shiftButtons(index, count, onShift) {
   return el('div', { class: 'row code-shift' },
     el('button', { class: 'btn', type: 'button', 'data-act': 'shift-left', disabled: index <= 0, onclick: () => onShift(-1) }, '◀ Move left'),
     el('button', { class: 'btn', type: 'button', 'data-act': 'shift-right', disabled: index >= count - 1, onclick: () => onShift(1) }, 'Move right ▶'));
+}
+
+// Title for a chip's tap menu: the chip itself (same colour, icon, word), bigger and not tappable, so a
+// child who can't read the words yet still sees which step the menu is about.
+export function chipTitle(ops, b) {
+  const o = opOf(ops, b);
+  return el('h2', { class: 'code-menu-title', 'aria-label': val(o.say, b) },
+    el('span', { class: `code-face c-${o.color}`, 'aria-hidden': 'true', 'data-op': b.op }, ...face(o, b)));
 }
