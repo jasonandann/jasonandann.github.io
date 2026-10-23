@@ -1,3 +1,4 @@
+// testing ipad step 6
 // Simon Says: watch the colours, then repeat them. A slip just replays the same pattern.
 import { el, scope, celebrate, award } from '../util.js';
 
