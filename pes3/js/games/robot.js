@@ -1,6 +1,6 @@
 // Robot Course: a virtual Kinderbot (Fisher-Price Code 'n Learn, Code mode). Punch steps into the
 // robot's head, press the orange key, watch it go. Plan first, then run; bumps are "Let's fix the plan!".
-import { el, scope, celebrate, award, cheer } from '../util.js';
+import { el, scope, celebrate, award, cheer, textInput } from '../util.js';
 import { runner } from '../code/engine.js';
 import { chipStrip, shiftButtons, chipTitle } from '../code/chips.js';
 import { ROBOT_OPS } from '../code/blocks.js';
@@ -180,8 +180,8 @@ export function mount(root, _entries, api) {
   function naming(then) {
     const was = botName() && botName() !== DEFAULT_NAME ? botName() : '';
     const done = (n) => { setBotName(String(n || '').trim().slice(0, 12) || DEFAULT_NAME); then(); };
-    const input = el('input', { class: 'rb-name-input', type: 'text', maxlength: '12', value: was, placeholder: DEFAULT_NAME,
-      autocomplete: 'off', autocorrect: 'off', autocapitalize: 'words', spellcheck: 'false', enterkeyhint: 'done', 'aria-label': 'Robot name' });
+    const input = textInput({ value: was, max: 12, placeholder: DEFAULT_NAME, label: 'Robot name', capitalize: 'words' });
+    input.classList.add('rb-name-input');
     view(el('form', { class: 'setup rb-naming', onsubmit: (e) => { e.preventDefault(); done(input.value); } },
       el('div', { class: 'rb-hello' }, botEl('rb-mini big')),
       el('h2', {}, 'Your robot needs a name!'),

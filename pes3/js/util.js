@@ -243,6 +243,14 @@ export function keyboard({ onKey, onBack, extras = [] }) {
   return kb;
 }
 
+// Free text that isn't a spelling answer (a robot's name, what a sprite says): the device's own
+// keyboard, which is big enough on a phone. Autocorrect is off. Spelling answers must keep the
+// on-screen keyboard above (autocorrect would fix the word for her). Font >= 16px so iOS doesn't zoom.
+export function textInput({ value = '', max = 16, placeholder = '', label, capitalize = 'sentences' } = {}) {
+  return el('input', { class: 'text-in', type: 'text', maxlength: String(max), value, placeholder, 'aria-label': label,
+    autocomplete: 'off', autocorrect: 'off', autocapitalize: capitalize, spellcheck: 'false', enterkeyhint: 'done' });
+}
+
 // Physical keyboard (Chromebook / iPad keyboard). Returns an unsubscribe function.
 export function listenKeys({ onKey, onBack, onEnter, extras = [] }) {
   const h = (e) => {
