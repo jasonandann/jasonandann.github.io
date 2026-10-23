@@ -168,6 +168,10 @@ try:
         check("dragging a box's 🔁 chip moves the whole box", "REPEAT 2 [REPEAT 4 [FORWARD 50] RIGHT 90 FORWARD 80]" in page.locator(".tt-logo").inner_text(), page.locator(".tt-logo").inner_text())
         chip_drag(".code-chip[data-path='0.0.0']", ".code-chip[data-path='0.2']", "after")
         check("a step can't be dragged out of its box (stays put)", "REPEAT 2 [REPEAT 4 [FORWARD 50] RIGHT 90 FORWARD 80]" in page.locator(".tt-logo").inner_text() and page.locator(".overlay").count() == 0)
+        tap(".code-chip[data-path='0.2']")
+        check("chip menu has ◀ / ▶ (last in its box: ▶ greyed)", page.locator(".overlay [data-act='shift-left']").count() == 1 and page.locator(".overlay [data-act='shift-right']").is_disabled())
+        tap(".overlay [data-act='shift-left']"); tap(".overlay button:has-text('Done')")
+        check("◀ moves a step within its box", "REPEAT 2 [REPEAT 4 [FORWARD 50] FORWARD 80 RIGHT 90]" in page.locator(".tt-logo").inner_text(), page.locator(".tt-logo").inner_text())
 
         # undo + remove
         tap("[data-tool='undo']"); time.sleep(0.35)

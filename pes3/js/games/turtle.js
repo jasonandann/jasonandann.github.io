@@ -3,7 +3,7 @@
 // "📝 Logo" shows the same program as real Logo text.
 import { el, scope, celebrate, award, cheer } from '../util.js';
 import { runner, walk } from '../code/engine.js';
-import { chipStrip } from '../code/chips.js';
+import { chipStrip, shiftButtons } from '../code/chips.js';
 import { TURTLE_OPS, PEN_COLORS, penColor } from '../code/blocks.js';
 import { tone, tune } from '../code/sound.js';
 import { SHAPES } from './turtle-shapes.js';
@@ -408,6 +408,8 @@ export function mount(root, _entries, api) {
         parts.push(el('p', { class: 'label' }, 'Pick a colour'), el('div', { class: 'tt-nums', role: 'group', 'aria-label': 'Colours' }, PEN_COLORS.map((c) =>
           el('button', { class: `tt-swatch${c.n === b.arg ? ' on' : ''}`, type: 'button', 'data-v': c.n, 'aria-label': c.name, style: `background:${c.css}`, onclick: () => set(c.n) }))));
       }
+      const parent = path.slice(0, -1), at = path[path.length - 1];
+      parts.push(shiftButtons(at, containerOf(parent.length ? parent : null).length, (d) => { moveStep(parent, at, at + d); editChip([...parent, at + d], b); }));
       parts.push(el('div', { class: 'row' },
         el('button', { class: 'btn', type: 'button', 'data-act': 'remove', onclick: () => { closePop(); removeAt(path); } }, b.op === 'repeat' ? '🗑️ Remove box and its steps' : '🗑️ Remove'),
         el('button', { class: 'btn primary', type: 'button', onclick: closePop }, 'Done')));

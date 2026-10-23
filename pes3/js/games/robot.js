@@ -2,7 +2,7 @@
 // robot's head, press the orange key, watch it go. Plan first, then run; bumps are "Let's fix the plan!".
 import { el, scope, celebrate, award, cheer, keyboard, listenKeys } from '../util.js';
 import { runner } from '../code/engine.js';
-import { chipStrip } from '../code/chips.js';
+import { chipStrip, shiftButtons } from '../code/chips.js';
 import { ROBOT_OPS } from '../code/blocks.js';
 import { tone, tune } from '../code/sound.js';
 import { LEVELS } from './robot-levels.js';
@@ -154,6 +154,12 @@ export function mount(root, _entries, api) {
 
   function closeAsk() {
     if (overlay) { overlay.remove(); overlay = null; }
+  }
+  function menu(title, ...content) {
+    closeAsk();
+    overlay = el('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': title,
+      onclick: (e) => { if (e.target === overlay) closeAsk(); } }, el('div', { class: 'panel rb-ask' }, el('h2', {}, title), ...content));
+    document.body.append(overlay);
   }
   function ask(text, yesLabel, onYes, noLabel = 'No, keep them') {
     closeAsk();
@@ -416,7 +422,7 @@ export function mount(root, _entries, api) {
 
     const msg = el('div', { class: 'msg', 'aria-live': 'polite' }, 'Press the arrow keys to plan a path to the 🏁.');
     const say = (t) => { msg.textContent = t; };
-    const strip = chipStrip({ ops: ROBOT_OPS, onTap: removeAt, onMove: moveStep, canDrag: () => !locked(), empty: 'Your steps show up here.' });
+    const strip = chipStrip({ ops: ROBOT_OPS, onTap: chipMenu, onMove: moveStep, canDrag: () => !locked(), empty: 'Your steps show up here.' });
     const after = el('div', { class: 'row rb-after' });
 
     // ----- the robot's head (same key positions and colours as the toy) -----
@@ -491,6 +497,18 @@ export function mount(root, _entries, api) {
       r.reset();
       say('');
       edited();
+    }
+    // Tap a step: a small menu (move it, or remove it). Tapping no longer deletes straight away:
+    // with drag-to-reorder, a slipped drag became a tap and deleted the step (Jason, 2026-10-23).
+    function chipMenu(path) {
+      if (locked()) return;
+      const i = path[0];
+      const o = ROBOT_OPS[program[i].op];
+      menu(`${o.icon} ${o.word}`,
+        shiftButtons(i, program.length, (d) => { moveStep([], i, i + d); chipMenu([i + d]); }),
+        el('div', { class: 'row' },
+          el('button', { class: 'btn', type: 'button', 'data-act': 'remove', onclick: () => { closeAsk(); removeAt(path); } }, '🗑️ Remove'),
+          el('button', { class: 'btn primary', type: 'button', onclick: closeAsk }, 'Done')));
     }
     function removeAt(path) {
       const i = path[0];

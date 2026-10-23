@@ -136,6 +136,10 @@ try:
         cat("control"); key("wait")
         setnum("3", 1)
         check("⏱ wait in half-seconds", "wait ½ s" in page.locator(".code-chip[data-path='3']").inner_text())
+        page.locator(".code-chip[data-path='3']").tap(); tap(".overlay [data-act='shift-left']")
+        check("chip menu ◀ moves a block left", [c.split(":")[1] for c in chips()[0]] == ["right", "say", "wait", "note"], str(chips()))
+        tap(".overlay [data-act='shift-right']"); tap(".overlay button:has-text('Done')")
+        check("…and ▶ moves it back", [c.split(":")[1] for c in chips()[0]] == ["right", "say", "note", "wait"], str(chips()))
         # second sprite with its own 🏁 script
         tap("[data-act='add-sprite']"); tap(".overlay [data-v='🐶']")
         check("➕ adds a sprite and selects it", page.locator(".st-sprite").count() == 2 and page.locator(".st-pick.sel").inner_text() == "🐶")

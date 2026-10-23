@@ -4,7 +4,7 @@
 // can also be dragged to reorder). No garden points in v1 (no natural "finished" moment).
 import { el, scope, keyboard } from '../util.js';
 import { threads } from '../code/engine.js';
-import { chipStrip } from '../code/chips.js';
+import { chipStrip, shiftButtons } from '../code/chips.js';
 import { STUDIO_OPS, NOTES, halfSeconds } from '../code/blocks.js';
 import { tone } from '../code/sound.js';
 
@@ -362,6 +362,8 @@ export function mount(root, _entries, api) {
     if (BOXES.has(b.op) && !(open && open.join('.') === path.join('.'))) {
       parts.push(el('button', { class: 'btn', type: 'button', onclick: () => { open = path; closePop(); say('Tap blocks to put them in the box.'); edited(); } }, '➕ Put more steps in this box'));
     }
+    const parent = path.slice(0, -1), at = path[path.length - 1];
+    parts.push(shiftButtons(at, containerOf(parent.length ? parent : null).length, (d) => { moveStep(i, parent, at, at + d); editChip(i, [...parent, at + d], b); }));
     parts.push(el('div', { class: 'row' },
       el('button', { class: 'btn', type: 'button', 'data-act': 'remove', onclick: () => { closePop(); removeAt(i, path); } }, BOXES.has(b.op) ? '🗑️ Remove box and its steps' : '🗑️ Remove'),
       el('button', { class: 'btn primary', type: 'button', onclick: closePop }, 'Done')));

@@ -152,3 +152,11 @@ export function chipStrip({ ops, onTap, onMove, canDrag = () => true, empty = 'Y
     },
   };
 }
+
+// ◀ / ▶ buttons for a chip's tap menu: move the chip one place within its row or box (the same moves
+// as dragging, for when dragging is fiddly). index = its place, count = how many are in that row/box.
+export function shiftButtons(index, count, onShift) {
+  return el('div', { class: 'row code-shift' },
+    el('button', { class: 'btn', type: 'button', 'data-act': 'shift-left', disabled: index <= 0, onclick: () => onShift(-1) }, '◀ Move left'),
+    el('button', { class: 'btn', type: 'button', 'data-act': 'shift-right', disabled: index >= count - 1, onclick: () => onShift(1) }, 'Move right ▶'));
+}
