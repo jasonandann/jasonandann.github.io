@@ -4,7 +4,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 SITE = str(Path(__file__).resolve().parent.parent)
-PORT = 8773
+PORT = 8775
 URL = f"http://localhost:{PORT}/"
 SHOTS = os.path.join(tempfile.gettempdir(), "spelling-shots")
 os.makedirs(SHOTS, exist_ok=True)
@@ -40,7 +40,7 @@ try:
         page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
         hash_ = lambda: page.evaluate("location.hash")
 
-        check("23 games have ids", len(IDS) == 23, str(len(IDS)))
+        check("25 games have ids", len(IDS) == 25, str(len(IDS)))
         check("ids are unique", len({i for i, _ in IDS}) == len(IDS))
 
         # every id: fresh load -> gate card with that game's name; nothing spoken before the tap
@@ -60,7 +60,7 @@ try:
         check("tap starts the game and speaks", page.locator(".game .tray").count() == 1 and page.evaluate("window.__spoken.length") > 0)
         check("hash kept while playing", hash_() == "#jumble", hash_())
         page.locator("#back").tap()
-        check("Home clears the hash and shows the menu", hash_() == "" and page.locator(".menu .mcard").count() == 23, hash_())
+        check("Home clears the hash and shows the menu", hash_() == "" and page.locator(".menu .mcard").count() == 25, hash_())
 
         # opening from the menu sets the hash (so the address bar can be copied)
         page.locator(".mcard", has_text="Robot Course").first.tap()

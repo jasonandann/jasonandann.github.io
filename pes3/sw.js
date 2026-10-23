@@ -169,34 +169,45 @@ async function warm(urls) {
 let last = null; // { at, full, result } of the latest check, shown in the parent panel
 
 // result: 'quiet' (probe saw nothing) | 'same' (compared everything, nothing changed) | 'swapped' (new copy in use)
-//       | 'mixed' (the site's files were from different deploys every round; the current copy is kept) | 'offline'
+//       | 'mixed' (the site's files were from different deploys every round; the current copy is kept)
+//       | 'offline' (the browser says there is no network) | 'error' (anything else failed; `error` says what)
+// A failed check never changes the copy in use; the next check tries again. navigator.onLine is only a hint:
+// true doesn't mean the site answers, so a failure while "online" is an 'error', not 'offline' (issue #24).
 async function check(full) {
   let result = 'quiet';
+  let error = null;
   try {
     for (let round = 0; round <= RETRY_MS.length; round++) {
       if (round) await sleep(RETRY_MS[round - 1]);
       result = await checkOnce(full || round > 0);
       if (result !== 'mixed') break;
     }
-  } catch {
-    result = 'offline';
+  } catch (err) {
+    if (self.navigator.onLine === false) result = 'offline';
+    else { result = 'error'; error = String(err && err.message || err); }
   }
-  last = { at: Date.now(), full: full || result !== 'quiet', result };
+  last = { at: Date.now(), full: full || result !== 'quiet', result, ...(error && { error }) };
   if (result === 'swapped') await broadcast();
-  return { updated: result === 'swapped', result };
+  return { updated: result === 'swapped', result, ...(error && { error }) };
 }
 
-// One round. Any network error throws (offline keeps the current copy).
+// A failed request or body read during a check names its file ("Failed to fetch (…/js/games/simon.js)").
+const naming = (url, p) => p.catch((err) => {
+  if (err && err.named) throw err;
+  throw Object.assign(new Error(`${String(err && err.message || err)} (${url})`), { named: true });
+});
+
+// One round. Any failure throws (the current copy is kept).
 async function checkOnce(full) {
   const name = await getLive();
   if (!name) return 'quiet';
   const cache = await caches.open(name);
   if (!full && !(await probe(cache))) return 'quiet';
 
-  const marker = () => fetch(abs('js/app.js'), { method: 'HEAD', cache: 'no-store' }).then(etagOf);
+  const marker = () => naming(abs('js/app.js'), fetch(abs('js/app.js'), { method: 'HEAD', cache: 'no-store' })).then(etagOf);
   const before = await marker();
   const keys = (await cache.keys()).filter((r) => !isDone(r));
-  const seen = await Promise.all(keys.map(async (req) => ({ req, ...(await fresher(req.url, await cache.match(req))) })));
+  const seen = await Promise.all(keys.map(async (req) => ({ req, ...(await naming(req.url, fresher(req.url, await cache.match(req)))) })));
   const after = await marker();
 
   // Only text/code files can break each other; recordings and the dictionary are data.
@@ -230,8 +241,8 @@ async function probe(cache) {
   const a = abs('js/app.js');
   const [oldW, oldA] = await Promise.all([cache.match(w), cache.match(a)]);
   if (!oldW || !oldA) return true;
-  const [resW, head] = await Promise.all([fetch(w, { cache: 'no-cache' }), fetch(a, { method: 'HEAD', cache: 'no-store' })]);
-  if (resW.status === 200 && !(await same(resW, oldW))) return true;
+  const [resW, head] = await Promise.all([naming(w, fetch(w, { cache: 'no-cache' })), naming(a, fetch(a, { method: 'HEAD', cache: 'no-store' }))]);
+  if (resW.status === 200 && !(await naming(w, same(resW, oldW)))) return true;
   const before = etagOf(oldA);
   const now = etagOf(head);
   if (!TAG.test(before || '') || !TAG.test(now || '')) return true; // unknown ETag scheme: check everything

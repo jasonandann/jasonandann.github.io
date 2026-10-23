@@ -217,7 +217,7 @@ try:
         tap("button:has-text('Roll')"); page.wait_for_selector(".zt-q")
         tap("#back")
         page.keyboard.type("hello"); time.sleep(1.2)
-        check("home after leaving mid-question", page.locator(".mcard").count() == 23)
+        check("home after leaving mid-question", page.locator(".mcard").count() == 25)
 
         # ---------- "fade away": steer onto a zombie, it leaves the board
         open_zombie(); pick("1 player"); pick("Math")

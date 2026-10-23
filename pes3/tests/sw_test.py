@@ -48,6 +48,7 @@ deploy()
 SLOW = {}  # path -> seconds to wait before answering (lets a "deploy" land in the middle of a check)
 ETAGS = {"mode": "pages"}  # "pages" = "<hex mtime>-<hex size>" like GitHub Pages; "hash" = content hash (format change)
 STALE = {}  # path -> (bytes, etag): keep serving an old copy, like a CDN server that missed the purge
+BROKEN = set()  # paths whose requests get no response at all (connection closed): a failed fetch while online
 
 def frozen(rel):
     """The file as it is now (bytes + Pages-style ETag), to keep serving after the next deploy."""
@@ -64,6 +65,9 @@ class Pages(SimpleHTTPRequestHandler):
         if self.command == "GET":  # only downloads are slow, so the HEAD probes around a round stay quick
             time.sleep(SLOW.get(self.path.split("?")[0], 0))
         self._etag = None
+        if self.path.split("?")[0] in BROKEN:
+            self.close_connection = True
+            return None
         if self.path.split("?")[0] in STALE:
             body, self._etag = STALE[self.path.split("?")[0]]
             if self.headers.get("If-None-Match", "").replace("W/", "") == self._etag:
@@ -168,7 +172,7 @@ try:
 
         # ---- first visit online: worker installs, takes over, and saves everything
         page.goto(URL)
-        check("menu shows 22 cards", page.locator(".mcard").count() == 23)
+        check("menu shows 25 cards", page.locator(".mcard").count() == 25)
         want = expected_urls()
         c = wait_cached(len(want) - 1)  # (+1 for "./" vs index.html both cached; "" is the directory URL)
         missing = [u for u in want if u not in c["urls"]]
@@ -184,7 +188,7 @@ try:
         # ---- offline: opens from the saved copy, every game opens, no errors from the check
         stop()
         relaunch()
-        check("offline: menu loads", page.locator(".mcard").count() == 23)
+        check("offline: menu loads", page.locator(".mcard").count() == 25)
         check("offline: last list shown", "Week of Oct 26" in listname(), listname())
         names = page.locator(".mcard .name").all_inner_texts()
         failed = []
@@ -195,7 +199,7 @@ try:
                 failed.append(name)
             page.locator("#back").click()
             page.wait_for_selector(".mcard")
-        check("offline: all 23 games open", not failed, ", ".join(failed))
+        check("offline: all 25 games open", not failed, ", ".join(failed))
         page.locator(".mcard", has_text="Baffle").first.tap()
         page.wait_for_selector(".bf-tile")
         ready = page.evaluate("async () => { const d = await import('./js/dictionary.js'); await d.loadDictionary(); return d.dictionaryReady() && d.inDictionary('cat'); }")
@@ -205,10 +209,20 @@ try:
             return { s: r.status, n: (await r.arrayBuffer()).byteLength, cr: r.headers.get('Content-Range') }; }""")
         check("offline: recordings answer byte-range requests (206)", rng["s"] == 206 and rng["n"] == 10 and rng["cr"].startswith("bytes 0-9/"), str(rng))
         mark()
+        ctx.set_offline(True)  # navigator.onLine = false, as on a device with no network
         r = off("o.checkForUpdates(false)")
         r2 = off("o.checkForUpdates(true)")
         check("offline: update check fails quietly, no reload", marked() and (r or {}).get("result") == "offline" and (r2 or {}).get("result") == "offline", f"{r} {r2}")
+        page.keyboard.type("parent")
+        page.wait_for_function("document.querySelector('.offline-status') && document.querySelector('.offline-status').textContent.includes('Last check')", timeout=5000)
+        st = page.locator(".offline-status").inner_text()
+        check("offline: parent panel says no internet", "no internet" in st and "couldn" not in st, st)
         page.screenshot(path=f"{SHOTS}/sw_offline.png")
+        page.keyboard.press("Escape")
+        ctx.set_offline(False)
+        # Server down but the browser thinks it is online (wifi without internet): not "no internet", but "couldn't finish"
+        r = off("o.checkForUpdates(true)")
+        check("server unreachable while online: result 'error' with the URL", (r or {}).get("result") == "error" and URL in (r or {}).get("error", ""), str(r))
 
         # ---- a deploy that changes nothing here (push elsewhere on the site): no reload, new ETags remembered
         start()
@@ -290,6 +304,30 @@ try:
         relaunch()
         settle()
 
+        # ---- one file's request fails while online (issue #24): 'error' naming the file, current copy kept, panel says so
+        before_list = listname()
+        BROKEN.add("/pes3/js/games/simon.js")
+        deploy({"words.txt": fixture.replace("Week of Oct 26", "Week of Broken")})
+        r = page.evaluate(SW_ASK, {"type": "check", "full": True})
+        check("broken file: result 'error' naming the file, no update", r.get("result") == "error" and r.get("updated") is False
+              and "js/games/simon.js" in r.get("error", ""), str(r))
+        words_now = page.evaluate("fetch('words.txt').then(r => r.text())")
+        check("broken file: current copy kept", "Week of Broken" not in words_now and listname() == before_list, words_now[:30])
+        st = page.evaluate(SW_ASK, {"type": "status"})["last"]
+        check("broken file: status().last carries the error", st["result"] == "error" and "js/games/simon.js" in st.get("error", ""), str(st))
+        page.keyboard.type("parent")
+        page.wait_for_function("document.querySelector('.offline-status') && document.querySelector('.offline-status').textContent.includes('Last check')", timeout=5000)
+        st = page.locator(".offline-status").inner_text()
+        check("broken file: parent panel says couldn't finish + the path", "couldn’t finish (" in st and "js/games/simon.js" in st and "no internet" not in st, st)
+        page.screenshot(path=f"{SHOTS}/sw_check_error.png")
+        page.keyboard.press("Escape")
+        BROKEN.clear()
+        (APP / "words.txt").write_text(fixture.replace("Week of Oct 26", "Week of Nov 9"))
+        deploy()
+        page.evaluate(SW_ASK, {"type": "check", "full": True})
+        relaunch()
+        settle()
+
         # ---- code-only change (bug fix in one game) and a brand-new module, then offline again
         simon = (APP / "js/games/simon.js").read_text()
         appjs = (APP / "js/app.js").read_text()
@@ -355,7 +393,7 @@ try:
         break_copy("import { nope } from './util.js';\n" + app_now)
         relaunch()
         page.wait_for_function("window.__started === true && !!document.querySelector('.mcard')", timeout=20000)
-        check("watchdog: copy with a missing import repairs itself and starts", page.locator(".mcard").count() == 23)
+        check("watchdog: copy with a missing import repairs itself and starts", page.locator(".mcard").count() == 25)
         broken_errs = errors[n_err:]
         del errors[n_err:]
         check("watchdog: (the broken load did raise the import error)", any("nope" in e for e in broken_errs), "; ".join(broken_errs[:2]))
@@ -376,7 +414,7 @@ try:
         start()
         relaunch()
         page.wait_for_function("window.__started === true && !!document.querySelector('.mcard')", timeout=25000)
-        check("watchdog: back online, the next launch repairs it", page.locator(".mcard").count() == 23)
+        check("watchdog: back online, the next launch repairs it", page.locator(".mcard").count() == 25)
         settle()
 
         # ---- if GitHub ever changes the ETag format: fall back to "app.js unchanged before and after the round"
@@ -436,7 +474,7 @@ try:
             time.sleep(4)
             g = wait_gone()
             check(f"kill switch launch {n + 1}: app works from the site, no reload, stays off",
-                  marked() and page.locator(".mcard").count() == 23 and g == {"caches": 0, "regs": 0}, str(g))
+                  marked() and page.locator(".mcard").count() == 25 and g == {"caches": 0, "regs": 0}, str(g))
         b.close()
 finally:
     try:

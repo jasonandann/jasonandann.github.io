@@ -21,6 +21,8 @@ import * as simon from './games/simon.js';
 import * as garden from './games/garden.js';
 import * as river from './games/river.js';
 import * as robot from './games/robot.js';
+import * as turtle from './games/turtle.js';
+import * as studio from './games/studio.js';
 
 // id: deep-link name (index.html#robot opens Robot Course); keep them stable once shared.
 // needsWords: game uses words.txt (spelling). Sections appear in this order on the home screen.
@@ -48,6 +50,8 @@ const SECTIONS = [
   ] },
   { title: '💻 Coding', games: [
     { icon: '🤖', id: 'robot', name: 'Robot Course', blurb: 'Plan a path, press go', mod: robot },
+    { icon: '🐢', id: 'turtle', name: 'Turtle Draw', blurb: 'Code a turtle to draw', mod: turtle },
+    { icon: '🎨', id: 'studio', name: 'Code Studio', blurb: 'Make sprites move and talk', mod: studio },
   ] },
   { title: '🎲 Fun', games: [
     { icon: '🧟', id: 'zombie', name: 'Zombie Trail', blurb: 'Race to the finish', needsWords: true, mod: zombie },

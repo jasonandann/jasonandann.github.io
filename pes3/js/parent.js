@@ -44,8 +44,10 @@ export function openParent(entries) {
     mixed: 'the site was in the middle of an update, so the current copy was kept (it tries again next time)',
     offline: 'no internet',
   };
+  // 'error' = the check failed although the browser said it was online (a server or app problem, issue #24).
+  const lastText = (l) => l.result === 'error' ? `couldn’t finish (${l.error || 'unknown error'})` : LAST[l.result] || l.result;
   offlineStatus().then((st) => {
-    const last = st && st.last ? ` Last check ${new Date(st.last.at).toLocaleTimeString()}: ${LAST[st.last.result] || st.last.result}.` : '';
+    const last = st && st.last ? ` Last check ${new Date(st.last.at).toLocaleTimeString()}: ${lastText(st.last)}.` : '';
     offNote.textContent = !st ? 'No offline copy in this browser (needs https and service worker support).'
       : st.files ? `Offline copy: ${st.files} files, saved ${new Date(st.since).toLocaleString()}.${last} Updates load by themselves when she is on the home menu.`
         : 'Offline copy not saved yet. It is saved the first time the app opens with internet.';
