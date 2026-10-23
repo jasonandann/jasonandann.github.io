@@ -227,20 +227,87 @@ export function noWords(root, why = 'This game needs words made only of letters.
 
 /* ---------- keyboards ---------- */
 const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+const ABC = 'abcdefghijklmnopqrstuvwxyz';
+const VOWELS = 'aeiou';
+// ABC layout: a grown-up allows it in the parent panel; then she picks ABC or QWERTY on the keyboard itself.
+const ABC_ALLOWED_KEY = 'spelling-games.keyboard.abc'; // 'on' = she may choose
+const LAYOUT_KEY = 'spelling-games.keyboard.layout'; // her choice: 'abc' | 'qwerty'
+export function abcAllowed() {
+  try { return localStorage.getItem(ABC_ALLOWED_KEY) === 'on'; } catch { return false; }
+}
+export function setAbcAllowed(on) {
+  try { localStorage.setItem(ABC_ALLOWED_KEY, on ? 'on' : 'off'); } catch { /* ignore */ }
+}
+// QWERTY unless allowed. If allowed and she hasn't picked yet: ABC on a phone (its keys are big enough there,
+// QWERTY's aren't), QWERTY on bigger screens.
+export function keyboardLayout() {
+  if (!abcAllowed()) return 'qwerty';
+  let v = null;
+  try { v = localStorage.getItem(LAYOUT_KEY); } catch { /* ignore */ }
+  if (v === 'abc' || v === 'qwerty') return v;
+  return typeof matchMedia === 'function' && matchMedia('(max-width: 560px)').matches ? 'abc' : 'qwerty';
+}
+function setKeyboardLayout(v) {
+  try { localStorage.setItem(LAYOUT_KEY, v); } catch { /* ignore */ }
+}
 
-// On-screen keyboard: no autocorrect, no predictive text, big touch targets.
+// On-screen keyboard for spelling answers: no autocorrect, no predictive text, big touch targets.
+// QWERTY rows, or (if allowed and chosen) a-z in a grid with lightly tinted vowels. Switching layout
+// keeps per-key marks (Wordal's data-s colours). While a finger (or pen) is on a letter key, the letter
+// pops up above it (like a phone keyboard: the fingertip hides the key); not for mouse clicks.
 export function keyboard({ onKey, onBack, extras = [] }) {
   const kb = el('div', { class: 'kb' });
-  ROWS.forEach((row, i) => {
-    const r = el('div', { class: 'kb-row' });
-    for (const ch of row) r.append(el('button', { class: 'key', type: 'button', onclick: () => onKey(ch) }, ch));
-    if (i === 2) {
-      for (const ch of extras) r.append(el('button', { class: 'key', type: 'button', onclick: () => onKey(ch) }, ch));
-      if (onBack) r.append(el('button', { class: 'key wide', type: 'button', 'aria-label': 'Delete', onclick: onBack }, '⌫'));
-    }
-    kb.append(r);
+  const preview = el('div', { class: 'kb-preview', 'aria-hidden': 'true', hidden: true });
+  const hide = () => { preview.hidden = true; };
+  kb.addEventListener('pointerdown', (e) => {
+    const k = e.target.closest('.key');
+    if (!k || k.classList.contains('wide') || e.pointerType === 'mouse') return hide();
+    const box = kb.getBoundingClientRect(), r = k.getBoundingClientRect();
+    const w = Math.max(r.width * 1.25, 52);
+    preview.textContent = k.textContent;
+    preview.style.width = `${w}px`;
+    // centred over the key, kept inside the keyboard's width, bottom edge just over the key's top
+    preview.style.left = `${Math.min(Math.max(r.left - box.left + r.width / 2 - w / 2, 0), box.width - w)}px`;
+    preview.style.top = `${r.top - box.top - 66}px`;
+    preview.hidden = false;
   });
+  // A touch stays captured by the key it started on, so its pointerup/cancel reach the keyboard.
+  for (const t of ['pointerup', 'pointercancel', 'pointerleave']) kb.addEventListener(t, hide);
+  function build() {
+    const layout = keyboardLayout();
+    const marks = {};
+    kb.querySelectorAll('.key[data-s]').forEach((k) => { marks[k.textContent] = k.dataset.s; });
+    const key = (ch) => {
+      const b = el('button', { class: `key${layout === 'abc' && VOWELS.includes(ch) ? ' vow' : ''}`, type: 'button', onclick: () => onKey(ch) }, ch);
+      if (marks[ch]) b.dataset.s = marks[ch];
+      return b;
+    };
+    const back = onBack ? el('button', { class: 'key wide', type: 'button', 'aria-label': 'Delete', onclick: onBack }, '⌫') : null;
+    const parts = [];
+    if (abcAllowed()) {
+      const pick = (v, label) => el('button', { class: 'kb-pick', type: 'button', 'data-layout': v, 'aria-pressed': String(layout === v),
+        onclick: () => { if (keyboardLayout() !== v) { setKeyboardLayout(v); build(); } } }, label);
+      parts.push(el('div', { class: 'kb-switch', role: 'group', 'aria-label': 'Keyboard letters' }, pick('abc', 'ABC'), pick('qwerty', 'QWERTY')));
+    }
+    if (layout === 'abc') {
+      parts.push(el('div', { class: 'kb-grid' }, [...ABC].map(key), extras.map(key), back));
+    } else {
+      ROWS.forEach((row, i) => parts.push(el('div', { class: 'kb-row' }, [...row].map(key), i === 2 ? [...extras.map(key), back] : null)));
+    }
+    kb.className = `kb kb-${layout}`;
+    hide();
+    kb.replaceChildren(...parts, preview);
+  }
+  build();
   return kb;
+}
+
+// Free text that isn't a spelling answer (a robot's name, what a sprite says): the device's own
+// keyboard, which is big enough on a phone. Autocorrect is off. Spelling answers must keep the
+// on-screen keyboard above (autocorrect would fix the word for her). Font >= 16px so iOS doesn't zoom.
+export function textInput({ value = '', max = 16, placeholder = '', label, capitalize = 'sentences' } = {}) {
+  return el('input', { class: 'text-in', type: 'text', maxlength: String(max), value, placeholder, 'aria-label': label,
+    autocomplete: 'off', autocorrect: 'off', autocapitalize: capitalize, spellcheck: 'false', enterkeyhint: 'done' });
 }
 
 // Physical keyboard (Chromebook / iPad keyboard). Returns an unsubscribe function.

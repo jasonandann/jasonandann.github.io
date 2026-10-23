@@ -90,7 +90,7 @@ A small sprite playground in the style of [ScratchJr](https://www.scratchjr.org/
 
 - **Stage:** 20×15 squares; 🖼️ picks one of 8 backdrops (plain, sky, grass, space, ocean, city, sunset, night). 1–4 sprites from an emoji list (➕ adds one; tap the selected sprite's button to change or remove it). Drag a sprite on the stage, or tap an empty spot, to set where it starts.
 - **Scripts:** each sprite has one or more scripts. The yellow block at the start says when it runs: 🏁 when ▶ is tapped, or 👆 when that sprite is tapped (also while other scripts are running). Tap it to switch or remove the script; ➕ New script adds another.
-- **Blocks** (tabs): **Move** ➡️ ⬅️ ⬆️ ⬇️ *n* squares, ¼ / ½ turns (arrow + word), 🏠 go home; **Looks** 💬 say (a phrase list or ⌨️ type your own), 🎈 grow, 🤏 shrink, 🙈 hide, 👀 show; **Sound** 🎵 note (do re mi…), 💥 pop; **Control** ⏱️ wait (half-seconds), 🔁 repeat *n*, ♾️ forever, ⏹️ stop. Tap a chip to change it, move it one place (◀ / ▶) or remove it; drag to reorder. 🔁/♾️ open a box like Turtle Draw (one box inside another at most).
+- **Blocks** (tabs): **Move** ➡️ ⬅️ ⬆️ ⬇️ *n* squares, ¼ / ½ turns (arrow + word), 🏠 go home; **Looks** 💬 say (a phrase list or ⌨️ type your own with the device's keyboard), 🎈 grow, 🤏 shrink, 🙈 hide, 👀 show; **Sound** 🎵 note (do re mi…), 💥 pop; **Control** ⏱️ wait (half-seconds), 🔁 repeat *n*, ♾️ forever, ⏹️ stop. Tap a chip to change it, move it one place (◀ / ▶) or remove it; drag to reorder. 🔁/♾️ open a box like Turtle Draw (one box inside another at most).
 - **▶** puts every sprite back where it starts, then runs all 🏁 scripts at the same time; **⏹** stops everything (forever too). Leaving the game also stops it. Moves stop at the edge of the stage. Code can't be changed while it runs ("Tap ⏹ to change the code").
 - **💾 Save** with a picture and an optional name; **📂** lists projects to open or delete (asks first); up to 12. What she is working on is also kept as a draft, so Home doesn't lose it.
 - No garden points (there is no "finished" moment, and points per run would be easy to farm).
@@ -117,7 +117,7 @@ A virtual copy of her Fisher-Price Code 'n Learn Kinderbot (Code mode only), dra
 - Reaching 🏁: dance, confetti, 1 garden point (every time). 💎 gems are optional and just for fun.
 - **🗺️ Courses**: 18 ready-made courses in `js/games/robot-levels.js` (5×5 to 7×7): straight lines, one turn, two turns, turn around, gems, mazes. All open; a finished one gets a ⭐ on the picker. Each has a known solution the tests run.
 - **🧱 Build my own**: 6×6 grid; pick 🧱 wall, cone (a drawn orange traffic cone), 💎 gem, 🏁 flag, 🤖 robot (tap it again to turn it) or 🧽 eraser and tap squares; tap a piece again to remove it. Walls can also be dragged: slide a finger across squares to build a long wall (starting on a wall takes walls away instead). The other pieces are one square each. 💾 Save course keeps it on this device (up to 12); 🤖 Code it! drives it. Remove one with the 🗑 on its tile in the list, or 🗑️ Delete course in the builder (both ask first).
-- First launch asks her to name the robot (optional; "Skip" = Robo). ✏️ Rename is on the picker.
+- First launch asks her to name the robot with the device's own keyboard (optional; "Skip" = Robo). ✏️ Rename is on the picker.
 - Stored on the device only: `spelling-games.robot.name`, `.robot.done.v1` (finished course ids), `.robot.mine.v1` (her courses). Not in the hidden progress.
 
 ### Zombie Trail
@@ -135,7 +135,7 @@ Roll a die, answer a question. Right: move ahead by the roll. Wrong: move back b
 
 Design choices for a child who discourages easily: no scores, counters, timers, or "wrong" messages. Misses get "Almost! Try again." After repeated misses the word is shown so she can see it, then the game moves on. Rounds are about 10 words; words she has needed help with are quietly chosen more often.
 
-The on-screen keyboard avoids iPad autocorrect and predictive text. A physical keyboard also works.
+The on-screen keyboard avoids iPad autocorrect and predictive text. A physical keyboard also works. In the grown-ups panel, **Spelling keyboard → Let her choose ABC or QWERTY** adds an ABC | QWERTY switch to the keyboard: ABC puts the letters in alphabet order (bigger keys on a phone, vowels lightly tinted). Her choice is remembered on that device; the default is QWERTY only. On touch screens, the letter under her finger pops up above the key while she presses it (either layout), like a phone keyboard.
 
 ## Hidden progress (grown-ups only)
 
@@ -214,7 +214,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 

@@ -1,6 +1,6 @@
 // Hidden "grown-ups" panel. Opened by tapping the page title 5 times quickly,
 // or by typing "parent" on the home screen. Nothing on the child-facing screens links here.
-import { el, getProgress, clearProgress, isLetters } from './util.js';
+import { el, getProgress, clearProgress, isLetters, abcAllowed, setAbcAllowed } from './util.js';
 import { offlineStatus, updateNow, resetOffline } from './offline.js';
 import { lookaheadMode, setLookaheadMode, getStats, clearStats, isFluent, fluentCount, fluentNeeded, getFluency, setFluency } from './games/baffle.js';
 
@@ -91,6 +91,12 @@ export function openParent(entries) {
           })))
         : el('p', {}, `No Baffle words found yet${bf.games ? '' : ' (no boards played)'}.`),
       bf.games ? el('p', { class: 'small' }, `${bf.games} Baffle boards with at least one spelling word found.`) : null,
+      el('h3', {}, 'Spelling keyboard'),
+      el('p', { class: 'small' }, 'The on-screen letter keyboard in the typing games. “Let her choose” adds an ABC | QWERTY switch on the keyboard; '
+        + 'ABC puts the letters in alphabet order with bigger keys on a phone. Her choice is remembered on this device.'),
+      el('div', { class: 'row' },
+        el('button', { class: `btn${abcAllowed() ? '' : ' primary'}`, type: 'button', 'data-kb': 'qwerty', 'aria-pressed': String(!abcAllowed()), onclick: () => { setAbcAllowed(false); reopen(); } }, 'QWERTY only'),
+        el('button', { class: `btn${abcAllowed() ? ' primary' : ''}`, type: 'button', 'data-kb': 'choose', 'aria-pressed': String(abcAllowed()), onclick: () => { setAbcAllowed(true); reopen(); } }, 'Let her choose ABC or QWERTY')),
       el('h3', {}, 'Recent practice days'),
       days.length
         ? el('table', {}, el('tbody', {}, days.map(([d, v]) => el('tr', {}, el('td', {}, d), el('td', {}, `${v.c + v.m} rounds`)))))

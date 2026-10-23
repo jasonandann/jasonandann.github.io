@@ -1,6 +1,6 @@
 // Robot Course: a virtual Kinderbot (Fisher-Price Code 'n Learn, Code mode). Punch steps into the
 // robot's head, press the orange key, watch it go. Plan first, then run; bumps are "Let's fix the plan!".
-import { el, scope, celebrate, award, cheer, keyboard, listenKeys } from '../util.js';
+import { el, scope, celebrate, award, cheer, textInput } from '../util.js';
 import { runner } from '../code/engine.js';
 import { chipStrip, shiftButtons, chipTitle } from '../code/chips.js';
 import { ROBOT_OPS } from '../code/blocks.js';
@@ -175,24 +175,23 @@ export function mount(root, _entries, api) {
   }
 
   /* ----- name the robot (first launch only; optional) ----- */
+  // A normal text box (the device's own keyboard): the on-screen keyboard was too small on a phone
+  // (Jason, 2026-10-23). Autocorrect is off; it's a name, not a spelling word.
   function naming(then) {
-    let typed = botName() && botName() !== DEFAULT_NAME ? botName() : '';
-    const shown = el('div', { class: 'typed rb-name-typed' });
-    const show = () => { shown.textContent = typed ? nice(typed) : ' '; };
-    const add = (ch) => { if (typed.length < 12) { typed += ch; show(); } };
-    const back = () => { typed = typed.slice(0, -1); show(); };
-    const done = (n) => { setBotName(n || DEFAULT_NAME); then(); };
-    show();
-    view(el('div', { class: 'setup rb-naming' },
+    const was = botName() && botName() !== DEFAULT_NAME ? botName() : '';
+    const done = (n) => { setBotName(String(n || '').trim().slice(0, 12) || DEFAULT_NAME); then(); };
+    const input = textInput({ value: was, max: 12, placeholder: DEFAULT_NAME, label: 'Robot name', capitalize: 'words' });
+    input.classList.add('rb-name-input');
+    view(el('form', { class: 'setup rb-naming', onsubmit: (e) => { e.preventDefault(); done(input.value); } },
       el('div', { class: 'rb-hello' }, botEl('rb-mini big')),
       el('h2', {}, 'Your robot needs a name!'),
-      shown,
-      keyboard({ onKey: add, onBack: back }),
+      input,
       el('div', { class: 'row' },
-        el('button', { class: 'btn primary big', type: 'button', onclick: () => done(typed) }, "That's it!"),
+        el('button', { class: 'btn primary big', type: 'submit' }, "That's it!"),
         el('button', { class: 'btn big', type: 'button', onclick: () => done(botName() || DEFAULT_NAME) }, 'Skip'),
       )));
-    leaveView = listenKeys({ onKey: add, onBack: back, onEnter: () => done(typed) });
+    // Inside the tap that opened this screen, so phones show their keyboard straight away.
+    try { input.focus({ preventScroll: true }); } catch { /* fine without */ }
   }
 
   /* ----- tabs: Courses / Build my own ----- */

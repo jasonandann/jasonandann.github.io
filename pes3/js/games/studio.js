@@ -2,7 +2,7 @@
 // 1-4 emoji sprites on a 20x15 stage; each sprite has scripts that start on 🏁 (▶ tapped) or 👆 (sprite
 // tapped). All started scripts run at once (threads() in js/code/engine.js). Editing is by tap (chips
 // can also be dragged to reorder). No garden points in v1 (no natural "finished" moment).
-import { el, scope, keyboard } from '../util.js';
+import { el, scope, textInput } from '../util.js';
 import { threads } from '../code/engine.js';
 import { chipStrip, shiftButtons, chipTitle } from '../code/chips.js';
 import { STUDIO_OPS, NOTES, halfSeconds } from '../code/blocks.js';
@@ -369,15 +369,15 @@ export function mount(root, _entries, api) {
       el('button', { class: 'btn primary', type: 'button', onclick: closePop }, 'Done')));
     pop(word, ...parts);
   }
+  // What the sprite says: typed with the device's own keyboard (not a spelling answer).
   function typeSay(b) {
-    let text = '';
-    const shown = el('div', { class: 'typed st-typed' }, ' ');
-    const show = () => { shown.textContent = text || ' '; };
-    const done = () => { b.arg = text.trim() ? text.trim().charAt(0).toUpperCase() + text.trim().slice(1) : b.arg; closePop(); edited(); };
-    pop('Type what it says', el('h2', {}, '💬 Type it'), shown,
-      keyboard({ onKey: (ch) => { if (text.length < 24) { text += ch; show(); } }, onBack: () => { text = text.slice(0, -1); show(); }, extras: [' ', '!', '?'] }),
-      el('div', { class: 'row' }, el('button', { class: 'btn primary big', type: 'button', onclick: done }, '✔ Done'),
-        el('button', { class: 'btn big', type: 'button', onclick: closePop }, 'Cancel')));
+    const input = textInput({ max: 24, placeholder: 'Hi!', label: 'What it says' });
+    const done = () => { const t = input.value.trim(); if (t) b.arg = t.charAt(0).toUpperCase() + t.slice(1); closePop(); edited(); };
+    pop('Type what it says', el('form', { class: 'st-form', onsubmit: (e) => { e.preventDefault(); done(); } },
+      el('h2', {}, '💬 Type it'), input,
+      el('div', { class: 'row' }, el('button', { class: 'btn primary big', type: 'submit', 'data-act': 'done' }, '✔ Done'),
+        el('button', { class: 'btn big', type: 'button', onclick: closePop }, 'Cancel'))));
+    try { input.focus({ preventScroll: true }); } catch { /* fine without */ }
   }
   function eventPop(i) {
     if (locked()) return;
@@ -446,32 +446,34 @@ export function mount(root, _entries, api) {
   function savePop() {
     if (locked()) return;
     let icon = project.icon;
-    let name = project.name;
-    const shown = el('div', { class: 'typed st-typed' });
+    const input = textInput({ value: project.name, max: 16, placeholder: 'My project', label: 'Project name', capitalize: 'words' });
+    const shown = el('div', { class: 'st-saved-as' });
+    const name = () => input.value.trim();
+    input.addEventListener('input', () => show());
     const icons = el('div', { class: 'st-emojis', role: 'group', 'aria-label': 'Project picture' });
     const drawIcons = () => icons.replaceChildren(...PROJECT_ICONS.map((e) =>
       el('button', { class: `btn tt-num${e === icon ? ' on' : ''}`, type: 'button', 'data-v': e, onclick: () => { icon = e; drawIcons(); show(); } }, e)));
-    const show = () => { shown.textContent = `${icon} ${nice(name)}`; };
+    const show = () => { shown.textContent = `${icon} ${nice(name())}`; };
     drawIcons(); show();
     const store = (asNew) => {
       const all = loadProjects();
       const i = !asNew && project.id ? all.findIndex((q) => q.id === project.id) : -1;
       if (i < 0 && all.length >= MAX_PROJECTS) { closePop(); say('Your project shelf is full. Delete one in 📂 first.'); return; }
-      const next = { ...project, id: i >= 0 ? project.id : `p${Date.now()}`, icon, name };
+      const next = { ...project, id: i >= 0 ? project.id : `p${Date.now()}`, icon, name: name() };
       if (i >= 0) all[i] = next; else all.push(next);
       if (!save(PROJECTS_KEY, all)) { closePop(); say('Hmm, there is no room to save on this device.'); return; }
       project = next;
       changed();
       closePop();
       drawTop();
-      say(`Saved “${icon} ${nice(name)}”!`);
+      say(`Saved “${icon} ${nice(name())}”!`);
     };
-    pop('Save project', el('h2', {}, '💾 Save your project'), el('p', { class: 'label' }, 'Pick a picture, and type a name if you like.'), icons, shown,
-      keyboard({ onKey: (ch) => { if (name.length < 16) { name += ch; show(); } }, onBack: () => { name = name.slice(0, -1); show(); }, extras: [' '] }),
+    pop('Save project', el('form', { class: 'st-form', onsubmit: (e) => { e.preventDefault(); store(false); } },
+      el('h2', {}, '💾 Save your project'), el('p', { class: 'label' }, 'Pick a picture, and type a name if you like.'), icons, input, shown,
       el('div', { class: 'row' }, kids(
         el('button', { class: 'btn primary big', type: 'button', 'data-act': 'save', onclick: () => store(false) }, project.id ? '💾 Save' : '💾 Save project'),
         project.id ? el('button', { class: 'btn big', type: 'button', 'data-act': 'save-new', onclick: () => store(true) }, '📄 Save as new') : null,
-        el('button', { class: 'btn big', type: 'button', onclick: closePop }, 'Cancel'))));
+        el('button', { class: 'btn big', type: 'button', onclick: closePop }, 'Cancel')))));
   }
   function openProject(p) {
     stopAll();
