@@ -154,6 +154,20 @@ try:
         keys("close", "close")
         check("🔁 enabled again after closing", not page.locator(".tt-key[data-op='repeat']").is_disabled())
         check("text view shows nested box", "REPEAT 2 [FORWARD 80 RIGHT 90 REPEAT 4 [FORWARD 50]]" in page.locator(".tt-logo").inner_text(), page.locator(".tt-logo").inner_text())
+        def chip_drag(src, dst, side="after", hold=None):
+            """Drag chip `src` (CSS) onto the before/after side of chip `dst` with the mouse."""
+            a = page.locator(src).first.bounding_box(); z = page.locator(dst).first.bounding_box()
+            page.mouse.move(a["x"] + a["width"] / 2, a["y"] + a["height"] / 2); page.mouse.down()
+            tx = z["x"] + (z["width"] * 0.85 if side == "after" else z["width"] * 0.15)
+            page.mouse.move(tx, z["y"] + z["height"] / 2, steps=8)
+            if hold: hold()
+            page.mouse.up(); time.sleep(0.15)
+        chip_drag(".code-chip[data-path='0.1']", ".code-chip[data-path='0.0']", "before")
+        check("drag reorders steps inside a box", "REPEAT 2 [RIGHT 90 FORWARD 80 REPEAT 4 [FORWARD 50]]" in page.locator(".tt-logo").inner_text(), page.locator(".tt-logo").inner_text())
+        chip_drag(".code-chip[data-path='0.2']", ".code-chip[data-path='0.0']", "before")
+        check("dragging a box's 🔁 chip moves the whole box", "REPEAT 2 [REPEAT 4 [FORWARD 50] RIGHT 90 FORWARD 80]" in page.locator(".tt-logo").inner_text(), page.locator(".tt-logo").inner_text())
+        chip_drag(".code-chip[data-path='0.0.0']", ".code-chip[data-path='0.2']", "after")
+        check("a step can't be dragged out of its box (stays put)", "REPEAT 2 [REPEAT 4 [FORWARD 50] RIGHT 90 FORWARD 80]" in page.locator(".tt-logo").inner_text() and page.locator(".overlay").count() == 0)
 
         # undo + remove
         tap("[data-tool='undo']"); time.sleep(0.35)

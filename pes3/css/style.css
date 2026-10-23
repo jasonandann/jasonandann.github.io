@@ -694,3 +694,12 @@ button.rb-cell:active { background: #dcfce7; }
 @media (max-width: 560px) {
   .tt-keys { width: 100%; grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Coding: drag a chip to reorder (chips.js) */
+.code-chips { position: relative; }
+.code-chips.can-drag .code-chip { touch-action: none; }
+.code-chip.dragging, .code-box.dragging { opacity: .3; }
+.code-ghost { position: fixed; left: 0; top: 0; z-index: 20; margin: 0; pointer-events: none; opacity: .92;
+  box-shadow: 0 8px 20px rgba(20, 22, 50, .25); }
+.code-drop { position: absolute; width: 6px; margin-left: -3px; border-radius: 3px; background: var(--brand); pointer-events: none; }
+.code-drop[hidden] { display: none; }

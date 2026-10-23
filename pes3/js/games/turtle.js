@@ -297,7 +297,7 @@ export function mount(root, _entries, api) {
 
     const msg = el('div', { class: 'msg', 'aria-live': 'polite' }, shape ? `Draw the ${shape.name.toLowerCase()}!` : 'Tap blocks to make a program, then ▶.');
     const say = (t) => { msg.textContent = t; };
-    const strip = chipStrip({ ops: TURTLE_OPS, onTap: editChip, empty: 'Your steps show up here.' });
+    const strip = chipStrip({ ops: TURTLE_OPS, onTap: editChip, onMove: moveStep, canDrag: () => !locked(), empty: 'Your steps show up here.' });
     const logo = el('pre', { class: 'tt-logo', 'aria-label': 'Logo text' });
     const after = el('div', { class: 'row rb-after' });
 
@@ -334,6 +334,26 @@ export function mount(root, _entries, api) {
       say(op === 'repeat' ? 'Tap blocks to put them in the box. Tap ✅ when the box is done.' : '');
       edited();
       if (op === 'color') editChip(path, b);
+    }
+    // Path of a block object in the program (after a move), or null.
+    function pathOf(target, list = program, base = []) {
+      for (let i = 0; i < list.length; i++) {
+        if (list[i] === target) return [...base, i];
+        const inner = list[i].body && pathOf(target, list[i].body, [...base, i]);
+        if (inner) return inner;
+      }
+      return null;
+    }
+    // Drag a chip within its row or box (a box's 🔁 chip moves the whole box).
+    function moveStep(parent, from, to) {
+      if (locked()) return;
+      const list = containerOf(parent.length ? parent : null);
+      const openBlock = open && getBlock(open);
+      const [b] = list.splice(from, 1);
+      list.splice(to, 0, b);
+      open = openBlock ? pathOf(openBlock) : null;
+      tone(BEEP[b.op] || 500, 80);
+      edited();
     }
     function closeBox() {
       if (!open) return;

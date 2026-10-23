@@ -416,7 +416,7 @@ export function mount(root, _entries, api) {
 
     const msg = el('div', { class: 'msg', 'aria-live': 'polite' }, 'Press the arrow keys to plan a path to the 🏁.');
     const say = (t) => { msg.textContent = t; };
-    const strip = chipStrip({ ops: ROBOT_OPS, onTap: removeAt, empty: 'Your steps show up here.' });
+    const strip = chipStrip({ ops: ROBOT_OPS, onTap: removeAt, onMove: moveStep, canDrag: () => !locked(), empty: 'Your steps show up here.' });
     const after = el('div', { class: 'row rb-after' });
 
     // ----- the robot's head (same key positions and colours as the toy) -----
@@ -479,6 +479,16 @@ export function mount(root, _entries, api) {
         return;
       }
       program.push({ op });
+      say('');
+      edited();
+    }
+    // Drag a chip to a new place (the toy only has backspace; here she can rearrange).
+    function moveStep(_parent, from, to) {
+      if (locked()) return;
+      const [b] = program.splice(from, 1);
+      program.splice(to, 0, b);
+      tone(BEEP[b.op], 80);
+      r.reset();
       say('');
       edited();
     }
