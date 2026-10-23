@@ -78,6 +78,8 @@ try:
             for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
                 for t in range(1, 5):
                     cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x1 + (x2 - x1) * t / 4, "y": y1 + (y2 - y1) * t / 4}]})
+            # Rest before lifting: a full-speed lift starts a Chromium fling that swallows the click of a tap within ~1 s.
+            time.sleep(0.15)
             cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
             time.sleep(0.15)
         def done(w): return page.locator(f".bf-slots.done[data-w='{w}']").count() == 1

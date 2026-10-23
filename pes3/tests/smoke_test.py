@@ -200,6 +200,9 @@ try:
             cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x1, "y": y1}]})
             for t in range(1, 6):
                 cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x1+(x2-x1)*t/5, "y": y1+(y2-y1)*t/5}]})
+            # Rest the finger before lifting. Lifting at full speed starts a fling in Chromium, and the next
+            # tap within ~1 s only stops the fling: no click (it made the Home tap below flaky).
+            time.sleep(0.15)
             cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
             time.sleep(0.2)
             check("wordsearch touch-drag selects a word", found() == 2, str(found()))
