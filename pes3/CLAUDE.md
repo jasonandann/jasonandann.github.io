@@ -30,7 +30,7 @@ js/games/*.js                      jumble typeit fillblank catcher volcano worda
 audio/manifest.json (+*.m4a, pronunciations.txt)   optional recordings
 dict/words.txt                     generated: ENABLE 3-12 letters minus tools/blocklist.txt
 tools/check_words.py  tools/make_audio.py  tools/make_dictionary.py (+ blocklist.txt)  tools/serve.py (Pages-like local server)  tools/sw-off.js (kill switch)
-tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.py robot_test.py turtle_test.py studio_test.py deeplink_test.py sw_test.py zombie_shots.py  tests/fixtures/words.txt
+tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.py robot_test.py turtle_test.py studio_test.py deeplink_test.py keyboard_test.py sw_test.py zombie_shots.py  tests/fixtures/words.txt
 ```
 
 ## Contracts
@@ -46,6 +46,7 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.p
 - Tests route `words.txt` to `tests/fixtures/words.txt` (12 words, "Week of Oct 26") so the weekly list never breaks them.
 - Parent panel: 5 taps within 3s on `#title`, or type `parent` on home (not in a game). Nothing visible links to it.
 - Audio: `speakWord(entryOrString)` / `speakSentence(entry)` play `audio/<slug>.m4a` / `<slug>.sentence.m4a` if `audio/manifest.json` `{words:[slug],sentences:{slug:text}}` lists it (sentence text must match words.txt), else fall back to speechSynthesis (also on play() failure). slug = lowercase, non-[a-z0-9] runs -> `_`.
+- Spelling keyboard `keyboard({onKey, onBack, extras})` (util.js): QWERTY rows by default. Parent panel "Spelling keyboard" sets `spelling-games.keyboard.abc` ('on' = she may choose; default off). When on, every keyboard shows an ABC | QWERTY `.kb-switch` (`.kb-pick[data-layout]`) and her choice is `spelling-games.keyboard.layout` (no choice yet: ABC at <= 560 px, else QWERTY; turning the setting off forces QWERTY but keeps her choice for later). ABC = `.kb-grid` a-z (9 across, 7 on phones ≈ 46 px keys; QWERTY can't reach 44 px wide on a phone), vowels `.key.vow` very light rose (#fff4f8, a colour no typing game uses; `:not([data-s])` so Wordal's green/amber/grey always win). Switching rebuilds in place and keeps `data-s` marks. Physical keys unaffected (Jason 2026-10-23; research is mixed: Norman & Fisher 1982 found no ABC benefit for adult typing, Nicolson & Gardner 1985 found QWERTY worse for children's single-key entry).
 - `textInput({value, max, placeholder, label, capitalize})` (util.js): native text box for free text that is NOT a spelling answer (robot name, Code Studio say/project name); autocorrect off, `.text-in` font >= 16px (no iOS zoom); body is `user-select: none`, so the input sets `user-select: text`. Spelling answers keep `keyboard()`.
 - Math levels: add (within 100), t5, t10, div. Kid-gentle copy: "Try again!", never "wrong".
 - Praise: `cheer(kind)` in util.js; kind `'spell'` or `opKind(text)` (`add`/`sub`/`mul`/`div` from + − × ÷). General list never mentions spelling. Spelling games pass `'spell'`, math games `opKind(q.text)`, Explorer `'mul'`, Zombie by question type; Baffle/Spot Match use general.
@@ -66,12 +67,12 @@ python3 tools/check_words.py           # validate words.txt
 python3 tools/make_audio.py --dry-run  # macOS only (say + afconvert); see README
 pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
-python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py && python3 tests/robot_test.py && python3 tests/turtle_test.py && python3 tests/studio_test.py && python3 tests/deeplink_test.py && python3 tests/sw_test.py   # 41 + 42 + 67 + 68 + 39 + 132 + 78 + 59 + 17 + 54 checks
+python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py && python3 tests/robot_test.py && python3 tests/turtle_test.py && python3 tests/studio_test.py && python3 tests/deeplink_test.py && python3 tests/keyboard_test.py && python3 tests/sw_test.py   # 41 + 42 + 67 + 68 + 39 + 132 + 78 + 59 + 17 + 22 + 54 checks
 ```
-Tests start their own `http.server` (ports 8765/8766/8768/8769/8770/8771/8772/8773/8774/8775), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
+Tests start their own `http.server` (ports 8765/8766/8768/8769/8770/8771/8772/8773/8774/8775/8776), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
 ## Status / verified
-Passing: all ten suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
+Passing: all eleven suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
 
 ## Not verified / caveats
 - Volcano eruption untested on iPad Safari (uses `clip-path`, `-webkit-mask`, CSS vars in keyframes).
@@ -91,4 +92,4 @@ Passing: all ten suites above on desktop Chromium with touch emulation; layouts 
 Wordscapes-style "Word Wheel" (letter wheel + crossword) discussed; needs a word-frequency source for crossword fillers (SCOWL sizes) — reuse js/dictionary.js. Per-word pronunciation overrides are only in `make_audio.py` (not browser TTS); reduce Wordal/Puzzle height on short screens; Google Cloud TTS was discussed as an alternative; it needs an API key, so on a static site it only works if audio is pre-generated and committed (same pipeline as `make_audio.py`).
 
 ## Working style for this repo
-Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all ten suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.
+Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all eleven suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.

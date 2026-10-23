@@ -121,6 +121,16 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
   border: 2px solid var(--soft); border-radius: 10px; box-shadow: 0 2px 0 var(--soft);
 }
 .key.wide { flex: 1.6 1 0; max-width: 110px; }
+/* ABC | QWERTY switch (only when a grown-up allows it) */
+.kb-switch { display: flex; justify-content: center; gap: 6px; }
+.kb-pick { min-height: 44px; min-width: 96px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--soft); background: var(--card);
+  font-size: .95rem; font-weight: 800; letter-spacing: .04em; color: #475569; }
+.kb-pick[aria-pressed="true"] { background: #334155; border-color: #334155; color: #fff; }
+/* ABC layout: a-z in a grid, 9 across (7 on a phone, where the keys come out about 46 px wide) */
+.kb-grid { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; width: 100%; max-width: 760px; margin: 0 auto; }
+.kb-grid .key { max-width: none; }
+/* vowels: a very light rose, a colour no typing game uses for feedback (Wordal: green/amber/grey; selection: indigo) */
+.kb-grid .key.vow:not([data-s]) { background: #fff4f8; border-color: #f5d0de; }
 .key:active { background: #eef2ff; transform: translateY(2px); box-shadow: none; }
 
 /* memory match */
@@ -227,6 +237,8 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 
 @media (max-width: 560px) {
   .memory { grid-template-columns: repeat(3, 1fr); }
+  .kb-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .kb-grid .key.wide { grid-column: span 2; }
   .tile { width: 44px; height: 54px; font-size: 1.6rem; }
   .typed { font-size: 2rem; min-width: 200px; }
 }

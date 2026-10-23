@@ -135,7 +135,7 @@ Roll a die, answer a question. Right: move ahead by the roll. Wrong: move back b
 
 Design choices for a child who discourages easily: no scores, counters, timers, or "wrong" messages. Misses get "Almost! Try again." After repeated misses the word is shown so she can see it, then the game moves on. Rounds are about 10 words; words she has needed help with are quietly chosen more often.
 
-The on-screen keyboard avoids iPad autocorrect and predictive text. A physical keyboard also works.
+The on-screen keyboard avoids iPad autocorrect and predictive text. A physical keyboard also works. In the grown-ups panel, **Spelling keyboard → Let her choose ABC or QWERTY** adds an ABC | QWERTY switch to the keyboard: ABC puts the letters in alphabet order (bigger keys on a phone, vowels lightly tinted). Her choice is remembered on that device; the default is QWERTY only.
 
 ## Hidden progress (grown-ups only)
 
@@ -214,7 +214,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 

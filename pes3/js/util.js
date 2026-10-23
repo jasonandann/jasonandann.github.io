@@ -227,19 +227,60 @@ export function noWords(root, why = 'This game needs words made only of letters.
 
 /* ---------- keyboards ---------- */
 const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+const ABC = 'abcdefghijklmnopqrstuvwxyz';
+const VOWELS = 'aeiou';
+// ABC layout: a grown-up allows it in the parent panel; then she picks ABC or QWERTY on the keyboard itself.
+const ABC_ALLOWED_KEY = 'spelling-games.keyboard.abc'; // 'on' = she may choose
+const LAYOUT_KEY = 'spelling-games.keyboard.layout'; // her choice: 'abc' | 'qwerty'
+export function abcAllowed() {
+  try { return localStorage.getItem(ABC_ALLOWED_KEY) === 'on'; } catch { return false; }
+}
+export function setAbcAllowed(on) {
+  try { localStorage.setItem(ABC_ALLOWED_KEY, on ? 'on' : 'off'); } catch { /* ignore */ }
+}
+// QWERTY unless allowed. If allowed and she hasn't picked yet: ABC on a phone (its keys are big enough there,
+// QWERTY's aren't), QWERTY on bigger screens.
+export function keyboardLayout() {
+  if (!abcAllowed()) return 'qwerty';
+  let v = null;
+  try { v = localStorage.getItem(LAYOUT_KEY); } catch { /* ignore */ }
+  if (v === 'abc' || v === 'qwerty') return v;
+  return typeof matchMedia === 'function' && matchMedia('(max-width: 560px)').matches ? 'abc' : 'qwerty';
+}
+function setKeyboardLayout(v) {
+  try { localStorage.setItem(LAYOUT_KEY, v); } catch { /* ignore */ }
+}
 
-// On-screen keyboard: no autocorrect, no predictive text, big touch targets.
+// On-screen keyboard for spelling answers: no autocorrect, no predictive text, big touch targets.
+// QWERTY rows, or (if allowed and chosen) a-z in a grid with lightly tinted vowels. Switching layout
+// keeps per-key marks (Wordal's data-s colours).
 export function keyboard({ onKey, onBack, extras = [] }) {
   const kb = el('div', { class: 'kb' });
-  ROWS.forEach((row, i) => {
-    const r = el('div', { class: 'kb-row' });
-    for (const ch of row) r.append(el('button', { class: 'key', type: 'button', onclick: () => onKey(ch) }, ch));
-    if (i === 2) {
-      for (const ch of extras) r.append(el('button', { class: 'key', type: 'button', onclick: () => onKey(ch) }, ch));
-      if (onBack) r.append(el('button', { class: 'key wide', type: 'button', 'aria-label': 'Delete', onclick: onBack }, '⌫'));
+  function build() {
+    const layout = keyboardLayout();
+    const marks = {};
+    kb.querySelectorAll('.key[data-s]').forEach((k) => { marks[k.textContent] = k.dataset.s; });
+    const key = (ch) => {
+      const b = el('button', { class: `key${layout === 'abc' && VOWELS.includes(ch) ? ' vow' : ''}`, type: 'button', onclick: () => onKey(ch) }, ch);
+      if (marks[ch]) b.dataset.s = marks[ch];
+      return b;
+    };
+    const back = onBack ? el('button', { class: 'key wide', type: 'button', 'aria-label': 'Delete', onclick: onBack }, '⌫') : null;
+    const parts = [];
+    if (abcAllowed()) {
+      const pick = (v, label) => el('button', { class: 'kb-pick', type: 'button', 'data-layout': v, 'aria-pressed': String(layout === v),
+        onclick: () => { if (keyboardLayout() !== v) { setKeyboardLayout(v); build(); } } }, label);
+      parts.push(el('div', { class: 'kb-switch', role: 'group', 'aria-label': 'Keyboard letters' }, pick('abc', 'ABC'), pick('qwerty', 'QWERTY')));
     }
-    kb.append(r);
-  });
+    if (layout === 'abc') {
+      parts.push(el('div', { class: 'kb-grid' }, [...ABC].map(key), extras.map(key), back));
+    } else {
+      ROWS.forEach((row, i) => parts.push(el('div', { class: 'kb-row' }, [...row].map(key), i === 2 ? [...extras.map(key), back] : null)));
+    }
+    kb.className = `kb kb-${layout}`;
+    kb.replaceChildren(...parts);
+  }
+  build();
   return kb;
 }
 
