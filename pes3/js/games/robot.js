@@ -433,7 +433,8 @@ export function mount(root, _entries, api) {
       say('');
       edited();
     }
-    function removeAt(i) {
+    function removeAt(path) {
+      const i = path[0];
       if (locked()) return;
       tone(BEEP.undo, 90);
       r.reset();
