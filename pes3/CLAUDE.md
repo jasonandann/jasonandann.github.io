@@ -30,12 +30,13 @@ js/games/*.js                      jumble typeit fillblank catcher volcano worda
 audio/manifest.json (+*.m4a, pronunciations.txt)   optional recordings
 dict/words.txt                     generated: ENABLE 3-12 letters minus tools/blocklist.txt
 tools/check_words.py  tools/make_audio.py  tools/make_dictionary.py (+ blocklist.txt)  tools/serve.py (Pages-like local server)  tools/sw-off.js (kill switch)
-tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.py robot_test.py sw_test.py zombie_shots.py  tests/fixtures/words.txt
+tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.py robot_test.py deeplink_test.py sw_test.py zombie_shots.py  tests/fixtures/words.txt
 ```
 
 ## Contracts
 - Game module: `export function mount(root, entries, api)`; `api={home}`; may return a cleanup fn. `mathquiz.js` exports objects `{mount}` (e.g. `mq.maze`).
-- `app.js` `SECTIONS=[{title,needsWords?,games:[{icon,name,blurb,needsWords?,mod}]}]`. Adding a game = new file + one entry. Menu currently 23 cards in 5 sections (smoke/zombie/new_games/baffle tests assert this). Sections: Spelling, Math, 💻 Coding (issue #19: Robot Course done; Turtle Draw, Code Studio to come), Fun, Rewards.
+- `app.js` `SECTIONS=[{title,needsWords?,games:[{icon,id,name,blurb,needsWords?,mod}]}]`; `id` = deep-link slug (lowercase, unique, stable once shared; deeplink_test reads them from app.js). Adding a game = new file + one entry. Menu currently 23 cards in 5 sections (smoke/zombie/new_games/baffle tests assert this). Sections: Spelling, Math, 💻 Coding (issue #19: Robot Course done; Turtle Draw, Code Studio to come), Fun, Rewards.
+- Deep links (Jason, 2026-10-23): `index.html#<id>` (e.g. `#robot`, case-insensitive) -> `startFromHash()` shows a `.start-gate` card (`▶ Tap to start`); its tap calls `open()` so speech starts inside a tap (iOS). Unknown id -> menu, hash cleared. `open()` sets the hash and `home()` clears it, via `history.replaceState` (no Back entries). `hashchange` re-runs `startFromHash`. The gate is not busy (`inGame=false`), so an update reload may happen there and lands back on the same card. Test reloads that mean "launch the app" must drop the hash (`relaunch()` in sw_test: start_url has none).
 - `words.txt`: first `#` line = list title; `word | optional sentence`; dupes ignored; lowercase.
 - Spelling games use `rounds(root, entries, api, renderRound, {perRound=10})`; `renderRound({entry,next,root,later,onLeave})`; call `logRound(word, firstTry)` **once** per word. `chooseWords` quietly favours missed words.
 - `logRound` also calls `award()` (+1 garden point per finished word, right or not). Math games call `award()` per answered question via `quiz()`. Garden: 4 pts/flower, cap 30 plots, only grows. Keys: `spelling-games.progress.v1` (hidden), `spelling-games.garden.v1`, `spelling-games.mathlevel`. `clearProgress()` must NOT clear the garden.
@@ -62,12 +63,12 @@ python3 tools/check_words.py           # validate words.txt
 python3 tools/make_audio.py --dry-run  # macOS only (say + afconvert); see README
 pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
-python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py && python3 tests/robot_test.py && python3 tests/sw_test.py   # 41 + 42 + 67 + 68 + 39 + 108 + 48 checks
+python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py && python3 tests/robot_test.py && python3 tests/deeplink_test.py && python3 tests/sw_test.py   # 41 + 42 + 67 + 68 + 39 + 108 + 16 + 48 checks
 ```
-Tests start their own `http.server` (ports 8765/8766/8768/8769/8770/8771/8772), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
+Tests start their own `http.server` (ports 8765/8766/8768/8769/8770/8771/8772/8773), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
 ## Status / verified
-Passing: all seven suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
+Passing: all eight suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
 
 ## Not verified / caveats
 - Volcano eruption untested on iPad Safari (uses `clip-path`, `-webkit-mask`, CSS vars in keyframes).
@@ -85,4 +86,4 @@ Passing: all seven suites above on desktop Chromium with touch emulation; layout
 Wordscapes-style "Word Wheel" (letter wheel + crossword) discussed; needs a word-frequency source for crossword fillers (SCOWL sizes) — reuse js/dictionary.js. Per-word pronunciation overrides are only in `make_audio.py` (not browser TTS); reduce Wordal/Puzzle height on short screens; Google Cloud TTS was discussed as an alternative; it needs an API key, so on a static site it only works if audio is pre-generated and committed (same pipeline as `make_audio.py`).
 
 ## Working style for this repo
-Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all seven suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.
+Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all eight suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.

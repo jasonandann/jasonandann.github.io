@@ -50,6 +50,24 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
 
 **Rewards**: My Garden. Every finished question in any game (right first time or not) is one point; every 4 points grows a flower, and butterflies and bees arrive later. It only grows, never shrinks, and shows no numbers. Stored in `localStorage` (`spelling-games.garden.v1`); the parent panel's "Erase history" does not touch it.
 
+### Linking straight to a game
+
+Add `#<name>` to the address, e.g. `https://jasonandann.net/pes3/#robot`. The page shows that game's card with a **▶ Tap to start** button: the tap is needed because an iPad only lets a page speak inside a tap. While a game is open the address bar shows its link (so you can copy it); **‹ Home** clears it. An unknown name just shows the menu. Names are not case-sensitive. The names live in `SECTIONS` in `js/app.js` (`id`).
+
+| Spelling | | Math | | Coding / Fun / Rewards | |
+|---|---|---|---|---|---|
+| See the Words | `#words` | Number Bubbles | `#bubbles` | Robot Course | `#robot` |
+| Word Jumble | `#jumble` | Number Cascade | `#cascade` | Zombie Trail | `#zombie` |
+| Fill the Blanks | `#blanks` | Times Table Explorer | `#times` | Lily Pad River | `#river` |
+| Look, Cover, Write, Check | `#lcwc` | Number Maze | `#maze` | Spot Match | `#spot` |
+| Spell Catcher | `#catcher` | Number Mountain | `#mountain` | Simon Says | `#simon` |
+| Word Volcano | `#volcano` | Puzzle Pieces | `#puzzle` | My Garden | `#garden` |
+| Memory Match | `#memory` | | | | |
+| Baffle | `#baffle` | | | | |
+| Word Search | `#search` | | | | |
+| Wordal | `#wordal` | | | | |
+| Listen & Type | `#listen` | | | | |
+
 The new spelling and math games are original vanilla-JS re-implementations of the mechanics in [Spellbound](https://github.com/benSlaughter/spellbound) (MIT per its README); none of its code was copied. Differences from Spellbound, chosen for a child who discourages easily: no timers, no best scores, no unlock gating, no lives.
 
 ### Baffle
@@ -173,7 +191,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 
