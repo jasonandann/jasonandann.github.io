@@ -48,6 +48,7 @@ deploy()
 SLOW = {}  # path -> seconds to wait before answering (lets a "deploy" land in the middle of a check)
 ETAGS = {"mode": "pages"}  # "pages" = "<hex mtime>-<hex size>" like GitHub Pages; "hash" = content hash (format change)
 STALE = {}  # path -> (bytes, etag): keep serving an old copy, like a CDN server that missed the purge
+BROKEN = set()  # paths whose requests get no response at all (connection closed): a failed fetch while online
 
 def frozen(rel):
     """The file as it is now (bytes + Pages-style ETag), to keep serving after the next deploy."""
@@ -64,6 +65,9 @@ class Pages(SimpleHTTPRequestHandler):
         if self.command == "GET":  # only downloads are slow, so the HEAD probes around a round stay quick
             time.sleep(SLOW.get(self.path.split("?")[0], 0))
         self._etag = None
+        if self.path.split("?")[0] in BROKEN:
+            self.close_connection = True
+            return None
         if self.path.split("?")[0] in STALE:
             body, self._etag = STALE[self.path.split("?")[0]]
             if self.headers.get("If-None-Match", "").replace("W/", "") == self._etag:
@@ -202,10 +206,20 @@ try:
             return { s: r.status, n: (await r.arrayBuffer()).byteLength, cr: r.headers.get('Content-Range') }; }""")
         check("offline: recordings answer byte-range requests (206)", rng["s"] == 206 and rng["n"] == 10 and rng["cr"].startswith("bytes 0-9/"), str(rng))
         mark()
+        ctx.set_offline(True)  # navigator.onLine = false, as on a device with no network
         r = off("o.checkForUpdates(false)")
         r2 = off("o.checkForUpdates(true)")
         check("offline: update check fails quietly, no reload", marked() and (r or {}).get("result") == "offline" and (r2 or {}).get("result") == "offline", f"{r} {r2}")
+        page.keyboard.type("parent")
+        page.wait_for_function("document.querySelector('.offline-status') && document.querySelector('.offline-status').textContent.includes('Last check')", timeout=5000)
+        st = page.locator(".offline-status").inner_text()
+        check("offline: parent panel says no internet", "no internet" in st and "couldn" not in st, st)
         page.screenshot(path=f"{SHOTS}/sw_offline.png")
+        page.keyboard.press("Escape")
+        ctx.set_offline(False)
+        # Server down but the browser thinks it is online (wifi without internet): not "no internet", but "couldn't finish"
+        r = off("o.checkForUpdates(true)")
+        check("server unreachable while online: result 'error' with the URL", (r or {}).get("result") == "error" and URL in (r or {}).get("error", ""), str(r))
 
         # ---- a deploy that changes nothing here (push elsewhere on the site): no reload, new ETags remembered
         start()
@@ -282,6 +296,30 @@ try:
         check("stale CDN file: once the CDN catches up, the new copy goes in", r.get("updated") is True and s_txt.rstrip().endswith("// C"), str(r))
         (APP / "js/app.js").write_text(app0)
         (APP / "js/games/simon.js").write_text(simon0)
+        deploy()
+        page.evaluate(SW_ASK, {"type": "check", "full": True})
+        page.reload()
+        settle()
+
+        # ---- one file's request fails while online (issue #24): 'error' naming the file, current copy kept, panel says so
+        before_list = listname()
+        BROKEN.add("/pes3/js/games/simon.js")
+        deploy({"words.txt": fixture.replace("Week of Oct 26", "Week of Broken")})
+        r = page.evaluate(SW_ASK, {"type": "check", "full": True})
+        check("broken file: result 'error' naming the file, no update", r.get("result") == "error" and r.get("updated") is False
+              and "js/games/simon.js" in r.get("error", ""), str(r))
+        words_now = page.evaluate("fetch('words.txt').then(r => r.text())")
+        check("broken file: current copy kept", "Week of Broken" not in words_now and listname() == before_list, words_now[:30])
+        st = page.evaluate(SW_ASK, {"type": "status"})["last"]
+        check("broken file: status().last carries the error", st["result"] == "error" and "js/games/simon.js" in st.get("error", ""), str(st))
+        page.keyboard.type("parent")
+        page.wait_for_function("document.querySelector('.offline-status') && document.querySelector('.offline-status').textContent.includes('Last check')", timeout=5000)
+        st = page.locator(".offline-status").inner_text()
+        check("broken file: parent panel says couldn't finish + the path", "couldn’t finish (" in st and "js/games/simon.js" in st and "no internet" not in st, st)
+        page.screenshot(path=f"{SHOTS}/sw_check_error.png")
+        page.keyboard.press("Escape")
+        BROKEN.clear()
+        (APP / "words.txt").write_text(fixture.replace("Week of Oct 26", "Week of Nov 9"))
         deploy()
         page.evaluate(SW_ASK, {"type": "check", "full": True})
         page.reload()
