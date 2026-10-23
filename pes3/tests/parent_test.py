@@ -6,6 +6,7 @@ Needs: pip install playwright && playwright install chromium
 """
 import json, os, re, subprocess, sys, tempfile, time
 from pathlib import Path
+from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 
 SITE = str(Path(__file__).resolve().parent.parent)
@@ -61,15 +62,27 @@ try:
             page.wait_for_function("([s, t]) => (document.querySelector(s) || {}).textContent?.includes(t)", arg=[sel, text], timeout=timeout)
         def panel_open(): return page.locator(".overlay h2", has_text="Grown-ups only").count() == 1
 
-        # ---------- first time: setup ----------
+        # ---------- first time: set a passcode, or choose none ----------
         open_lock()
         check("first open asks to set a passcode (no panel yet)", "Set a grown-ups passcode" in h2() and not panel_open() and page.locator(".pin-pad .pin-key").count() == 12)
+        check("…and offers 'Don't use a passcode'", page.locator(".overlay [data-act='none']").count() == 1)
         page.keyboard.type("parent")
         check("typing 'parent' again doesn't stack a second overlay", page.locator(".overlay").count() == 1)
         tap("[data-act='cancel']")
         check("Cancel closes and saves nothing", page.locator(".overlay").count() == 0 and settings() is None)
+        open_lock(); tap("[data-act='none']")
+        check("'Don't use a passcode' explains first", "No passcode?" in h2() and "your child" in page.locator(".overlay").inner_text())
+        tap("[data-act='back']")
+        check("Back returns to choosing a passcode", "Choose" in prompt())
+        tap("[data-act='none']"); tap("[data-act='none-confirm']"); page.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
+        check("no passcode: the panel opens, saved as noPasscode", panel_open() and settings()["noPasscode"] is True and settings()["pin"] is None)
+        check("no passcode: the panel offers 'Set a passcode'", page.locator(".overlay [data-act='set-pin']").count() == 1 and page.locator(".overlay [data-act='change-pin']").count() == 0)
+        page.keyboard.press("Escape"); page.keyboard.type("parent")
+        check("no passcode: next time the panel opens straight away", panel_open() and page.locator(".pin-pad").count() == 0)
 
-        open_lock()
+        # ---------- set a passcode from the panel: the code is shown BEFORE anything is saved ----------
+        tap("[data-act='set-pin']")
+        check("Set a passcode opens setup (no 'Don't use' there)", "Set a passcode" in h2() and page.locator(".overlay [data-act='none']").count() == 0)
         pin("123", ok=False)
         check("OK is off below 4 digits", page.locator(".pin-key[data-k='ok']").is_disabled() and dots_on() == 3)
         tap(".pin-key[data-k='back']")
@@ -84,20 +97,24 @@ try:
         check("a mismatch starts over", "didn’t match" in msg() and "Choose" in prompt())
         pin("1234"); pin("1234")
         page.wait_for_selector(".recovery-code")
+        check("recovery code shown, nothing saved yet", settings()["pin"] is None and settings()["noPasscode"] is True)
+        tap("[data-act='cancel']")
+        check("Cancel on the code screen: back to the panel, still no passcode", panel_open() and settings()["pin"] is None)
+        tap("[data-act='set-pin']"); pin("1234"); pin("1234"); page.wait_for_selector(".recovery-code")
         code = page.locator(".recovery-code").inner_text()
-        check("recovery code shown once, XXXX-XXXX without I/L/O/U", re.fullmatch(r"[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}", code) is not None, code)
+        check("recovery code XXXX-XXXX without I/L/O/U", re.fullmatch(r"[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}", code) is not None, code)
         page.screenshot(path=f"{SHOTS}/parent-recovery.png")
+        tap("[data-act='saved']"); page.keyboard.press("Escape")  # Escape mid-save must not lose anything
+        page.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
+        check("I've saved it: passcode + code saved together, panel back", panel_open())
         s = settings()
         check("passcode stored as salted PBKDF2 (no plain text)", s and set(s["pin"]) == {"salt", "hash", "iter"} and s["pin"]["iter"] == 600000
-              and "1234" not in json.dumps(s["pin"]["hash"] + s["pin"]["salt"]) or False, json.dumps(s)[:200])
+              and s["noPasscode"] is False and "1234" not in json.dumps(s["pin"]["hash"] + s["pin"]["salt"]) or False, json.dumps(s)[:200])
         check("recovery code stored hashed too", s and "hash" in s["recovery"] and code.replace("-", "") not in json.dumps(s))
-        tap("[data-act='saved']")
-        check("after setup the panel opens", panel_open())
-        check("panel has a Passcode section", page.locator(".overlay h3", has_text="Passcode").count() == 1)
+        check("panel now offers Change / New code / Turn off", all(page.locator(f".overlay [data-act='{a}']").count() == 1 for a in ("change-pin", "new-code", "pin-off")))
         page.locator(".overlay .row button", has_text="Let her choose").first.tap()
         check("changing a setting reopens the panel without asking again", panel_open())
         page.keyboard.press("Escape")
-        check("Escape closes the panel", page.locator(".overlay").count() == 0)
 
         # ---------- entry ----------
         open_lock()
@@ -166,33 +183,78 @@ try:
         page.locator(".overlay .text-in").fill(code.replace("-", " ").lower()); page.keyboard.press("Enter")
         page.wait_for_selector(".overlay h2:has-text('New passcode')")
         check("the recovery code works (any case, spaces instead of dash)", "New passcode" in h2())
-        pin("1357"); pin("1357"); page.keyboard.press("Escape")  # mid-save: must not lose the recovery code
-        page.wait_for_selector(".recovery-code")
-        check("Escape while saving is ignored (the recovery code still shows)", page.locator(".overlay .recovery-code").count() == 1)
+        pin("1357"); pin("1357"); page.wait_for_selector(".recovery-code")
         code2 = page.locator(".recovery-code").inner_text()
         check("a reset shows a new recovery code", code2 != code)
-        tap("[data-act='saved']")
+        tap("[data-act='saved']"); page.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
         check("after the reset the panel opens", panel_open())
 
         # ---------- new recovery code ----------
+        rec = settings()["recovery"]
         tap("[data-act='new-code']"); page.wait_for_selector(".recovery-code")
         code3 = page.locator(".recovery-code").inner_text()
-        check("New recovery code shows a different code", code3 not in (code, code2))
-        tap("[data-act='saved']")
-        check("then back to the panel", panel_open())
+        check("New recovery code shows a different code, not saved yet", code3 not in (code, code2) and settings()["recovery"] == rec)
+        tap("[data-act='saved']"); page.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
+        check("then saved, back to the panel", panel_open() and settings()["recovery"] != rec)
+
+        # another tab/window changed the passcode meanwhile: refuse, change nothing
+        before = page.evaluate(f"localStorage.getItem('{KEY}')")
+        tap("[data-act='new-code']"); page.wait_for_selector(".recovery-code")
+        page.evaluate(f"(() => {{ const s = JSON.parse(localStorage.getItem('{KEY}')); s.recovery = {{ salt: 'AA==', hash: 'other', iter: 1 }}; localStorage.setItem('{KEY}', JSON.stringify(s)); }})()")
+        tap("[data-act='saved']"); page.wait_for_selector(".overlay h2:has-text('Not saved')")
+        check("changed in another tab: 'Not saved', nothing changed", "another tab" in page.locator(".overlay").inner_text() and settings()["recovery"]["hash"] == "other")
+        tap("[data-act='cancel']")
+        check("Close goes back to the panel", panel_open())
+        page.evaluate(f"(b) => localStorage.setItem('{KEY}', b)", before)
+
+        # storage refuses the write: 'Not saved', old passcode still in place
+        tap("[data-act='change-pin']"); pin("8642"); pin("8642", ok=False)
+        page.evaluate("() => { window.__setItem = Storage.prototype.setItem; Storage.prototype.setItem = function () { throw new Error('QuotaExceededError'); }; }")
+        tap(".pin-key[data-k='ok']"); page.wait_for_selector(".overlay h2:has-text('Not saved')")
+        page.evaluate("() => { Storage.prototype.setItem = window.__setItem; }")
+        check("storage full/blocked: 'Not saved', nothing changed", "wouldn’t save" in page.locator(".overlay").inner_text() and page.evaluate(f"localStorage.getItem('{KEY}')") == before)
+        tap("[data-act='cancel']")
         page.keyboard.press("Escape"); open_lock(); tap("[data-act='forgot']")
         page.locator(".overlay .text-in").fill(code2); tap("[data-act='reset']"); wait_text(".overlay .msg", "match")
         check("the replaced recovery code no longer works", "doesn’t match" in msg())
         tap("[data-act='back']")
         check("Back returns to the passcode pad", "Enter the passcode" in prompt())
+        pin("1357"); page.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
+        check("the failed change kept the old passcode", panel_open())
+
+        # ---------- turn the passcode off ----------
+        page.once("dialog", lambda d: d.accept())
+        tap("[data-act='pin-off']")
+        s = settings()
+        check("Turn off passcode: removes passcode + code", panel_open() and s["pin"] is None and s["recovery"] is None and s["noPasscode"] is True)
+        page.keyboard.press("Escape"); page.keyboard.type("parent")
+        check("…and the panel opens without asking", panel_open() and page.locator(".pin-pad").count() == 0)
         page.keyboard.press("Escape")
 
-        # ---------- no Web Crypto (plain http on a LAN address): panel opens unlocked, says so ----------
+        # ---------- no Web Crypto (plain http on a LAN address): the panel stays shut ----------
         page2 = new_page(INIT + "Object.defineProperty(window.crypto, 'subtle', { get: () => undefined });")
         page2.keyboard.type("parent"); page2.wait_for_selector(".overlay")
-        check("without Web Crypto the panel opens with a 'not locked' note",
-              page2.locator(".overlay h2", has_text="Grown-ups only").count() == 1 and page2.locator(".overlay .nolock").count() == 1
-              and page2.locator(".overlay h3", has_text="Passcode").count() == 0)
+        check("without Web Crypto the panel stays shut and says it needs https",
+              page2.locator(".overlay .needs-https").count() == 1 and page2.locator(".overlay h3").count() == 0 and page2.locator(".pin-pad").count() == 0)
+        page2.keyboard.press("Escape")
+        page2.evaluate(f"localStorage.setItem('{KEY}', JSON.stringify({{ noPasscode: true }}))")
+        page2.keyboard.type("parent"); page2.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
+        check("…unless the grown-up chose no passcode (then it opens; setting one needs https)",
+              page2.locator(".overlay h3", has_text="Passcode").count() == 1 and "needs a secure connection" in page2.locator(".overlay").inner_text())
+
+        # ---------- http -> https for real host names only ----------
+        index = Path(SITE, "index.html").read_text()
+        ctx3 = b.new_context(service_workers="block")
+        ctx3.route("http://games.example.com/**", lambda r: r.fulfill(body=index, content_type="text/html") if urlparse(r.request.url).path == "/pes3/" else r.fulfill(status=404))
+        ctx3.route("https://games.example.com/**", lambda r: r.fulfill(body="<p id=secure>secure</p>", content_type="text/html"))
+        ctx3.route("http://192.168.1.20:8000/**", lambda r: r.fulfill(body=index, content_type="text/html") if urlparse(r.request.url).path == "/pes3/" else r.fulfill(status=404))
+        page3 = ctx3.new_page()
+        page3.goto("http://games.example.com/pes3/?x=1#robot"); page3.wait_for_selector("#secure")
+        check("http on a real host name redirects to https (path, query, #game kept)", page3.url == "https://games.example.com/pes3/?x=1#robot", page3.url)
+        page3.goto("http://192.168.1.20:8000/pes3/"); time.sleep(0.3)
+        check("http on an IP address (home-network testing) is left alone", page3.url == "http://192.168.1.20:8000/pes3/", page3.url)
+        check("http://localhost is left alone (every other suite runs there)", page.url.startswith("http://localhost:"), page.url)
+        ctx3.close()
 
         b.close()
 finally:

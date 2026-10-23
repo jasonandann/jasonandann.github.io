@@ -1,8 +1,9 @@
-// Passcode screens in front of the grown-ups panel (issue #32): first-time setup, entry,
-// "Forgot passcode?" with the recovery code, change passcode, new recovery code.
+// Passcode screens in front of the grown-ups panel (issue #32): first-time setup (or no passcode),
+// entry, "Forgot passcode?" with the recovery code, change / set / new recovery code.
 // All grown-up facing; the child only ever sees them if she finds the hidden panel.
+// Nothing is saved until the grown-up has seen the recovery code ("I've saved it").
 import { el, textInput } from './util.js';
-import { PIN_MIN, PIN_MAX, hasPin, setPin, newRecoveryCode, tryPin, tryRecovery, waitLeft } from './passcode.js';
+import { PIN_MIN, PIN_MAX, hasPin, passcodeOff, makeRecoveryCode, snapshot, commit, turnOff, tryPin, tryRecovery, waitLeft } from './passcode.js';
 
 const waitText = (ms) => {
   const s = Math.ceil(ms / 1000);
@@ -46,7 +47,7 @@ function pinPad(onDone) {
 function lockOverlay(onCancel) {
   let keys = null;
   let timer = null;
-  let saving = false; // a passcode/code is being saved: no Escape/Cancel, or the recovery code would never be shown
+  let saving = false; // a save is running: no Escape/Cancel until it has answered
   const panel = el('div', { class: 'panel lock' });
   const overlay = el('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true' }, panel);
   const onKey = (e) => {
@@ -74,33 +75,64 @@ function lockOverlay(onCancel) {
   };
 }
 
-// Choose a passcode, type it again, then (newCode) show a new recovery code once.
-function setupScreens(ui, { title, intro, newCode, after }) {
-  const step = (prompt, note, onValue) => {
+// Run one save (commit/turnOff). 'ok' -> close + after(); otherwise say nothing was changed.
+async function save(ui, msg, run, after) {
+  ui.setSaving(true);
+  msg.textContent = 'Saving…';
+  const r = await run();
+  ui.setSaving(false);
+  if (r === 'ok') { ui.close(); after(); return; }
+  ui.show([el('h2', {}, 'Not saved'),
+    el('p', { class: 'not-saved' }, r === 'conflict'
+      ? 'The passcode was changed in another tab or window, so nothing was changed here. Close this and open the panel again.'
+      : 'This device wouldn’t save it (storage full or blocked), so nothing was changed.'),
+    el('div', { class: 'row' }, ui.cancelBtn('Close'))]);
+}
+
+// Choose a passcode, type it again, then (newCode) show a new recovery code; save after "I've saved it".
+// allowNone adds "Don't use a passcode". `since` = snapshot() from when the flow started.
+function setupScreens(ui, { title, intro, newCode, allowNone, after, since }) {
+  const step = (prompt, note, onValue, extra) => {
     const msg = el('p', { class: 'msg', 'aria-live': 'polite' }, note || '');
     const pad = pinPad((v) => onValue(v, pad, msg));
     ui.show([el('h2', {}, title), intro ? el('p', { class: 'small' }, intro) : null, el('p', { class: 'pin-prompt' }, prompt), msg, pad.node,
-      el('div', { class: 'row' }, ui.cancelBtn())], pad.onKey);
+      el('div', { class: 'row' }, extra, ui.cancelBtn())], pad.onKey);
   };
+  const none = allowNone
+    ? el('button', { class: 'btn', type: 'button', 'data-act': 'none', onclick: () => noneScreen(ui, since, after, () => first()) }, 'Don’t use a passcode')
+    : null;
   const first = (note) => step(`Choose a passcode: ${PIN_MIN} to ${PIN_MAX} digits.`, note, (a) =>
-    step('Enter it again.', '', async (b, pad, msg) => {
+    step('Enter it again.', '', (b, pad, msg) => {
       if (a !== b) return first('Those didn’t match. Let’s start again.');
-      pad.setBusy(true); msg.textContent = 'Saving…'; ui.setSaving(true);
-      await setPin(a);
-      const code = newCode ? await newRecoveryCode() : null;
-      ui.setSaving(false);
-      if (code) showCode(ui, code, after);
-      else { ui.close(); after(); }
-    }));
+      if (newCode) return showCode(ui, makeRecoveryCode(), (code) => commit({ pin: a, code, since }), after);
+      pad.setBusy(true);
+      save(ui, msg, () => commit({ pin: a, since }), after);
+    }), none);
   first();
 }
 
-function showCode(ui, code, after) {
+function noneScreen(ui, since, after, back) {
+  const msg = el('p', { class: 'msg', 'aria-live': 'polite' });
+  ui.show([el('h2', {}, 'No passcode?'),
+    el('p', {}, 'Then anyone who finds this panel, including your child, can open it and change its settings. You can set a passcode later in the panel.'),
+    msg,
+    el('div', { class: 'row' },
+      el('button', { class: 'btn primary', type: 'button', 'data-act': 'none-confirm', onclick: () => save(ui, msg, async () => turnOff(since), after) }, 'Use no passcode'),
+      el('button', { class: 'btn', type: 'button', 'data-act': 'back', onclick: back }, 'Back'))]);
+}
+
+// The code is shown BEFORE anything is saved; run(code) saves the passcode and/or code together.
+function showCode(ui, code, run, after) {
+  const msg = el('p', { class: 'msg', 'aria-live': 'polite' });
+  const saved = el('button', { class: 'btn primary', type: 'button', 'data-act': 'saved',
+    onclick: () => { saved.disabled = true; save(ui, msg, () => run(code), after); } }, 'I’ve saved it');
   ui.show([
     el('h2', {}, 'Recovery code'),
     el('p', { class: 'recovery-code' }, code),
     el('p', {}, 'Write this down or take a photo, and keep it where your child can’t see it. It is the only way to reset a forgotten passcode on this device. It won’t be shown again.'),
-    el('div', { class: 'row' }, el('button', { class: 'btn primary', type: 'button', 'data-act': 'saved', onclick: () => { ui.close(); after(); } }, 'I’ve saved it')),
+    el('p', { class: 'small' }, 'Nothing is saved until you tap “I’ve saved it”.'),
+    msg,
+    el('div', { class: 'row' }, saved, ui.cancelBtn()),
   ]);
 }
 
@@ -139,7 +171,7 @@ function forgotScreen(ui, onUnlock) {
     go.disabled = true; msg.textContent = 'Checking…';
     const r = await tryRecovery(input.value);
     go.disabled = false;
-    if (r === 'ok') return setupScreens(ui, { title: 'New passcode', newCode: true, after: onUnlock });
+    if (r === 'ok') return setupScreens(ui, { title: 'New passcode', newCode: true, after: onUnlock, since: snapshot() });
     msg.textContent = r === 'locked' || waitLeft() > 0 ? `Too many tries. Try again in ${waitText(waitLeft())}.` : 'That code doesn’t match.';
   }
   ui.show([
@@ -153,28 +185,29 @@ function forgotScreen(ui, onUnlock) {
   input.focus();
 }
 
-// Before the panel opens: set a passcode the first time, otherwise ask for it.
+// Before the panel opens: nothing if the grown-up chose no passcode; set one (or choose none)
+// the first time; otherwise ask for it.
 export function unlock(onUnlock) {
+  if (passcodeOff()) return onUnlock();
   const ui = lockOverlay(() => {});
   if (hasPin()) entryScreen(ui, onUnlock);
   else {
     setupScreens(ui, {
       title: 'Set a grown-ups passcode',
       intro: 'The passcode keeps this panel (and its settings) away from your child. You’ll be asked for it each time it opens.',
-      newCode: true, after: onUnlock,
+      newCode: true, allowNone: true, after: onUnlock, since: snapshot(),
     });
   }
 }
 
 // From inside the panel (already unlocked). onDone reopens the panel, also after Cancel.
 export function changePasscode(onDone) {
-  setupScreens(lockOverlay(onDone), { title: 'Change passcode', newCode: false, after: onDone });
+  setupScreens(lockOverlay(onDone), { title: 'Change passcode', newCode: false, after: onDone, since: snapshot() });
 }
-export async function replaceRecoveryCode(onDone) {
-  const ui = lockOverlay(onDone); // up before the ~0.3 s hash, so the app stays "busy" (no update reload)
-  ui.show([el('h2', {}, 'Recovery code'), el('p', { class: 'msg' }, 'Making a new code…')]);
-  ui.setSaving(true);
-  const code = await newRecoveryCode();
-  ui.setSaving(false);
-  showCode(ui, code, onDone);
+export function setPasscode(onDone) {
+  setupScreens(lockOverlay(onDone), { title: 'Set a passcode', newCode: true, after: onDone, since: snapshot() });
+}
+export function replaceRecoveryCode(onDone) {
+  const since = snapshot();
+  showCode(lockOverlay(onDone), makeRecoveryCode(), (code) => commit({ code, since }), onDone);
 }
