@@ -111,6 +111,34 @@ try:
         page.screenshot(path=f"{SHOTS}/keyboard_abc_wordal.png")
         home()
 
+        # ---------- letter pop-up while a finger is on a key (both layouts) ----------
+        def press(letter, kind="touch"):
+            return page.evaluate(f"""() => {{ const k = [...document.querySelectorAll('.kb .key')].find(e => e.textContent === '{letter}');
+                k.dispatchEvent(new PointerEvent('pointerdown', {{ bubbles: true, pointerType: '{kind}', isPrimary: true }}));
+                const p = document.querySelector('.kb-preview'), r = k.getBoundingClientRect(), q = p.getBoundingClientRect(), kb = document.querySelector('.kb').getBoundingClientRect();
+                return {{ shown: !p.hidden, text: p.textContent, above: q.bottom <= r.top + 4 && q.bottom >= r.top - 8,
+                         over: q.left <= r.left + r.width / 2 && q.right >= r.left + r.width / 2, inside: q.left >= kb.left - 1 && q.right <= kb.right + 1, big: q.width >= r.width }}; }}""")
+        def release(): page.evaluate("document.querySelector('.kb .key').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch' }))")
+        def preview_hidden(): return page.evaluate("document.querySelector('.kb-preview').hidden")
+        for lay in ("qwerty", "abc"):  # ends on ABC: the "last choice" checks below expect it
+            open_game("Listen & Type"); page.wait_for_selector(".kb")
+            tap(f".kb-pick[data-layout='{lay}']")
+            for letter in ("g", "q", "p"):
+                r = press(letter)
+                check(f"{lay}: holding '{letter}' pops the letter up above the key, inside the keyboard", r["shown"] and r["text"] == letter and r["above"] and r["over"] and r["inside"] and r["big"], str(r))
+                if letter == "g": page.screenshot(path=f"{SHOTS}/keyboard_preview_{lay}.png")
+                release()
+                check(f"{lay}: lifting the finger hides it", preview_hidden())
+            r = press("e", "mouse")
+            check(f"{lay}: no pop-up for mouse clicks", not r["shown"])
+            home()
+        open_game("Listen & Type"); page.wait_for_selector(".kb")
+        r = press("a"); w = heard()
+        check("pop-up never types: a real tap still types once", page.evaluate("document.querySelector('.typed').textContent.trim()") == "", w)
+        release(); page.locator(".kb .key", has_text="a").first.tap()
+        check("…and the tap types the letter", page.evaluate("document.querySelector('.typed').textContent.trim()") == "a" and preview_hidden())
+        home()
+
         # ---------- turning it off ----------
         parent_panel(); tap(".overlay [data-kb='qwerty']"); tap(".overlay button:has-text('Close')")
         open_game("Listen & Type"); page.wait_for_selector(".kb")

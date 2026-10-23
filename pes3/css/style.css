@@ -113,7 +113,7 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .stage { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
 
 /* on-screen keyboard */
-.kb { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 760px; }
+.kb { position: relative; display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 760px; }
 .kb-row { display: flex; gap: 6px; justify-content: center; }
 .key {
   flex: 1 1 0; max-width: 68px; min-height: 56px; padding: 0;
@@ -121,6 +121,11 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
   border: 2px solid var(--soft); border-radius: 10px; box-shadow: 0 2px 0 var(--soft);
 }
 .key.wide { flex: 1.6 1 0; max-width: 110px; }
+/* letter pop-up while a finger is on a key (util.js keyboard) */
+.kb-preview { position: absolute; z-index: 4; height: 64px; display: grid; place-items: center; pointer-events: none;
+  font-size: 2.4rem; font-weight: 800; color: var(--ink); background: #fff; border: 2px solid #c7d2fe; border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(20, 22, 50, .2); }
+.kb-preview[hidden] { display: none; }
 /* ABC | QWERTY switch (only when a grown-up allows it) */
 .kb-switch { display: flex; justify-content: center; gap: 6px; }
 .kb-pick { min-height: 44px; min-width: 96px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--soft); background: var(--card);

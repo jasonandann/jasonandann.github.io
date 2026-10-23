@@ -135,7 +135,7 @@ Roll a die, answer a question. Right: move ahead by the roll. Wrong: move back b
 
 Design choices for a child who discourages easily: no scores, counters, timers, or "wrong" messages. Misses get "Almost! Try again." After repeated misses the word is shown so she can see it, then the game moves on. Rounds are about 10 words; words she has needed help with are quietly chosen more often.
 
-The on-screen keyboard avoids iPad autocorrect and predictive text. A physical keyboard also works. In the grown-ups panel, **Spelling keyboard → Let her choose ABC or QWERTY** adds an ABC | QWERTY switch to the keyboard: ABC puts the letters in alphabet order (bigger keys on a phone, vowels lightly tinted). Her choice is remembered on that device; the default is QWERTY only.
+The on-screen keyboard avoids iPad autocorrect and predictive text. A physical keyboard also works. In the grown-ups panel, **Spelling keyboard → Let her choose ABC or QWERTY** adds an ABC | QWERTY switch to the keyboard: ABC puts the letters in alphabet order (bigger keys on a phone, vowels lightly tinted). Her choice is remembered on that device; the default is QWERTY only. On touch screens, the letter under her finger pops up above the key while she presses it (either layout), like a phone keyboard.
 
 ## Hidden progress (grown-ups only)
 

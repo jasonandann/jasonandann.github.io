@@ -253,9 +253,26 @@ function setKeyboardLayout(v) {
 
 // On-screen keyboard for spelling answers: no autocorrect, no predictive text, big touch targets.
 // QWERTY rows, or (if allowed and chosen) a-z in a grid with lightly tinted vowels. Switching layout
-// keeps per-key marks (Wordal's data-s colours).
+// keeps per-key marks (Wordal's data-s colours). While a finger (or pen) is on a letter key, the letter
+// pops up above it (like a phone keyboard: the fingertip hides the key); not for mouse clicks.
 export function keyboard({ onKey, onBack, extras = [] }) {
   const kb = el('div', { class: 'kb' });
+  const preview = el('div', { class: 'kb-preview', 'aria-hidden': 'true', hidden: true });
+  const hide = () => { preview.hidden = true; };
+  kb.addEventListener('pointerdown', (e) => {
+    const k = e.target.closest('.key');
+    if (!k || k.classList.contains('wide') || e.pointerType === 'mouse') return hide();
+    const box = kb.getBoundingClientRect(), r = k.getBoundingClientRect();
+    const w = Math.max(r.width * 1.25, 52);
+    preview.textContent = k.textContent;
+    preview.style.width = `${w}px`;
+    // centred over the key, kept inside the keyboard's width, bottom edge just over the key's top
+    preview.style.left = `${Math.min(Math.max(r.left - box.left + r.width / 2 - w / 2, 0), box.width - w)}px`;
+    preview.style.top = `${r.top - box.top - 66}px`;
+    preview.hidden = false;
+  });
+  // A touch stays captured by the key it started on, so its pointerup/cancel reach the keyboard.
+  for (const t of ['pointerup', 'pointercancel', 'pointerleave']) kb.addEventListener(t, hide);
   function build() {
     const layout = keyboardLayout();
     const marks = {};
@@ -278,7 +295,8 @@ export function keyboard({ onKey, onBack, extras = [] }) {
       ROWS.forEach((row, i) => parts.push(el('div', { class: 'kb-row' }, [...row].map(key), i === 2 ? [...extras.map(key), back] : null)));
     }
     kb.className = `kb kb-${layout}`;
-    kb.replaceChildren(...parts);
+    hide();
+    kb.replaceChildren(...parts, preview);
   }
   build();
   return kb;
