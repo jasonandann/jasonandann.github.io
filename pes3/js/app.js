@@ -19,6 +19,7 @@ import * as spotmatch from './games/spotmatch.js';
 import * as simon from './games/simon.js';
 import * as garden from './games/garden.js';
 import * as river from './games/river.js';
+import * as robot from './games/robot.js';
 
 // needsWords: game uses words.txt (spelling). Sections appear in this order on the home screen.
 const SECTIONS = [
@@ -42,6 +43,9 @@ const SECTIONS = [
     { icon: '🚪', name: 'Number Maze', blurb: 'Pick the right door', mod: mq.maze },
     { icon: '⛰️', name: 'Number Mountain', blurb: 'Climb to the top', mod: mq.mountain },
     { icon: '🧩', name: 'Puzzle Pieces', blurb: 'Uncover the picture', mod: puzzle },
+  ] },
+  { title: '💻 Coding', games: [
+    { icon: '🤖', name: 'Robot Course', blurb: 'Plan a path, press go', mod: robot },
   ] },
   { title: '🎲 Fun', games: [
     { icon: '🧟', name: 'Zombie Trail', blurb: 'Race to the finish', needsWords: true, mod: zombie },
