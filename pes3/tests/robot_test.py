@@ -122,6 +122,7 @@ try:
             gem: g.simulate(LEVELS.find(l => l.id === 'gempath').map, g.fromSolution('fffrfff')).gems };
         }""")
         check("courses: 15+ ready-made courses", sim["n"] >= 15, str(sim["n"]))
+        LAST_SOLUTION = page.evaluate("import('./js/games/robot-levels.js').then(m => m.LEVELS.at(-1).solution)")
         check("courses: unique ids, rectangular maps, 5x5 to 7x7", sim["ids"] == sim["n"] and sim["even"] and all(5 <= w <= 7 and 5 <= h <= 7 for w, h in sim["sizes"]), str(sim["sizes"]))
         bad = [n for n, r in sim["res"] if r != "goal"]
         check("courses: every known solution reaches the flag", not bad, str(bad))
@@ -214,10 +215,20 @@ try:
 
         # ---------- bonk: gentle, chip pulses, program kept ----------
         level(0)
+        check("start square is marked", page.locator(".rb-start").count() == 1 and page.evaluate("document.querySelector('.rb-start').style.transform") == "translate(0%, 200%)")
         keys("lfff")
         g0 = gp()
         run(); idle()
-        check("bonk: robot stops where it bumped", bot() == [0, 0, 0], str(bot()))
+        check("bonk: robot pauses where it bumped", bot() == [0, 0, 0], str(bot()))
+        page.wait_for_selector(".rb-ghost", timeout=3000)
+        page.wait_for_function("document.querySelector('.rb-bot').dataset.y === '2'", timeout=3000)
+        time.sleep(0.4)
+        ghost = page.evaluate("(({x, y, d}) => [+x, +y, +d])(document.querySelector('.rb-ghost').dataset)")
+        check("bonk: then goes back to the start", bot() == [0, 2, 1], str(bot()))
+        check("bonk: faded ghost robot stays where it bumped", ghost == [0, 0, 0], str(ghost))
+        crumbs = page.evaluate("[...document.querySelectorAll('.rb-crumb')].map(c => [+c.dataset.x, +c.dataset.y])")
+        check("bonk: breadcrumbs show the path it took", crumbs == [[0, 2], [0, 1]], str(crumbs))
+        check("start marker still visible under the robot", page.locator(".rb-start").is_visible())
         check("bonk: 'Let's fix the plan!'", "Let's fix the plan!" in msg(), msg())
         check("bonk: no failure words", not any(w in msg().lower() for w in ["wrong", "fail", "✗", "no!"]))
         check("bonk: the chip that bumped pulses", page.evaluate("[...document.querySelectorAll('.code-chip')].findIndex(c => c.classList.contains('pulse'))") == 3)
@@ -229,10 +240,17 @@ try:
         # edit (✕ last), then fix the plan: robot fades back and tries again
         tap(".rb-key[data-key='undo']"); time.sleep(0.35)
         check("editing clears the pulse", page.locator(".code-chip.pulse").count() == 0)
+        check("editing keeps the ghost and breadcrumbs", page.locator(".rb-ghost").count() == 1 and page.locator(".rb-crumb").count() == 2)
         tap("[data-tool='clear']"); tap(".overlay button:has-text('Yes')")
         keys("ff")
-        run(); idle()
+        run()
+        page.wait_for_selector(".code-chip.now", timeout=3000)
+        check("next run clears the old ghost and breadcrumbs", page.locator(".rb-ghost").count() == 0)
+        idle()
         check("too few steps: 'Almost! Add more steps?'", "Almost! Add more steps?" in msg(), msg())
+        page.wait_for_selector(".rb-ghost", timeout=3000)
+        time.sleep(0.6)
+        check("too few steps: ghost where it stopped, robot back home", page.evaluate("document.querySelector('.rb-ghost').dataset.x") == "2" and bot() == [0, 2, 1], str(bot()))
 
         # ---------- more than 10 steps, light bar carries on, ⏹ stops ----------
         tap("[data-tool='clear']"); tap(".overlay button:has-text('Yes')")
@@ -274,6 +292,7 @@ try:
         # ---------- Build my own ----------
         open_robot(); tap(".rb-tab:has-text('Build my own')")
         tap(".rb-new")
+        check("builder: no stray 'null' text on a new course (Jason saw one by Save)", not page.evaluate("document.querySelector('#app').innerText.includes('null')"))
         check("builder: palette has wall/cone/gem/flag/robot/eraser",
               all(page.locator(f".rb-tool[data-tool='{t}']").count() == 1 for t in ["wall", "cone", "gem", "flag", "robot", "erase"]))
         def cell(x, y): return f".rb-cell[data-x='{x}'][data-y='{y}']"
@@ -282,6 +301,7 @@ try:
         tap(".rb-tool[data-tool='cone']"); tap(cell(2, 2))
         tap(".rb-tool[data-tool='gem']"); tap(cell(1, 5))
         check("builder: cone and gem placed", page.locator(cell(2, 2) + ".k-cone").count() == 1 and page.locator(cell(1, 5) + ".k-gem").count() == 1)
+        check("cone is a drawn orange cone, not 🚧 (looked like the flag)", page.locator(cell(2, 2) + " svg").count() == 1 and "🚧" not in page.locator(".rb-edit").inner_text())
         tap(cell(1, 5))
         check("builder: tap again removes it", page.locator(cell(1, 5) + ".k-gem").count() == 0)
         tap(".rb-tool[data-tool='gem']"); tap(cell(3, 5))
@@ -293,6 +313,7 @@ try:
         saved = page.evaluate("JSON.parse(localStorage.getItem('spelling-games.robot.mine.v1'))")
         check("builder: saved to localStorage", len(saved) == 1 and saved[0]["map"][4] == "#....." and saved[0]["map"][5] == ">..*.F", str(saved))
         check("builder: says it saved", "Saved" in msg(), msg())
+        check("builder: after saving, a Delete course button and no 'null'", page.locator("button:has-text('Delete course')").count() == 1 and not page.evaluate("document.querySelector('#app').innerText.includes('null')"))
         page.screenshot(path=f"{SHOTS}/robot_builder.png")
         page.reload(); page.wait_for_selector(".mcard")
         open_robot(); tap(".rb-tab:has-text('Build my own')")
@@ -312,8 +333,26 @@ try:
         keys("fffff"); run(); idle()
         check("builder: changed course bonks on the new wall", "fix the plan" in msg(), msg())
         tap("button:has-text('Change course')")
-        tap("button:has-text('Delete')"); tap(".overlay button:has-text('Yes')")
+        tap("button:has-text('Delete course')"); tap(".overlay button:has-text('Yes')")
         check("builder: delete removes it", page.evaluate("JSON.parse(localStorage.getItem('spelling-games.robot.mine.v1'))") == [] and page.locator(".rb-mine").count() == 0)
+        # a new course, coded without saving, then back to the builder: still no 'null'
+        tap(".rb-new"); tap("button:has-text('Code it!')"); tap("button:has-text('Change course')")
+        check("builder: back from Code it on an unsaved course, no 'null'", page.locator(".rb-edit").count() == 1 and not page.evaluate("document.querySelector('#app').innerText.includes('null')"))
+        tap("button:has-text('Save course')"); tap("button:has-text('My courses')")
+        check("builder: each saved course has a 🗑 in the list", page.locator(".rb-mine-wrap .rb-del").count() == 1)
+        tap(".rb-del")
+        check("builder: 🗑 asks first", page.locator(".overlay", has_text="Delete").count() == 1)
+        tap(".overlay button:has-text('No')")
+        check("builder: 'No' keeps it", page.locator(".rb-mine").count() == 1)
+        tap(".rb-del"); tap(".overlay button:has-text('Yes')")
+        check("builder: 🗑 from the list deletes it", page.locator(".rb-mine").count() == 0 and page.evaluate("JSON.parse(localStorage.getItem('spelling-games.robot.mine.v1'))") == [])
+        home()
+
+        # ---------- last course: finish row has no 'null' (no Next course) ----------
+        open_robot(); level(sim["n"] - 1)
+        keys(LAST_SOLUTION)
+        run(); idle(60000)
+        check("last course: celebrates, no Next button, no 'null'", "made it" in msg() and page.locator("button:has-text('Next course')").count() == 0 and not page.evaluate("document.querySelector('#app').innerText.includes('null')"), msg())
         home()
 
         # ---------- layout ----------

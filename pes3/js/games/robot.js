@@ -8,6 +8,7 @@ import { tone, tune } from '../code/sound.js';
 import { LEVELS } from './robot-levels.js';
 
 const STEP_MS = 550;
+const HOME_DELAY_MS = 900; // after a bump or a short run: how long the robot stays put before going home
 const LIGHTS = 10;
 const BUILD_W = 6, BUILD_H = 6;
 const MAX_MINE = 12;
@@ -20,7 +21,20 @@ const FACING = '^>v<'; // up, right, down, left = d 0..3
 const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 const BEEP = { fwd: 523, back: 392, left: 440, right: 587, undo: 330 };
 const SOL = { f: 'fwd', b: 'back', l: 'left', r: 'right' };
-const PIECES = { '#': ['wall', ''], c: ['cone', '🚧'], '*': ['gem', '💎'], F: ['flag', '🏁'], '+': ['path', ''] };
+const PIECES = { '#': ['wall', ''], c: ['cone', ''], '*': ['gem', '💎'], F: ['flag', '🏁'], '+': ['path', ''] };
+// Orange traffic cone, drawn (🚧 looked too much like the 🏁 flag).
+const CONE_SVG = `<svg viewBox="0 0 100 100" aria-hidden="true">
+  <rect x="12" y="82" width="76" height="12" rx="4" fill="#c2410c"/>
+  <path d="M44 10 Q50 4 56 10 L78 84 L22 84 Z" fill="#f97316" stroke="#c2410c" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M39 38 L61 38 L65.5 50 L34.5 50 Z M30 62 L70 62 L73.5 73 L26.5 73 Z" fill="#fff"/>
+</svg>`;
+function coneEl(cls) {
+  const s = el('span', { class: cls });
+  s.innerHTML = CONE_SVG;
+  return s;
+}
+// replaceChildren() would print a null as the text "null"; el() skips it, this does too.
+const kids = (...a) => a.filter((k) => k != null && k !== false);
 
 // Top-down robot, front = top. Face screen, wheels, antenna knob, yellow nose so front/back is clear.
 const BOT_SVG = `<svg viewBox="0 0 100 100" aria-hidden="true">
@@ -110,7 +124,7 @@ function drawBoard(map, { tag = 'div', onCell, showBot = false } = {}) {
     const [kind, icon] = PIECES[ch] || ['empty', ''];
     const attrs = { class: `rb-cell k-${kind}`, 'data-x': x, 'data-y': y };
     if (tag === 'button') Object.assign(attrs, { type: 'button', 'aria-label': `square ${x + 1}, ${y + 1}: ${kind}`, onclick: () => onCell(x, y) });
-    const cell = el(tag, attrs, icon ? el('span', { class: 'rb-piece' }, icon) : null);
+    const cell = el(tag, attrs, kind === 'cone' ? coneEl('rb-piece rb-cone') : icon ? el('span', { class: 'rb-piece' }, icon) : null);
     if (showBot && FACING.includes(ch)) {
       cell.classList.add('k-start');
       const mini = botEl('rb-mini');
@@ -193,8 +207,13 @@ export function mount(root, _entries, api) {
       body = el('div', { class: 'rb-levels' },
         el('button', { class: 'rb-level rb-new', type: 'button', onclick: () => editor({ name: '', map: blankMap() }) },
           el('span', { class: 'rb-n' }, '➕'), el('span', { class: 'rb-nm' }, 'New course')),
-        mine.map((m) => el('button', { class: 'rb-level rb-mine', type: 'button', 'data-id': m.id, onclick: () => editor(m) },
-          el('span', { class: 'rb-n' }, '🧱'), el('span', { class: 'rb-nm' }, m.name))));
+        mine.map((m) => el('div', { class: 'rb-mine-wrap' },
+          el('button', { class: 'rb-level rb-mine', type: 'button', 'data-id': m.id, onclick: () => editor(m) },
+            el('span', { class: 'rb-n' }, '🧱'), el('span', { class: 'rb-nm' }, m.name)),
+          el('button', { class: 'rb-del', type: 'button', 'aria-label': `Delete ${m.name}`, onclick: () => ask(`Delete “${m.name}”?`, 'Yes, delete it', () => {
+            save(MINE_KEY, loadMine().filter((x) => x.id !== m.id));
+            picker('build');
+          }, 'No, keep it') }, '🗑️'))));
     }
     view(el('div', { class: 'rb-pick' },
       el('p', { class: 'prompt' }, `${name()} is ready!`),
@@ -217,7 +236,7 @@ export function mount(root, _entries, api) {
     function drawPalette() {
       palette.replaceChildren(...TOOLS.map(([id, icon, label]) =>
         el('button', { class: 'rb-tool', type: 'button', 'data-tool': id, 'aria-pressed': String(tool === id), onclick: () => { tool = id; drawPalette(); } },
-          el('span', { class: 'ci' }, icon), el('span', { class: 'cw' }, label))));
+          id === 'cone' ? coneEl('ci rb-cone') : el('span', { class: 'ci' }, icon), el('span', { class: 'cw' }, label))));
     }
     function draw() { holder.replaceChildren(drawBoard(map(), { tag: 'button', onCell: tapCell, showBot: true }).board); }
 
@@ -270,13 +289,13 @@ export function mount(root, _entries, api) {
     const title = el('p', { class: 'prompt' }, mine.name || 'New course');
     const buttons = el('div', { class: 'row' });
     function drawButtons() {
-      buttons.replaceChildren(
+      buttons.replaceChildren(...kids(
         el('button', { class: 'btn primary big', type: 'button', onclick: () => play({ name: mine.name || 'My course', map: map() }, { mine: { ...mine, map: map() } }) }, '🤖 Code it!'),
         el('button', { class: 'btn big', type: 'button', onclick: saveIt }, '💾 Save course'),
         mine.id ? el('button', { class: 'btn', type: 'button', onclick: () => ask('Delete this course?', 'Yes, delete it', () => {
           save(MINE_KEY, loadMine().filter((m) => m.id !== mine.id));
           picker('build');
-        }, 'No, keep it') }, '🗑️ Delete') : null);
+        }, 'No, keep it') }, '🗑️ Delete course') : null));
     }
 
     drawPalette(); draw(); drawButtons();
@@ -299,7 +318,44 @@ export function mount(root, _entries, api) {
     const body = botEl();
     const turn = el('div', { class: 'rb-turn' }, body);
     const bot = el('div', { class: 'rb-bot', 'data-x': pos.x, 'data-y': pos.y, 'data-d': pos.d }, turn);
-    board.append(bot);
+    // Where the robot starts, always marked (dashed square + arrow for its facing).
+    const startMark = el('div', { class: 'rb-start', 'aria-hidden': 'true', style: `transform:translate(${c.start.x * 100}%, ${c.start.y * 100}%)` },
+      el('span', { class: 'rb-start-arrow', style: `transform:rotate(${c.start.d * 90}deg)` }, '⬆'));
+    // Breadcrumbs of the last run and a faded "ghost" robot where it stopped. Kept until the next run starts.
+    const trail = el('div', { class: 'rb-trail', 'aria-hidden': 'true' });
+    board.append(startMark, trail, bot);
+    const cellXform = (x, y) => `translate(${x * 100}%, ${y * 100}%)`;
+    function crumb(from, to) {
+      const dir = to.x > from.x ? 1 : to.x < from.x ? 3 : to.y > from.y ? 2 : 0;
+      trail.append(el('div', { class: 'rb-crumb', 'data-x': from.x, 'data-y': from.y, style: `transform:${cellXform(from.x, from.y)}` },
+        el('span', { style: `transform:rotate(${dir * 90}deg)` })));
+    }
+    function leaveGhost() {
+      const ghost = el('div', { class: 'rb-ghost', 'data-x': pos.x, 'data-y': pos.y, 'data-d': pos.d, style: `transform:${cellXform(pos.x, pos.y)}` },
+        el('div', { class: 'rb-turn', style: `transform:rotate(${deg}deg)` }, botEl(body.className)));
+      trail.append(ghost);
+    }
+    // Fade the robot back to its start square (gems come back too). One at a time.
+    let homing = null;
+    function goHome() {
+      if (homing) return homing;
+      const atHome = pos.x === c.start.x && pos.y === c.start.y && pos.d === c.start.d && !got.size;
+      if (atHome) return Promise.resolve();
+      homing = (async () => {
+        bot.classList.add('fade');
+        await wait(260);
+        pos = { ...c.start };
+        deg = c.start.d * 90;
+        got.clear();
+        board.querySelectorAll('.k-gem.got').forEach((g) => g.classList.remove('got'));
+        body.className = 'rb-body';
+        place(true);
+        bot.classList.remove('fade');
+        await wait(260);
+        homing = null;
+      })();
+      return homing;
+    }
     function place(snap) {
       if (snap) bot.classList.add('snap');
       bot.style.transform = `translate(${pos.x * 100}%, ${pos.y * 100}%)`;
@@ -391,17 +447,8 @@ export function mount(root, _entries, api) {
         strip.pulse(null);
         after.replaceChildren();
         say('');
-        const home = pos.x === c.start.x && pos.y === c.start.y && pos.d === c.start.d && !got.size;
-        if (home) return;
-        bot.classList.add('fade'); // fade back to the start
-        await wait(260);
-        pos = { ...c.start };
-        deg = c.start.d * 90;
-        got.clear();
-        board.querySelectorAll('.k-gem.got').forEach((g) => g.classList.remove('got'));
-        place(true);
-        bot.classList.remove('fade');
-        await wait(260);
+        trail.replaceChildren();
+        await goHome();
       },
       onActive(item) {
         strip.setActive(item && item.path);
@@ -422,6 +469,7 @@ export function mount(root, _entries, api) {
         }
         if (block.op === 'left') deg -= 90;
         if (block.op === 'right') deg += 90;
+        if (n.x !== pos.x || n.y !== pos.y) crumb(pos, n);
         pos = n;
         place(false);
         await wait(STEP_MS);
@@ -447,19 +495,24 @@ export function mount(root, _entries, api) {
             done.add(course.id);
             save(DONE_KEY, [...done]);
             const nxt = LEVELS[from.level + 1];
-            after.replaceChildren(
+            after.replaceChildren(...kids(
               nxt ? el('button', { class: 'btn primary big', type: 'button', onclick: () => play(nxt, { level: from.level + 1 }) }, 'Next course ▶') : null,
-              el('button', { class: 'btn big', type: 'button', onclick: () => picker('courses') }, '🗺️ All courses'));
+              el('button', { class: 'btn big', type: 'button', onclick: () => picker('courses') }, '🗺️ All courses')));
           } else {
             after.replaceChildren(el('button', { class: 'btn big', type: 'button', onclick: () => editor(from.mine) }, '✏️ Change my course'));
           }
-        } else if (why === 'bonk') {
-          strip.pulse(item.path);
-          say("Bonk! Let's fix the plan!");
         } else if (why === 'stopped') {
           say('Stopped. Press ▶ to go again.');
         } else {
-          say('Almost! Add more steps?');
+          // Bump or not far enough: a faded robot stays where it stopped, the real one goes home,
+          // so she can see the start, the path it took (breadcrumbs) and where the plan needs fixing.
+          if (why === 'bonk') strip.pulse(item.path);
+          say(why === 'bonk' ? "Bonk! Let's fix the plan!" : 'Almost! Add more steps?');
+          sc.later(() => {
+            if (r.playing || r.midway) return; // she already started again
+            leaveGhost();
+            goHome();
+          }, HOME_DELAY_MS);
         }
       },
     });

@@ -523,7 +523,7 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .rb-tabs { display: flex; gap: 8px; }
 .rb-tab { min-height: 52px; padding: 0 20px; border-radius: 14px; border: 2px solid var(--soft); background: var(--card); font-size: 1.15rem; font-weight: 800; }
 .rb-tab[aria-selected="true"] { background: var(--brand); border-color: var(--brand); color: #fff; }
-.rb-levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; width: min(900px, 100%); }
+.rb-levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; width: min(900px, 100%); }
 .rb-level { position: relative; display: flex; align-items: center; gap: 8px; min-height: 60px; padding: 6px 10px; text-align: left;
   background: var(--card); border: 2px solid var(--soft); border-radius: 14px; box-shadow: 0 2px 0 var(--soft); }
 .rb-level .rb-n { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #ccfbf1; font-weight: 800; }
@@ -618,3 +618,21 @@ button.rb-cell:active { background: #dcfce7; }
 @media (prefers-reduced-motion: reduce) {
   .k-gem.got .rb-piece { opacity: 0; }
 }
+
+/* Robot Course: start marker, breadcrumbs, ghost (all share the robot's one-cell box) */
+.rb-start, .rb-crumb, .rb-ghost { position: absolute; left: 0; top: 0; width: calc(100% / var(--w)); height: calc(100% / var(--h)); pointer-events: none; }
+.rb-start { z-index: 1; display: grid; place-items: center; border: 3px dashed #0d9488; border-radius: 10px; background: rgba(204, 251, 241, .55); }
+.rb-start-arrow { font-size: clamp(.9rem, 4vw, 1.4rem); font-weight: 800; color: #0d9488; opacity: .7; }
+.rb-trail { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.rb-crumb { display: grid; place-items: center; }
+.rb-crumb span { width: 34%; height: 34%; display: block; background: #f97316; opacity: .75;
+  clip-path: polygon(50% 0, 100% 100%, 50% 72%, 0 100%); } /* small arrow pointing the way it went */
+.rb-ghost { opacity: .4; filter: grayscale(.4); }
+.rb-ghost .rb-turn { width: 100%; height: 100%; }
+.rb-cone svg { width: 100%; height: 100%; display: block; }
+.rb-piece.rb-cone { width: 70%; height: 70%; }
+.rb-tool .ci.rb-cone { width: 1.6rem; height: 1.6rem; }
+.rb-mine-wrap { position: relative; display: flex; }
+.rb-mine-wrap .rb-level { flex: 1; padding-right: 52px; }
+.rb-del { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px;
+  border-radius: 12px; border: 2px solid var(--soft); background: #fff; font-size: 1.2rem; }
