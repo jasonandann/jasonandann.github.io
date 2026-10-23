@@ -8,7 +8,7 @@ Static spelling-practice games for a weekly school word list. Plain HTML/CSS/Jav
 2. Optional check: `python3 tools/check_words.py` (also flags words missing from the dictionary, which is usually a typo)
 3. `git add words.txt && git commit -m "Week of ..." && git push`
 
-The site loads `words.txt` fresh each visit (`cache: 'no-cache'`), so the new list appears once GitHub Pages republishes (usually about a minute; not verified for your setup).
+GitHub Pages republishes in under a minute (36–41 s measured twice on 2026-10-22). The app checks for a new list each time it opens or comes back to the front, and reloads with it when she is on the home menu (see [Offline and updates](#offline-and-updates)). Nothing else to do.
 
 ### `words.txt` format
 
@@ -124,16 +124,56 @@ git add audio && git commit -m "Audio for this week" && git push
 - Uses only the macOS built-ins (`say`: [man page](https://ss64.com/mac/say.html); `afconvert`). Not part of MacPorts. Premium/Siri voices are better but are downloaded in System Settings > Accessibility > Spoken Content.
 - Unverified: the script was tested only against stub `say`/`afconvert`, not a real Mac; the `afconvert` flags are from memory (use `--direct` if they fail); and Apple's licence terms for redistributing recordings of its voices in a public repo were not checked, so consider a private repo.
 
+## Offline and updates
+
+The site saves an offline copy of itself (every game, the dictionary, the recordings) the first time it opens with internet, and from then on opens from that copy, online or not. Built for the iPad Home Screen app and the Chromebook app; it works the same in a normal browser tab. Code: `sw.js` (a service worker) and `js/offline.js`.
+
+- **Install:** iPad: Safari > Share > Add to Home Screen. Chromebook: Chrome's install icon at the right of the address bar, or Install in Chrome's ⋮ menu (the menu wording varies between Chrome versions). Open it once with internet so the offline copy is saved.
+- **Updates (words, games, fixes):** just push. The app checks when it starts and whenever it comes back to the front (switching back to it on the iPad counts). If anything changed, the new files are downloaded in the background and the app reloads **on the home menu**. A game in progress is never interrupted: the update waits until she taps Home. No notice is shown.
+- **Offline:** she gets the last copy that was saved (last week's list if this week's never arrived). The update check fails silently.
+- **Grown-ups panel > App updates:** shows how many files are saved and when. **Check for updates** checks now and reloads (use after a code push if you don't want to wait). **Reset offline copy** deletes the saved files and downloads them again; progress, Baffle stats and the garden are kept (they live in `localStorage`, not in the offline copy). Prefer these over deleting the Home Screen icon or clearing website data, which can erase her progress.
+- **How it decides something changed:** GitHub Pages ETags are `"<deploy time>-<file size>"` in hex, so every push changes every ETag, even for untouched files. The quick check asks for `words.txt` (compares the text) and `js/app.js` (compares the ETag); if either moved, or the last full check is over 6 hours old, every saved file is compared by size and content, and only real changes trigger a reload.
+- **Avoiding a half-updated app:** a push can land while the app is checking, and the CDN can briefly hand out an old copy of a file. A new copy is used only if all its code and text files carry the same deploy time (within 20 s); otherwise the app keeps its current copy and tries again a few seconds later, then at the next check. The grown-ups panel shows the last result. This relies on GitHub's current ETag format (not documented by GitHub); see CLAUDE.md for the assumptions.
+- **Self-repair:** a small script in `index.html` (outside the app's code) asks for a full re-check and reloads if the app has not started within 10 seconds or hits a script error while starting. After start-up, a script error also triggers a full re-check (applied on the home menu). Details in issue #13.
+
+### Turning the offline copy off
+
+If the offline copy ever misbehaves and you want the plain online site back on every device:
+
+```
+cp tools/sw-off.js sw.js
+git commit -am "Turn off the offline copy" && git push
+```
+
+Leave that file in place. **Don't just delete `sw.js` or revert the change:** a device that already has the offline copy keeps it when `sw.js` disappears, and would stay on the old copy with nothing left to update it. Browsers re-download `sw.js` on every launch, so each device picks up the kill switch the next time the app opens with internet; it deletes the saved files and switches itself off (progress, Baffle stats and the garden are kept). To turn offline back on later, `git checkout <commit> -- sw.js` with the real one and push.
+
+### Try it on your Mac
+
+Service workers only run over https or on `localhost`, so test on the Mac itself (an iPad pointed at the Mac's address over plain http gets no offline copy). Use the bundled server, not `python3 -m http.server`: it sends GitHub Pages-style ETags, which the update check relies on (with plain `http.server` updates are never applied).
+
+```
+python3 tools/serve.py          # serves the whole repository; open http://localhost:8000/pes3/
+```
+
+1. **First load:** open the page in Chrome (or Safari). In Chrome, DevTools > Application shows the service worker and, under Cache storage, a `pes3-c1-…` cache. Type `parent` on the home screen: App updates should say "Offline copy: N files".
+2. **Offline:** stop the server (Ctrl-C) and reload: the app still opens; open a few games, including Baffle and one with recordings.
+3. **New list at the menu:** start the server again first (`python3 tools/serve.py`; nothing can update while it is stopped). Change the first line of `words.txt` (the list title) and save. Switch to another tab in the same Chrome window and back (clicking another app's window may not count as hiding the page). Within a second or two the menu reloads with the new title; if not, the grown-ups panel's "Last check" line says why.
+4. **New list during a game:** open a game, change the title again, switch away and back: the game must not reset. Tap Home: the new title appears.
+5. **Code change:** edit any file under `js/`; the next return to the tab picks it up the same way.
+6. **Install as an app (optional):** Chrome's install icon in the address bar opens it in its own window, like the Chromebook app.
+7. **Kill switch (optional):** `cp tools/sw-off.js sw.js`, reload twice: DevTools shows no service worker and no `pes3-` cache. Then `git checkout sw.js` to restore the real one (don't commit the kill switch by accident).
+8. **Clean up:** grown-ups panel > Reset offline copy, or DevTools > Application > Clear site data. `localhost` has its own storage, separate from the real site, so this doesn't touch her data on jasonandann.net.
+
 ## Test locally
 
-`fetch()` does not work from `file://`, so serve the folder:
+`fetch()` does not work from `file://`, so serve the folder (`python3 tools/serve.py` from `pes3/` also works and is needed for the offline copy to pick up edits, see above):
 
 ```
 python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`. The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 
@@ -152,16 +192,22 @@ css/style.css
 js/app.js            menu + routing + hidden parent triggers
 js/util.js           parsing, speech, on-screen keyboard, progress, round runner
 js/parent.js         grown-ups panel
+js/offline.js        registers sw.js, update checks, reload on the home menu
 js/math.js           math question generator, level picker, quiz loop
 js/games/*.js        one file per game (mathquiz.js holds 5 math games; robot-levels.js = Robot Course maps)
 js/code/             shared coding engine (program walker/runner, step chips, turn words, beeps)
 audio/               optional recordings + manifest.json + pronunciations.txt
 dict/words.txt       real-word list for Baffle (generated; see tools/make_dictionary.py)
 tests/               Playwright tests
+sw.js                offline copy + update checks (service worker)
+manifest.webmanifest  app name/icons for installing (Chromebook)
+icons/               192/512 px app icons (upscaled from ../images/pes-logo.png; replace with sharper ones any time)
 CLAUDE.md            context for Claude Code
 tools/check_words.py optional list checker
 tools/make_audio.py  optional macOS audio generator
 tools/make_dictionary.py + blocklist.txt   rebuilds dict/words.txt
+tools/serve.py       local server that behaves like GitHub Pages (for trying the offline copy)
+tools/sw-off.js      kill switch: copy over sw.js to turn the offline copy off everywhere
 ```
 
 ## Known limits
@@ -169,4 +215,4 @@ tools/make_dictionary.py + blocklist.txt   rebuilds dict/words.txt
 - Without recordings, speech uses the browser's built-in text-to-speech. Voice quality differs by device, and on iOS speech only plays after a tap (the games speak on taps, and every game has a 🔊 button).
 - If a device has no text-to-speech at all, the hear-it games lose their audio prompt.
 - Wordal and Puzzle Pieces may scroll a little on phones and very short screens; they are tuned for iPad and Chromebook sizes.
-- Not tested on a real iPad/Safari: tests use desktop Chromium with touch emulation.
+- Not tested on a real iPad/Safari: tests use desktop Chromium with touch emulation. That includes the offline copy and updates (service workers behave differently in Safari, and a Home Screen app may keep its own storage separate from Safari).

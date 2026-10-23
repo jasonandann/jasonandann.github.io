@@ -8,6 +8,7 @@
   <title>PES 3rd Grade Study Games</title>
   <link rel="icon" type="image/png" href="../images/pes-logo.png">
   <link rel="apple-touch-icon" href="../images/pes-logo.png">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -17,6 +18,33 @@
     <span id="spacer"></span>
   </header>
   <main id="app"><p class="note">Loading…</p></main>
+  <script>
+    // Start-up watchdog (issue #13). Plain script outside the app's modules, so it still runs if a bad offline
+    // copy stops them from loading. If the app has not started within 10 s, or a script error happens before it
+    // starts, ask the offline copy to compare itself with the site and reload once if it was repaired.
+    (function () {
+      var sw = navigator.serviceWorker, KEY = 'pes3.watchdog';
+      function repair() {
+        if (window.__started || !sw || !sw.controller) return;
+        var last = 0;
+        try { last = Number(sessionStorage.getItem(KEY) || 0); } catch (e) { /* storage blocked */ }
+        if (Date.now() - last < 60000) return; // repaired and reloaded within the last minute: don't loop
+        var ch = new MessageChannel();
+        ch.port1.onmessage = function (e) {
+          if (!e.data || !e.data.updated) return; // nothing to repair (or offline): leave the page as it is
+          try { sessionStorage.setItem(KEY, String(Date.now())); } catch (err) { /* ignore */ }
+          location.reload();
+        };
+        sw.controller.postMessage({ type: 'check', full: true }, [ch.port2]);
+      }
+      var tried = false;
+      function once() { if (!tried) { tried = true; repair(); } }
+      window.addEventListener('error', function (e) {
+        if (e instanceof ErrorEvent || (e.target && /^(SCRIPT|LINK)$/.test(e.target.tagName))) once();
+      }, true);
+      setTimeout(once, 10000);
+    })();
+  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

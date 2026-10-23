@@ -26,7 +26,7 @@ time.sleep(1)
 try:
     with sync_playwright() as p:
         b = p.chromium.launch()
-        ctx = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True)
+        ctx = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True, service_workers="block")
         ctx.add_init_script(FAKE_TTS)
         ctx.route(URL + "words.txt", lambda r: r.fulfill(path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "words.txt")))  # fixed list, not the weekly one
         page = ctx.new_page()
