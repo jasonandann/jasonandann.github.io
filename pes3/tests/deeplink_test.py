@@ -23,7 +23,7 @@ def check(name, cond, detail=""):
 
 # The ids live in app.js; read them from there so a new game is covered automatically.
 src = Path(SITE, "js/app.js").read_text()
-IDS = re.findall(r"id: '([a-z]+)', name: '([^']*)'", src)
+IDS = re.findall(r"id: '([^']*)', name: '([^']*)'", src)
 
 server = subprocess.Popen([sys.executable, "-m", "http.server", str(PORT), "--directory", SITE],
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -40,8 +40,13 @@ try:
         page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
         hash_ = lambda: page.evaluate("location.hash")
 
-        check("25 games have ids", len(IDS) == 25, str(len(IDS)))
+        # every card on the menu must have an id (a new game added without one fails here, by name)
+        page.goto(URL); page.wait_for_selector(".menu .mcard")
+        cards = page.locator(".menu .mcard .name").all_inner_texts()
+        missing = [n for n in cards if n not in {name for _, name in IDS}]
+        check("every menu game has an id", cards and not missing and len(IDS) == len(cards), f"no id: {missing}" if missing else f"{len(IDS)} ids, {len(cards)} cards")
         check("ids are unique", len({i for i, _ in IDS}) == len(IDS))
+        check("ids are short lowercase slugs", all(re.fullmatch(r"[a-z0-9-]{2,12}", i) for i, _ in IDS), str([i for i, _ in IDS]))
 
         # every id: fresh load -> gate card with that game's name; nothing spoken before the tap
         bad = []
@@ -60,7 +65,7 @@ try:
         check("tap starts the game and speaks", page.locator(".game .tray").count() == 1 and page.evaluate("window.__spoken.length") > 0)
         check("hash kept while playing", hash_() == "#jumble", hash_())
         page.locator("#back").tap()
-        check("Home clears the hash and shows the menu", hash_() == "" and page.locator(".menu .mcard").count() == 25, hash_())
+        check("Home clears the hash and shows the menu", hash_() == "" and page.locator(".menu .mcard").count() == len(cards), hash_())
 
         # opening from the menu sets the hash (so the address bar can be copied)
         page.locator(".mcard", has_text="Robot Course").first.tap()

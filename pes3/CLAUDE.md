@@ -35,7 +35,7 @@ tests/smoke_test.py zombie_test.py new_games_test.py baffle_test.py river_test.p
 
 ## Contracts
 - Game module: `export function mount(root, entries, api)`; `api={home}`; may return a cleanup fn. `mathquiz.js` exports objects `{mount}` (e.g. `mq.maze`).
-- `app.js` `SECTIONS=[{title,needsWords?,games:[{icon,id,name,blurb,needsWords?,mod}]}]`. `id` = deep-link slug (lowercase, unique, stable once shared; deeplink_test reads them from app.js). Adding a game = new file + one entry (with an `id`). Menu currently 25 cards in 5 sections (smoke/zombie/new_games/baffle/sw tests assert this). Sections: Spelling, Math, 💻 Coding (issue #19: Robot Course, Turtle Draw, Code Studio), Fun, Rewards.
+- `app.js` `SECTIONS=[{title,needsWords?,games:[{icon,id,name,blurb,needsWords?,mod}]}]`. `id` = deep-link slug (lowercase, unique, stable once shared; deeplink_test reads them from app.js and fails, naming the game, if a menu card has no id). Adding a game = new file + one entry (with an `id`). Menu currently 25 cards in 5 sections (smoke/zombie/new_games/baffle/sw tests assert this). Sections: Spelling, Math, 💻 Coding (issue #19: Robot Course, Turtle Draw, Code Studio), Fun, Rewards.
 - Deep links (Jason, 2026-10-23): `index.html#<id>` (e.g. `#robot`, case-insensitive) -> `startFromHash()` shows a `.start-gate` card (`▶ Tap to start`); its tap calls `open()` so speech starts inside a tap (iOS). Unknown id -> menu, hash cleared. `open()` sets the hash and `home()` clears it, via `history.replaceState` (no Back entries). `hashchange` re-runs `startFromHash`. The gate is not busy (`inGame=false`), so an update reload may happen there and lands back on the same card. Test reloads that mean "launch the app" must drop the hash (`relaunch()` in sw_test: start_url has none).
 - `words.txt`: first `#` line = list title; `word | optional sentence`; dupes ignored; lowercase.
 - Spelling games use `rounds(root, entries, api, renderRound, {perRound=10})`; `renderRound({entry,next,root,later,onLeave})`; call `logRound(word, firstTry)` **once** per word. `chooseWords` quietly favours missed words.
@@ -65,7 +65,7 @@ python3 tools/check_words.py           # validate words.txt
 python3 tools/make_audio.py --dry-run  # macOS only (say + afconvert); see README
 pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
-python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py && python3 tests/robot_test.py && python3 tests/turtle_test.py && python3 tests/studio_test.py && python3 tests/deeplink_test.py && python3 tests/sw_test.py   # 41 + 42 + 67 + 68 + 39 + 122 + 74 + 52 + 16 + 54 checks
+python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py && python3 tests/robot_test.py && python3 tests/turtle_test.py && python3 tests/studio_test.py && python3 tests/deeplink_test.py && python3 tests/sw_test.py   # 41 + 42 + 67 + 68 + 39 + 122 + 74 + 52 + 17 + 54 checks
 ```
 Tests start their own `http.server` (ports 8765/8766/8768/8769/8770/8771/8772/8773/8774/8775), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
