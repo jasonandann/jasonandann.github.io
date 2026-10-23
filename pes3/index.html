@@ -8,6 +8,15 @@
   <title>PES 3rd Grade Study Games</title>
   <link rel="icon" type="image/png" href="../images/pes-logo.png">
   <link rel="apple-touch-icon" href="../images/pes-logo.png">
+  <script>
+    // https only (issue #32: the grown-ups passcode needs Web Crypto, which plain http doesn't have).
+    // GitHub Pages' "Enforce HTTPS" should redirect first; this covers it if not. Real host names only:
+    // localhost, *.local and IP addresses (testing on a home network) are left alone.
+    (function (h) {
+      if (location.protocol === 'http:' && h.indexOf('.') > 0 && /[a-z]/i.test(h) && h.indexOf(':') < 0
+        && !/(^|\.)localhost$|\.local$/i.test(h)) location.replace('https:' + location.href.slice(5));
+    })(location.hostname);
+  </script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/style.css">
 </head>

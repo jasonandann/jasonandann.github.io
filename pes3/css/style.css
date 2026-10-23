@@ -232,6 +232,17 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .panel .flag { color: #b45309; font-weight: 800; }
 .panel .pick { display: flex; align-items: center; gap: 6px; font-size: .95rem; }
 .panel .pick select { min-height: 44px; font: inherit; padding: 0 8px; border-radius: 10px; border: 2px solid var(--soft); background: #fff; }
+/* grown-ups passcode screens (js/parent-lock.js) */
+.panel.lock { width: min(400px, 100%); text-align: center; }
+.panel.lock .text-in { display: block; margin: 8px auto; text-transform: uppercase; letter-spacing: .08em; }
+.pin-prompt { font-weight: 700; margin: 8px 0 0; }
+.pin-dots { display: flex; justify-content: center; gap: 12px; min-height: 22px; margin: 4px 0 14px; }
+.pin-dots span { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--brand); }
+.pin-dots span.on { background: var(--brand); }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; justify-content: center; margin-bottom: 14px; }
+.pin-key { min-height: 60px; padding: 0; font-size: 1.5rem; }
+.pin.busy .pin-pad { opacity: .5; }
+.recovery-code { font: 800 2rem/1.3 ui-monospace, Menlo, monospace; letter-spacing: .12em; color: var(--brand); margin: 8px 0; -webkit-user-select: all; user-select: all; }
 
 /* feedback motion */
 .shake { animation: shake .4s; }

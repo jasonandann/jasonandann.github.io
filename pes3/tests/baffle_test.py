@@ -52,6 +52,16 @@ try:
         def tap(sel, **kw): page.locator(sel, **kw).first.tap()
         def open_game(name): page.locator(".mcard", has_text=name).first.tap()
         def home(): tap("#back")
+        def unlock(pin="1234"):
+            # grown-ups passcode (issue #32; tests/parent_test.py): set it the first time, else type it
+            page.wait_for_selector(".overlay .pin-pad, .overlay h2:has-text('Grown-ups only')")
+            if page.locator(".overlay .pin-pad").count():
+                setup = page.locator(".overlay h2", has_text="Set a").count() == 1
+                page.keyboard.type(pin); page.keyboard.press("Enter")
+                if setup:
+                    page.keyboard.type(pin); page.keyboard.press("Enter")
+                    tap(".overlay [data-act='saved']")
+            page.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
         def msg(): return page.locator(".msg").first.inner_text()
         def spoken(): return page.evaluate("window.__spoken")
         def gp(): return page.evaluate("JSON.parse(localStorage.getItem('spelling-games.garden.v1')||'{\"pts\":0}').pts")
@@ -221,7 +231,7 @@ try:
         page.touchscreen.tap(*center(path_of([w for w in LIST if path_of(w)][0])[0]))
         check("'Off' turns look-ahead off", lit("next") == [])
         home()
-        page.keyboard.type("parent"); page.wait_for_selector(".overlay")
+        page.keyboard.type("parent"); unlock()
         check("parent panel shows Baffle look-ahead", "Baffle look-ahead" in page.locator(".panel").inner_text())
         tap(".panel button:has-text('Auto')")
         check("parent panel sets look-ahead to Auto", page.evaluate("localStorage.getItem('spelling-games.baffle.lookahead')") == "auto")

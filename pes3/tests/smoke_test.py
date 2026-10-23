@@ -43,6 +43,16 @@ try:
             page.locator(".mcard", has_text=name).first.tap()
         def home():
             tap("#back")
+        def unlock(pin="1234"):
+            # grown-ups passcode (issue #32; tests/parent_test.py): set it the first time, else type it
+            page.wait_for_selector(".overlay .pin-pad, .overlay h2:has-text('Grown-ups only')")
+            if page.locator(".overlay .pin-pad").count():
+                setup = page.locator(".overlay h2", has_text="Set a").count() == 1
+                page.keyboard.type(pin); page.keyboard.press("Enter")
+                if setup:
+                    page.keyboard.type(pin); page.keyboard.press("Enter")
+                    tap(".overlay [data-act='saved']")
+            page.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
         def msg():
             return page.locator(".msg").first.inner_text()
         def progress():
@@ -214,6 +224,8 @@ try:
         check("no parent UI visible on menu", page.locator("text=Grown-ups").count() == 0 and page.locator("text=progress").count() == 0)
         for _ in range(5): page.locator("#title").tap()
         page.wait_for_selector(".overlay")
+        check("5 taps ask for a grown-ups passcode first", page.locator(".overlay .pin-pad").count() == 1)
+        unlock()
         check("parent panel opens via 5 taps", "Grown-ups only" in page.locator(".panel h2").inner_text())
         check("parent panel lists 12 words", page.locator(".panel table").first.locator("tbody tr").count() == 12)
         page.screenshot(path=f"{SHOTS}/parent.png")
