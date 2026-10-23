@@ -22,6 +22,7 @@ import * as garden from './games/garden.js';
 import * as river from './games/river.js';
 import * as robot from './games/robot.js';
 import * as turtle from './games/turtle.js';
+import * as studio from './games/studio.js';
 
 // needsWords: game uses words.txt (spelling). Sections appear in this order on the home screen.
 const SECTIONS = [
@@ -49,6 +50,7 @@ const SECTIONS = [
   { title: '💻 Coding', games: [
     { icon: '🤖', name: 'Robot Course', blurb: 'Plan a path, press go', mod: robot },
     { icon: '🐢', name: 'Turtle Draw', blurb: 'Code a turtle to draw', mod: turtle },
+    { icon: '🎨', name: 'Code Studio', blurb: 'Make sprites move and talk', mod: studio },
   ] },
   { title: '🎲 Fun', games: [
     { icon: '🧟', name: 'Zombie Trail', blurb: 'Race to the finish', needsWords: true, mod: zombie },

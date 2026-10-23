@@ -1,6 +1,6 @@
-// Step-chip strip: her program as a wrapping row of big icon + word chips. A `repeat` shows as a box
-// holding its body's chips. Chips are addressed by path (indexes from the top level down, as walk()
-// reports them). Tap a chip = onTap. Drag a chip = move it among its neighbours (same row or same box;
+// Step-chip strip: her program as a wrapping row of big icon + word chips. A block with a `body`
+// (repeat, forever) shows as a box holding its body's chips. Chips are addressed by path (indexes from
+// the top level down, as walk() reports them). Tap a chip = onTap. Drag a chip = move it among its neighbours (same row or same box;
 // dragging a box's header chip moves the whole box). Drag works on iPad (verified for Word Search/Baffle).
 import { el } from '../util.js';
 
@@ -21,9 +21,10 @@ export function chipStrip({ ops, onTap, onMove, canDrag = () => true, empty = 'Y
 
   function chip(b, path) {
     const o = ops[b.op] || { icon: '?', word: b.op, say: b.op, color: 'grey' };
+    const isBox = Array.isArray(b.body); // repeat, forever
     const sw = o.swatch && val(o.swatch, b);
     const btn = el('button', {
-      class: `code-chip c-${o.color}${b.op === 'repeat' ? ' code-rep' : ''}`, type: 'button', role: 'listitem',
+      class: `code-chip c-${o.color}${isBox ? ' code-rep' : ''}`, type: 'button', role: 'listitem',
       'data-op': b.op, 'data-i': path[path.length - 1], 'data-path': key(path),
       'aria-label': `Step ${key(path.map((i) => i + 1))}: ${val(o.say, b)}`,
       onclick: () => { if (dragged) { dragged = false; return; } if (onTap) onTap(path, b); },
@@ -32,7 +33,7 @@ export function chipStrip({ ops, onTap, onMove, canDrag = () => true, empty = 'Y
     el('span', { class: 'cw' }, val(o.word, b)),
     sw ? el('span', { class: 'csw', style: `background:${sw}` }) : null);
     if (onMove) btn.addEventListener('pointerdown', (e) => press(e, btn, path));
-    if (b.op !== 'repeat') return btn;
+    if (!isBox) return btn;
     const isOpen = open && key(open) === key(path);
     const inner = (b.body || []).map((c, j) => chip(c, [...path, j]));
     return el('div', { class: `code-box${isOpen ? ' open' : ''}`, 'data-path': key(path) },

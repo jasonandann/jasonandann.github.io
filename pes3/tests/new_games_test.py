@@ -73,7 +73,7 @@ try:
         # ---- menu sections
         heads = page.locator(".sect h2").all_inner_texts()
         check("menu has 5 sections", len(heads) == 5, str(heads))
-        check("menu has 24 cards", page.locator(".mcard").count() == 24)
+        check("menu has 25 cards", page.locator(".mcard").count() == 25)
         for name in ["Spell Catcher", "Word Volcano", "Wordal", "Number Bubbles", "Number Cascade", "Times Table Explorer",
                      "Number Maze", "Number Mountain", "Puzzle Pieces", "Lily Pad River", "Spot Match", "Simon Says", "My Garden"]:
             check(f"menu has {name}", page.locator(".mcard", has_text=name).count() == 1)
