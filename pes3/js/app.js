@@ -24,42 +24,43 @@ import * as robot from './games/robot.js';
 import * as turtle from './games/turtle.js';
 import * as studio from './games/studio.js';
 
+// id: deep-link name (index.html#robot opens Robot Course); keep them stable once shared.
 // needsWords: game uses words.txt (spelling). Sections appear in this order on the home screen.
 const SECTIONS = [
   { title: '✏️ Spelling', needsWords: true, games: [
-    { icon: '📖', name: 'See the Words', blurb: 'Tap a word to hear it', mod: words },
-    { icon: '🔀', name: 'Word Jumble', blurb: 'Put the letters in order', mod: jumble },
-    { icon: '✏️', name: 'Fill the Blanks', blurb: 'Find the missing letters', mod: fillblank },
-    { icon: '👀', name: 'Look, Cover, Write, Check', blurb: 'Study it, hide it, spell it', mod: lcwc },
-    { icon: '🌧️', name: 'Spell Catcher', blurb: 'Catch the falling letters', mod: catcher },
-    { icon: '🌋', name: 'Word Volcano', blurb: 'Tap the rocks in order', mod: volcano },
-    { icon: '🃏', name: 'Memory Match', blurb: 'Match the word pairs', mod: memory },
-    { icon: '🤯', name: 'Baffle', blurb: 'Make words from touching letters', mod: baffle },
-    { icon: '🔎', name: 'Word Search', blurb: 'Find the hidden words', mod: wordsearch },
-    { icon: '🟩', name: 'Wordal', blurb: 'Guess the word in six tries', mod: wordal },
-    { icon: '👂', name: 'Listen & Type', blurb: 'Hear it, then spell it', mod: typeit },
+    { icon: '📖', id: 'words', name: 'See the Words', blurb: 'Tap a word to hear it', mod: words },
+    { icon: '🔀', id: 'jumble', name: 'Word Jumble', blurb: 'Put the letters in order', mod: jumble },
+    { icon: '✏️', id: 'blanks', name: 'Fill the Blanks', blurb: 'Find the missing letters', mod: fillblank },
+    { icon: '👀', id: 'lcwc', name: 'Look, Cover, Write, Check', blurb: 'Study it, hide it, spell it', mod: lcwc },
+    { icon: '🌧️', id: 'catcher', name: 'Spell Catcher', blurb: 'Catch the falling letters', mod: catcher },
+    { icon: '🌋', id: 'volcano', name: 'Word Volcano', blurb: 'Tap the rocks in order', mod: volcano },
+    { icon: '🃏', id: 'memory', name: 'Memory Match', blurb: 'Match the word pairs', mod: memory },
+    { icon: '🤯', id: 'baffle', name: 'Baffle', blurb: 'Make words from touching letters', mod: baffle },
+    { icon: '🔎', id: 'search', name: 'Word Search', blurb: 'Find the hidden words', mod: wordsearch },
+    { icon: '🟩', id: 'wordal', name: 'Wordal', blurb: 'Guess the word in six tries', mod: wordal },
+    { icon: '👂', id: 'listen', name: 'Listen & Type', blurb: 'Hear it, then spell it', mod: typeit },
   ] },
   { title: '➗ Math', games: [
-    { icon: '🫧', name: 'Number Bubbles', blurb: 'Pop the right answer', mod: mq.bubbles },
-    { icon: '🔢', name: 'Number Cascade', blurb: 'Find it on the board', mod: mq.cascade },
-    { icon: '🧮', name: 'Times Table Explorer', blurb: 'Look, practice, spot patterns', mod: explorer },
-    { icon: '🚪', name: 'Number Maze', blurb: 'Pick the right door', mod: mq.maze },
-    { icon: '⛰️', name: 'Number Mountain', blurb: 'Climb to the top', mod: mq.mountain },
-    { icon: '🧩', name: 'Puzzle Pieces', blurb: 'Uncover the picture', mod: puzzle },
+    { icon: '🫧', id: 'bubbles', name: 'Number Bubbles', blurb: 'Pop the right answer', mod: mq.bubbles },
+    { icon: '🔢', id: 'cascade', name: 'Number Cascade', blurb: 'Find it on the board', mod: mq.cascade },
+    { icon: '🧮', id: 'times', name: 'Times Table Explorer', blurb: 'Look, practice, spot patterns', mod: explorer },
+    { icon: '🚪', id: 'maze', name: 'Number Maze', blurb: 'Pick the right door', mod: mq.maze },
+    { icon: '⛰️', id: 'mountain', name: 'Number Mountain', blurb: 'Climb to the top', mod: mq.mountain },
+    { icon: '🧩', id: 'puzzle', name: 'Puzzle Pieces', blurb: 'Uncover the picture', mod: puzzle },
   ] },
   { title: '💻 Coding', games: [
-    { icon: '🤖', name: 'Robot Course', blurb: 'Plan a path, press go', mod: robot },
-    { icon: '🐢', name: 'Turtle Draw', blurb: 'Code a turtle to draw', mod: turtle },
-    { icon: '🎨', name: 'Code Studio', blurb: 'Make sprites move and talk', mod: studio },
+    { icon: '🤖', id: 'robot', name: 'Robot Course', blurb: 'Plan a path, press go', mod: robot },
+    { icon: '🐢', id: 'turtle', name: 'Turtle Draw', blurb: 'Code a turtle to draw', mod: turtle },
+    { icon: '🎨', id: 'studio', name: 'Code Studio', blurb: 'Make sprites move and talk', mod: studio },
   ] },
   { title: '🎲 Fun', games: [
-    { icon: '🧟', name: 'Zombie Trail', blurb: 'Race to the finish', needsWords: true, mod: zombie },
-    { icon: '🐸', name: 'Lily Pad River', blurb: 'Hop on the right answer', mod: river },
-    { icon: '👁️', name: 'Spot Match', blurb: 'Find the matching picture', mod: spotmatch },
-    { icon: '🎵', name: 'Simon Says', blurb: 'Copy the pattern', mod: simon },
+    { icon: '🧟', id: 'zombie', name: 'Zombie Trail', blurb: 'Race to the finish', needsWords: true, mod: zombie },
+    { icon: '🐸', id: 'river', name: 'Lily Pad River', blurb: 'Hop on the right answer', mod: river },
+    { icon: '👁️', id: 'spot', name: 'Spot Match', blurb: 'Find the matching picture', mod: spotmatch },
+    { icon: '🎵', id: 'simon', name: 'Simon Says', blurb: 'Copy the pattern', mod: simon },
   ] },
   { title: '🌱 Rewards', games: [
-    { icon: '🌻', name: 'My Garden', blurb: 'See what you have grown', mod: garden },
+    { icon: '🌻', id: 'garden', name: 'My Garden', blurb: 'See what you have grown', mod: garden },
   ] },
 ];
 
@@ -71,8 +72,43 @@ let data = { title: '', words: [] };
 let cleanup = null;
 let inGame = false;
 
+// Deep links: the URL hash names a game (#robot). The hash is kept in step with the screen via replaceState
+// (no history entries, so the browser's Back still leaves the site as before).
+function setHash(id) {
+  const url = location.pathname + location.search + (id ? '#' + id : '');
+  if (url !== location.pathname + location.search + location.hash) history.replaceState(null, '', url);
+}
+
+function findGame(hash) {
+  const id = decodeURIComponent(hash.replace(/^#/, '')).trim().toLowerCase();
+  for (const sec of SECTIONS) for (const g of sec.games) if (g.id === id) return { game: g, sec };
+  return null;
+}
+
+// Opened from a link there is no tap yet, and iOS only allows speech inside one: show the game's card and
+// mount it from that tap. Unknown names fall back to the menu.
+function startFromHash() {
+  const hit = findGame(location.hash);
+  if (!hit) { if (location.hash) setHash(''); return home(); }
+  if (cleanup) { cleanup(); cleanup = null; }
+  const { game, sec } = hit;
+  inGame = false; // nothing to lose here, so an app update may reload (the hash brings her back to this card)
+  backBtn.hidden = false;
+  app.replaceChildren(
+    el('div', { class: 'menu-wrap start-gate' },
+      el('button', { class: 'mcard', type: 'button', onclick: () => open(game, sec) },
+        el('span', { class: 'icon' }, game.icon),
+        el('span', { class: 'name' }, game.name),
+        el('span', { class: 'blurb' }, game.blurb),
+        el('span', { class: 'btn primary big' }, '▶ Tap to start'),
+      ),
+    ),
+  );
+}
+
 function home() {
   if (cleanup) { cleanup(); cleanup = null; }
+  setHash('');
   if (reloadIfPending()) return; // an update arrived during the game: load it now, on the way to the menu
   inGame = false;
   backBtn.hidden = true;
@@ -102,6 +138,7 @@ function open(game, sec) {
   if (cleanup) { cleanup(); cleanup = null; }
   inGame = true;
   backBtn.hidden = false;
+  setHash(game.id);
   const root = el('div', { class: 'game' });
   app.replaceChildren(root);
   // Mount synchronously inside the tap so text-to-speech is allowed on iOS.
@@ -149,7 +186,8 @@ document.addEventListener('keydown', (e) => {
     initOffline(() => true); // still set up the offline copy so the next launch can work offline
     return showError('Could not load the word list.', hint);
   }
-  home();
+  startFromHash();
+  window.addEventListener('hashchange', startFromHash); // a link to another game while the page is open
   window.__started = true; // tells the start-up watchdog in index.html that the app's code loaded and ran
   // Offline copy + updates. Busy = in a game or a grown-up/options pop-up is open: the update waits for home().
   initOffline(() => inGame || !!document.querySelector('.overlay'));

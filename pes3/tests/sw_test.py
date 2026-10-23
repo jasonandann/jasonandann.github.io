@@ -151,6 +151,9 @@ try:
         def hold():  # sit in a game, so an update announced by the worker waits for Home instead of reloading
             page.locator(".mcard", has_text="See the Words").first.tap()
             page.wait_for_selector("#back:not([hidden])")
+        def relaunch():  # a launch opens start_url (no #game), unlike a plain reload, which keeps a deep link
+            page.evaluate("location.hash && history.replaceState(null, '', location.pathname)")
+            page.reload()
         def mark():
             page.evaluate("window.__mark = 1")
         def marked():
@@ -184,7 +187,7 @@ try:
 
         # ---- offline: opens from the saved copy, every game opens, no errors from the check
         stop()
-        page.reload()
+        relaunch()
         check("offline: menu loads", page.locator(".mcard").count() == 25)
         check("offline: last list shown", "Week of Oct 26" in listname(), listname())
         names = page.locator(".mcard .name").all_inner_texts()
@@ -274,7 +277,7 @@ try:
             (APP / "js/games/simon.js").write_text(simon0)
             deploy()
             page.evaluate(SW_ASK, {"type": "check", "full": True})
-            page.reload()
+            relaunch()
         race("js/games/simon.js")
         race("js/app.js")
 
@@ -298,7 +301,7 @@ try:
         (APP / "js/games/simon.js").write_text(simon0)
         deploy()
         page.evaluate(SW_ASK, {"type": "check", "full": True})
-        page.reload()
+        relaunch()
         settle()
 
         # ---- one file's request fails while online (issue #24): 'error' naming the file, current copy kept, panel says so
@@ -322,7 +325,7 @@ try:
         (APP / "words.txt").write_text(fixture.replace("Week of Oct 26", "Week of Nov 9"))
         deploy()
         page.evaluate(SW_ASK, {"type": "check", "full": True})
-        page.reload()
+        relaunch()
         settle()
 
         # ---- code-only change (bug fix in one game) and a brand-new module, then offline again
@@ -340,7 +343,7 @@ try:
         check("code fix reaches the app (served from the new copy)", txt.rstrip().endswith("// fixed v2"))
         check("new game module loaded after the update", page.evaluate("window.__newgame === 1"))
         stop()
-        page.reload()
+        relaunch()
         page.wait_for_selector(".mcard")
         check("offline after the update: new module still loads", page.evaluate("window.__newgame === 1"))
         start()
@@ -388,7 +391,7 @@ try:
         app_now = (APP / "js/app.js").read_text()
         n_err = len(errors)
         break_copy("import { nope } from './util.js';\n" + app_now)
-        page.reload()
+        relaunch()
         page.wait_for_function("window.__started === true && !!document.querySelector('.mcard')", timeout=20000)
         check("watchdog: copy with a missing import repairs itself and starts", page.locator(".mcard").count() == 25)
         broken_errs = errors[n_err:]
@@ -397,7 +400,7 @@ try:
         settle()
         break_copy("// does nothing\n")
         t0 = time.time()
-        page.reload()
+        relaunch()
         page.wait_for_function("window.__started === true && !!document.querySelector('.mcard')", timeout=25000)
         check("watchdog: copy that never starts (no error) repairs itself after ~10 s", time.time() - t0 > 9, f"{time.time() - t0:.1f} s")
         settle()
@@ -405,11 +408,11 @@ try:
         page.on("framenavigated", lambda f: navs.append(f.url) if f == page.main_frame else None)
         break_copy("// does nothing\n")
         stop()
-        page.reload()
+        relaunch()
         time.sleep(13)
         check("watchdog offline: no reload loop", len(navs) == 1 and not page.evaluate("window.__started === true"), str(navs))
         start()
-        page.reload()
+        relaunch()
         page.wait_for_function("window.__started === true && !!document.querySelector('.mcard')", timeout=25000)
         check("watchdog: back online, the next launch repairs it", page.locator(".mcard").count() == 25)
         settle()
@@ -465,7 +468,7 @@ try:
         g = wait_gone()
         check("kill switch: offline copy deleted and worker unregistered", g == {"caches": 0, "regs": 0}, str(g))
         for n in range(2):  # two launches: each registers the kill switch again, which removes itself again
-            page.reload()
+            relaunch()
             page.wait_for_selector(".mcard")
             mark()
             time.sleep(4)
