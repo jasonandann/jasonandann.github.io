@@ -44,7 +44,7 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
 
 **Math** (grade-3 style; each game starts with a level choice that is remembered: add/subtract within 100, times tables 2-5, 2-10, or times and division). Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Fun) can also do math. Not recorded in the hidden progress.
 
-**Coding**: Robot Course (below). Turtle Draw and Code Studio are planned (issue #19) and will share the same engine in `js/code/`.
+**Coding**: Robot Course and Turtle Draw (below). Code Studio is planned (issue #19) and will share the same engine in `js/code/`.
 
 **Fun**: Zombie Trail (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 
@@ -66,16 +66,27 @@ A 5×5 grid of letters. Slide a finger across letters that touch (diagonals coun
 - Every new word (list or bonus) is a garden point. Baffle keeps its own hidden per-word stats (found with no hint / with look-ahead off / with a hint / in a row), shown in the parent panel; it does not touch the main progress table.
 - Dictionary: `dict/words.txt`, built by `python3 tools/make_dictionary.py` from the public-domain [ENABLE list](https://github.com/dolph/dictionary) (3–12 letters, about 152k words, 1.4 MB; downloaded only when Baffle opens). ENABLE is from about 2000, so newer words (email, selfie) are missing, and it includes Scrabble oddities (aah, zax). `tools/blocklist.txt` removes swear words and slurs; add to it and re-run the script. To switch to [SCOWL](http://wordlist.aspell.net/) later, pass its word file to the script.
 
+### Turtle Draw
+
+Logo-style drawing ([what is Logo](https://el.media.mit.edu/logo-foundation/what_is_logo/logo_programming.html)): she builds a program from blocks and a turtle draws it. The turtle starts in the middle facing up with its pencil down.
+
+- **Blocks:** ⬆️ forward / ⬇️ back (tap the chip to pick a distance, 10 to 200 counting by tens; 50 to start), ↺ ↻ ¼ and ½ turns (arrow + word), ✏️ pencil down / pencil up (the same pencil turned upside down), 🎨 colour (picks from 8), 🔁 repeat. Tapping 🔁 opens a box: blocks go inside until ✅ Close the box. A box can hold one more box. Tap any chip to change its number or colour, or remove it; drag a chip to move it within its row or its box (dragging a box's 🔁 chip moves the whole box; moving steps into or out of a box is not supported yet); ✕ Undo removes the last step.
+- ▶ Play draws from the start every time, 👣 Step draws one block, ⏹ stops. 🐢/🐇 sets the speed (remembered). If the turtle would leave the canvas it stops at the edge.
+- **📝 Logo** shows the same program as real Logo text, one line per block, e.g. `REPEAT 4 [FORWARD 50 RIGHT 90] ; RIGHT 90 = ¼ turn ↻ clockwise`. Logo's `RIGHT` is clockwise and `LEFT` counter-clockwise; colours use the usual Logo numbers (`SETPENCOLOR 4` = red, [FMSLogo's table](https://fmslogo.sourceforge.io/manual/command-setpencolor.html)). Read-only for now.
+- **🖍️ Free draw** + **🖼️ My drawings**: 💾 Save keeps the picture and its program on this device (up to 12; 1 garden point each, at most 3 per visit). Tap a drawing to open it again; 🗑 deletes it (asks first).
+- **🎯 Copy the shape**: 10 shapes (line, L, U, square, rectangle, plus sign, staircase, dashed line, square spiral, window) shown as a faint outline. Covering the outline gives a sparkle, a garden point and a ⭐ on the picker; otherwise just "Try changing a step!" Drawing a side in two pieces counts; scribbling over everything does not.
+- Stored on the device only: `spelling-games.turtle.gallery.v1`, `.turtle.done.v1`, `.turtle.fast`.
+
 ### Robot Course
 
 A virtual copy of her Fisher-Price Code 'n Learn Kinderbot (Code mode only), drawn from scratch. She punches steps into the robot's head, presses the orange key, and watches it drive on a grid.
 
 - **Head** = the toy's layout and colours: 10 lights on top; green ⬆ forward (top), red ⬇ back (bottom), blue ↺ ¼ counter-clockwise (left), purple ↻ ¼ clockwise (right), white blank centre, yellow ✕ undo the last step (bottom-left), orange ▶ run (bottom-right; becomes ⏹ while running). Turn keys show the arrow and the word. The toy's grey mode keys are left out.
-- Each key adds a chip in that key's colour (no 10-step limit; the strip wraps). Tap a chip to remove it. Off the head: 👣 Step (one step per tap) and 🧹 Clear all (asks first). On a keyboard: arrows add steps, Backspace = ✕, Enter = run.
+- Each key adds a chip in that key's colour (no 10-step limit; the strip wraps). Tap a chip to remove it, or drag it to a new place in the program (the toy only has backspace). Off the head: 👣 Step (one step per tap) and 🧹 Clear all (asks first). On a keyboard: arrows add steps, Backspace = ✕, Enter = run.
 - The robot only moves on ▶. The light and chip for the current step glow (step 11 carries on from the first light). A bump into a wall, cone or the edge is a "bonk" wiggle: the robot stops, that chip pulses, "Let's fix the plan!", program kept. Not reaching the flag: "Almost! Add more steps?" Either way, after a moment a faded copy of the robot stays where it stopped, orange arrows show the path it took, and the robot goes back to its start square (always marked with a dashed outline and an arrow for the way it faces). They stay while she edits and clear when she runs again. ⏹ leaves the robot where it is.
 - Reaching 🏁: dance, confetti, 1 garden point (every time). 💎 gems are optional and just for fun.
 - **🗺️ Courses**: 18 ready-made courses in `js/games/robot-levels.js` (5×5 to 7×7): straight lines, one turn, two turns, turn around, gems, mazes. All open; a finished one gets a ⭐ on the picker. Each has a known solution the tests run.
-- **🧱 Build my own**: 6×6 grid; pick 🧱 wall, cone (a drawn orange traffic cone), 💎 gem, 🏁 flag, 🤖 robot (tap it again to turn it) or 🧽 eraser and tap squares; tap a piece again to remove it. 💾 Save course keeps it on this device (up to 12); 🤖 Code it! drives it. Remove one with the 🗑 on its tile in the list, or 🗑️ Delete course in the builder (both ask first).
+- **🧱 Build my own**: 6×6 grid; pick 🧱 wall, cone (a drawn orange traffic cone), 💎 gem, 🏁 flag, 🤖 robot (tap it again to turn it) or 🧽 eraser and tap squares; tap a piece again to remove it. Walls can also be dragged: slide a finger across squares to build a long wall (starting on a wall takes walls away instead). The other pieces are one square each. 💾 Save course keeps it on this device (up to 12); 🤖 Code it! drives it. Remove one with the 🗑 on its tile in the list, or 🗑️ Delete course in the builder (both ask first).
 - First launch asks her to name the robot (optional; "Skip" = Robo). ✏️ Rename is on the picker.
 - Stored on the device only: `spelling-games.robot.name`, `.robot.done.v1` (finished course ids), `.robot.mine.v1` (her courses). Not in the hidden progress.
 
@@ -98,7 +109,7 @@ The on-screen keyboard avoids iPad autocorrect and predictive text. A physical k
 
 ## Hidden progress (grown-ups only)
 
-Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, and Zombie Trail record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Spot Match, Simon Says, and Zombie Trail math questions do not record anything. In Wordal, "first try" means solved within the first two guesses.
+Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, and Zombie Trail record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Spot Match, Simon Says, and Zombie Trail math questions do not record anything. In Wordal, "first try" means solved within the first two guesses.
 
 Open the panel from the home screen by either:
 - tapping the **"Spelling Time" title 5 times within 3 seconds**, or
@@ -173,7 +184,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 

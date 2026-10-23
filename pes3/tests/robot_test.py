@@ -177,6 +177,26 @@ try:
         check("clockwise chip shows ↻ + 'clockwise'", "↻" in page.locator(".code-chip >> nth=1").inner_text() and "clockwise" in page.locator(".code-chip >> nth=1").inner_text())
         page.keyboard.press("ArrowUp")
         check("physical arrow key adds a step", chips() == ["fwd", "right", "fwd"], str(chips()))
+        def chip_drag(src, dst, side="after", hold=None):
+            """Drag chip `src` (CSS) onto the before/after side of chip `dst` with the mouse."""
+            a = page.locator(src).first.bounding_box(); z = page.locator(dst).first.bounding_box()
+            page.mouse.move(a["x"] + a["width"] / 2, a["y"] + a["height"] / 2); page.mouse.down()
+            tx = z["x"] + (z["width"] * 0.85 if side == "after" else z["width"] * 0.15)
+            page.mouse.move(tx, z["y"] + z["height"] / 2, steps=8)
+            if hold: hold()
+            page.mouse.up(); time.sleep(0.15)
+        chip_drag(".code-chip[data-i='1']", ".code-chip[data-i='2']", "after",
+                  hold=lambda: check("drag: a ghost chip follows and a drop bar shows", page.locator(".code-ghost").count() == 1 and page.locator(".code-drop:not([hidden])").count() == 1))
+        check("drag a chip to a new place: order changes, nothing deleted", chips() == ["fwd", "fwd", "right"], str(chips()))
+        chip_drag(".code-chip[data-i='2']", ".code-chip[data-i='0']", "before")
+        check("drag to the front", chips() == ["right", "fwd", "fwd"], str(chips()))
+        check("drag leaves no ghost or drop bar behind", page.locator(".code-ghost, .code-drop").count() == 0)
+        a0 = page.locator(".code-chip[data-i='0']").bounding_box()
+        page.mouse.move(a0["x"] + 30, a0["y"] + 30); page.mouse.down(); page.mouse.move(a0["x"] + 33, a0["y"] + 32); page.mouse.up(); time.sleep(0.35)
+        check("a tiny wobble is still a tap (deletes the chip)", chips() == ["fwd", "fwd"], str(chips()))
+        keys("r")
+        chip_drag(".code-chip[data-i='2']", ".code-chip[data-i='1']", "before")
+        check("drag into the middle", chips() == ["fwd", "right", "fwd"], str(chips()))
         tap("[data-tool='clear']")
         check("🧹 Clear all asks first", page.locator(".overlay", has_text="Clear all steps?").count() == 1)
         tap(".overlay button:has-text('No')")
@@ -259,6 +279,8 @@ try:
         page.evaluate("window.__lit = []")
         run(); time.sleep(0.2)
         page.wait_for_function("document.querySelector('.code-chip.now') && document.querySelector('.code-chip.now').dataset.i === '10'", timeout=15000)
+        chip_drag(".code-chip[data-i='0']", ".code-chip[data-i='1']", "after")
+        check("no dragging while the robot runs", chips()[:2] == ["fwd", "back"] and page.locator(".code-ghost").count() == 0, str(chips()[:2]))
         check("step 11 lights the first light again", page.evaluate("[...document.querySelectorAll('.rb-light')].findIndex(l => l.classList.contains('on'))") == 0)
         tap(".rb-key[data-key='run']")
         idle()
@@ -292,12 +314,37 @@ try:
         # ---------- Build my own ----------
         open_robot(); tap(".rb-tab:has-text('Build my own')")
         tap(".rb-new")
+        check("builder: wall hint mentions dragging", "drag" in msg(), msg())
         check("builder: no stray 'null' text on a new course (Jason saw one by Save)", not page.evaluate("document.querySelector('#app').innerText.includes('null')"))
         check("builder: palette has wall/cone/gem/flag/robot/eraser",
               all(page.locator(f".rb-tool[data-tool='{t}']").count() == 1 for t in ["wall", "cone", "gem", "flag", "robot", "erase"]))
         def cell(x, y): return f".rb-cell[data-x='{x}'][data-y='{y}']"
         tap(cell(0, 4))
         check("builder: tap places a wall", page.locator(cell(0, 4) + ".k-wall").count() == 1)
+        def centre(x, y):
+            r = page.locator(cell(x, y)).bounding_box(); return r["x"] + r["width"] / 2, r["y"] + r["height"] / 2
+        def drag(cells, steps=6):
+            page.mouse.move(*centre(*cells[0])); page.mouse.down()
+            for c in cells[1:]: page.mouse.move(*centre(*c), steps=steps)
+            page.mouse.up()
+        walls = lambda: page.evaluate("[...document.querySelectorAll('.rb-edit .rb-cell.k-wall')].map(c => +c.dataset.x + ',' + c.dataset.y).sort()")
+        drag([(1, 1), (4, 1)])
+        check("builder: dragging 🧱 across squares builds a continuous wall", walls() == sorted(["0,4", "1,1", "2,1", "3,1", "4,1"]), str(walls()))
+        drag([(1, 2), (1, 4)], steps=1)  # one big jump: the squares in between still fill in
+        check("builder: a fast drag leaves no gaps", {"1,2", "1,3", "1,4"} <= set(walls()), str(walls()))
+        drag([(2, 1), (4, 1)])
+        check("builder: dragging from a wall takes walls away", "2,1" not in walls() and "4,1" not in walls() and "1,1" in walls(), str(walls()))
+        drag([(0, 3), (0, 5), (1, 5)])
+        check("builder: a wall drag never covers the robot", page.locator(cell(0, 5) + ".k-start").count() == 1 and "0,5" not in walls())
+        for c in ["1,2", "1,3", "1,4", "1,1", "0,3"]:
+            x, y = map(int, c.split(",")); tap(cell(x, y))
+        tap(cell(1, 5))  # (dragged on as part of the robot test above)
+        check("builder: tap a wall again removes it (back to just one wall)", walls() == ["0,4"], str(walls()))
+        tap(".rb-tool[data-tool='cone']")
+        drag([(2, 3), (4, 3)])
+        check("builder: cones are one square each (drag places just the first)", page.locator(".rb-edit .rb-cell.k-cone").count() == 1 and page.locator(cell(2, 3) + ".k-cone").count() == 1)
+        tap(cell(2, 3))
+        tap(".rb-tool[data-tool='wall']")
         tap(".rb-tool[data-tool='cone']"); tap(cell(2, 2))
         tap(".rb-tool[data-tool='gem']"); tap(cell(1, 5))
         check("builder: cone and gem placed", page.locator(cell(2, 2) + ".k-cone").count() == 1 and page.locator(cell(1, 5) + ".k-gem").count() == 1)
