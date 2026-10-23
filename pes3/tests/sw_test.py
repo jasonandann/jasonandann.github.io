@@ -154,6 +154,16 @@ try:
         def relaunch():  # a launch opens start_url (no #game), unlike a plain reload, which keeps a deep link
             page.evaluate("location.hash && history.replaceState(null, '', location.pathname)")
             page.reload()
+        def unlock(pin="1234"):
+            # grown-ups passcode (issue #32; tests/parent_test.py): set it the first time, else type it
+            page.wait_for_selector(".overlay .pin-pad, .overlay h2:has-text('Grown-ups only')")
+            if page.locator(".overlay .pin-pad").count():
+                setup = page.locator(".overlay h2", has_text="Set a").count() == 1
+                page.keyboard.type(pin); page.keyboard.press("Enter")
+                if setup:
+                    page.keyboard.type(pin); page.keyboard.press("Enter")
+                    page.locator(".overlay [data-act='saved']").first.tap()
+            page.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
         def mark():
             page.evaluate("window.__mark = 1")
         def marked():
@@ -213,7 +223,7 @@ try:
         r = off("o.checkForUpdates(false)")
         r2 = off("o.checkForUpdates(true)")
         check("offline: update check fails quietly, no reload", marked() and (r or {}).get("result") == "offline" and (r2 or {}).get("result") == "offline", f"{r} {r2}")
-        page.keyboard.type("parent")
+        page.keyboard.type("parent"); unlock()
         page.wait_for_function("document.querySelector('.offline-status') && document.querySelector('.offline-status').textContent.includes('Last check')", timeout=5000)
         st = page.locator(".offline-status").inner_text()
         check("offline: parent panel says no internet", "no internet" in st and "couldn" not in st, st)
@@ -315,7 +325,7 @@ try:
         check("broken file: current copy kept", "Week of Broken" not in words_now and listname() == before_list, words_now[:30])
         st = page.evaluate(SW_ASK, {"type": "status"})["last"]
         check("broken file: status().last carries the error", st["result"] == "error" and "js/games/simon.js" in st.get("error", ""), str(st))
-        page.keyboard.type("parent")
+        page.keyboard.type("parent"); unlock()
         page.wait_for_function("document.querySelector('.offline-status') && document.querySelector('.offline-status').textContent.includes('Last check')", timeout=5000)
         st = page.locator(".offline-status").inner_text()
         check("broken file: parent panel says couldn't finish + the path", "couldn’t finish (" in st and "js/games/simon.js" in st and "no internet" not in st, st)
@@ -430,7 +440,7 @@ try:
 
         # ---- parent panel: status, Check for updates, Reset offline copy (keeps localStorage)
         page.evaluate("localStorage.setItem('spelling-games.garden.v1', JSON.stringify({ points: 7 }))")
-        page.keyboard.type("parent")
+        page.keyboard.type("parent"); unlock()
         page.wait_for_selector(".panel")
         page.wait_for_function("document.querySelector('.offline-status').textContent.includes('files')", timeout=5000)
         st = page.locator(".offline-status").inner_text()
@@ -442,7 +452,7 @@ try:
         page.wait_for_selector(".mcard")
         check("parent: Check for updates reloads the app", True)
         gen1 = page.evaluate(CACHED)["live"]
-        page.keyboard.type("parent")
+        page.keyboard.type("parent"); unlock()
         page.wait_for_selector(".panel")
         page.once("dialog", lambda d: d.accept())
         mark()
