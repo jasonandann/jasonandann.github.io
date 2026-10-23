@@ -117,7 +117,7 @@ A virtual copy of her Fisher-Price Code 'n Learn Kinderbot (Code mode only), dra
 - Reaching 🏁: dance, confetti, 1 garden point (every time). 💎 gems are optional and just for fun.
 - **🗺️ Courses**: 18 ready-made courses in `js/games/robot-levels.js` (5×5 to 7×7): straight lines, one turn, two turns, turn around, gems, mazes. All open; a finished one gets a ⭐ on the picker. Each has a known solution the tests run.
 - **🧱 Build my own**: 6×6 grid; pick 🧱 wall, cone (a drawn orange traffic cone), 💎 gem, 🏁 flag, 🤖 robot (tap it again to turn it) or 🧽 eraser and tap squares; tap a piece again to remove it. Walls can also be dragged: slide a finger across squares to build a long wall (starting on a wall takes walls away instead). The other pieces are one square each. 💾 Save course keeps it on this device (up to 12); 🤖 Code it! drives it. Remove one with the 🗑 on its tile in the list, or 🗑️ Delete course in the builder (both ask first).
-- First launch asks her to name the robot (optional; "Skip" = Robo). ✏️ Rename is on the picker.
+- First launch asks her to name the robot with the device's own keyboard (optional; "Skip" = Robo). ✏️ Rename is on the picker.
 - Stored on the device only: `spelling-games.robot.name`, `.robot.done.v1` (finished course ids), `.robot.mine.v1` (her courses). Not in the hidden progress.
 
 ### Zombie Trail
