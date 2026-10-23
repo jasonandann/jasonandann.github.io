@@ -153,11 +153,14 @@ function thumb(segs, { target = null, px = 120 } = {}) {
   return c.toDataURL('image/png');
 }
 
-// Top-down turtle facing up. The pencil is a separate, unrotated element (tip down = drawing).
+// Top-down turtle facing up. Its tail is the pen: down = stretched straight back with an ink dot in the
+// pen colour; up = curled to the side, no ink. (.tt-turtle[data-pen] picks one; --pc = pen colour.)
 const TURTLE_SVG = `<svg viewBox="0 0 100 100" aria-hidden="true">
+  <g class="tt-tail-down"><path d="M50 80 L50 101" stroke="#65a30d" stroke-width="7" stroke-linecap="round"/>
+    <circle class="tt-ink" cx="50" cy="104" r="6.5" stroke="#fff" stroke-width="2"/></g>
+  <g class="tt-tail-up"><path d="M50 80 Q50 94 60 94 Q68 94 66 86" fill="none" stroke="#65a30d" stroke-width="7" stroke-linecap="round"/></g>
   <ellipse cx="24" cy="34" rx="9" ry="7" fill="#65a30d"/><ellipse cx="76" cy="34" rx="9" ry="7" fill="#65a30d"/>
   <ellipse cx="26" cy="72" rx="9" ry="7" fill="#65a30d"/><ellipse cx="74" cy="72" rx="9" ry="7" fill="#65a30d"/>
-  <path d="M50 88 L45 97 L55 97 Z" fill="#65a30d"/>
   <circle cx="50" cy="15" r="11" fill="#84cc16" stroke="#3f6212" stroke-width="2.5"/>
   <circle cx="45" cy="12" r="2.3" fill="#1f2340"/><circle cx="55" cy="12" r="2.3" fill="#1f2340"/>
   <ellipse cx="50" cy="54" rx="27" ry="31" fill="#15803d" stroke="#14532d" stroke-width="3"/>
@@ -256,16 +259,14 @@ export function mount(root, _entries, api) {
     const ctx = canvas.getContext('2d');
     const body = el('div', { class: 'tt-body' });
     body.innerHTML = TURTLE_SVG;
-    const pen = el('span', { class: 'tt-pen', 'aria-hidden': 'true' }, '✏️');
-    const turtle = el('div', { class: 'tt-turtle' }, body, pen);
+    const turtle = el('div', { class: 'tt-turtle' }, body);
     const stage = el('div', { class: 'tt-stage' }, canvas, turtle);
     const redraw = () => paint(ctx, canvas.width / SIZE, { segs, partial, target });
     function place(x, y) {
       turtle.style.left = `${(x / SIZE) * 100}%`;
       turtle.style.top = `${(y / SIZE) * 100}%`;
       body.style.transform = `rotate(${deg}deg)`;
-      pen.classList.toggle('up', !st.pen);
-      pen.style.setProperty('--pc', penColor(st.color).css);
+      turtle.style.setProperty('--pc', penColor(st.color).css);
       Object.assign(turtle.dataset, { x: Math.round(x), y: Math.round(y), h: st.h, pen: st.pen ? 'down' : 'up' });
     }
     function home() {

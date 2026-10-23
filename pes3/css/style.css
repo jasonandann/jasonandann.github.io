@@ -661,9 +661,8 @@ button.rb-cell:active { background: #dcfce7; }
 .tt-turtle { position: absolute; width: 13%; aspect-ratio: 1; transform: translate(-50%, -50%); pointer-events: none; }
 .tt-body { width: 100%; height: 100%; }
 .tt-body svg { width: 100%; height: 100%; display: block; overflow: visible; }
-.tt-pen { position: absolute; right: -55%; top: -45%; font-size: clamp(.9rem, 3.4vw, 1.3rem); line-height: 1;
-  filter: drop-shadow(0 0 2px var(--pc, #1f2340)); transition: transform .2s; }
-.tt-pen.up { transform: rotate(180deg); }
+.tt-ink { fill: var(--pc, #1f2340); }
+.tt-turtle[data-pen="up"] .tt-tail-down, .tt-turtle[data-pen="down"] .tt-tail-up { display: none; }
 .tt-keys { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 270px; }
 .tt-key { display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 2px 8px; border-radius: 12px;
   border: 3px solid var(--cc, #94a3b8); background: var(--cb, #f1f5f9); font-weight: 700; font-size: .85rem; text-align: left; }
