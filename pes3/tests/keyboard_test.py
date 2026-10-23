@@ -49,7 +49,15 @@ try:
         def layout(): return page.evaluate("(document.querySelector('.kb').className.match(/kb-(\\w+)/) || [])[1]")
         def ls(k): return page.evaluate(f"localStorage.getItem('{k}')")
         def parent_panel():
-            page.keyboard.type("parent"); page.wait_for_selector(".overlay h2:has-text('Grown-ups')")
+            # grown-ups passcode (issue #32; tests/parent_test.py): set it the first time, else type it
+            page.keyboard.type("parent"); page.wait_for_selector(".overlay .pin-pad, .overlay h2:has-text('Grown-ups only')")
+            if page.locator(".overlay .pin-pad").count():
+                setup = page.locator(".overlay h2", has_text="Set a").count() == 1
+                page.keyboard.type("1234"); page.keyboard.press("Enter")
+                if setup:
+                    page.keyboard.type("1234"); page.keyboard.press("Enter")
+                    tap(".overlay [data-act='saved']")
+            page.wait_for_selector(".overlay h2:has-text('Grown-ups only')")
         def type_on_screen(word):
             for ch in word: page.locator(".kb .key", has_text=ch).first.tap()
 

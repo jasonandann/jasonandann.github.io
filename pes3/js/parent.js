@@ -1,11 +1,20 @@
 // Hidden "grown-ups" panel. Opened by tapping the page title 5 times quickly,
 // or by typing "parent" on the home screen. Nothing on the child-facing screens links here.
+// A passcode (issue #32) is set the first time and asked for every time it opens.
 import { el, getProgress, clearProgress, isLetters, abcAllowed, setAbcAllowed } from './util.js';
 import { offlineStatus, updateNow, resetOffline } from './offline.js';
 import { lookaheadMode, setLookaheadMode, getStats, clearStats, isFluent, fluentCount, fluentNeeded, getFluency, setFluency } from './games/baffle.js';
+import { canHash } from './passcode.js';
+import { unlock, changePasscode, replaceRecoveryCode } from './parent-lock.js';
 
 export function openParent(entries) {
   if (document.querySelector('.overlay')) return;
+  // No Web Crypto = plain http on a LAN address (the real site is https): no passcode possible.
+  if (!canHash) showPanel(entries);
+  else unlock(() => showPanel(entries));
+}
+
+function showPanel(entries) {
   const p = getProgress();
   const rows = entries
     .map((e) => {
@@ -29,7 +38,7 @@ export function openParent(entries) {
     onclick: () => { setLookaheadMode(m); reopen(); },
   }, label);
   const bfRows = bfWords.filter((w) => bf.words[w]);
-  const reopen = () => { close(); openParent(entries); };
+  const reopen = () => { close(); showPanel(entries); }; // already unlocked: don't ask again
   const picker = (label, value, options, save) => el('label', { class: 'pick' }, label,
     el('select', { onchange: (e) => { save(Number(e.target.value)); reopen(); } },
       options.map(([v, text]) => el('option', { value: v, selected: v === value }, text))));
@@ -67,6 +76,7 @@ export function openParent(entries) {
   const overlay = el('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true' },
     el('div', { class: 'panel' },
       el('h2', {}, 'Grown-ups only'),
+      canHash ? null : el('p', { class: 'flag nolock' }, 'Not locked here: the passcode needs a secure (https) connection. The real site is fine.'),
       el('p', { class: 'small' }, 'Saved only in this browser on this device. “First try” = spelled correctly with no misses or hints.'),
       el('h3', {}, 'Words to keep practicing'),
       el('p', {}, focus.length ? focus.join(', ') : 'Nothing stands out yet.'),
@@ -101,6 +111,14 @@ export function openParent(entries) {
       days.length
         ? el('table', {}, el('tbody', {}, days.map(([d, v]) => el('tr', {}, el('td', {}, d), el('td', {}, `${v.c + v.m} rounds`)))))
         : el('p', {}, 'No practice recorded yet.'),
+      canHash ? [
+        el('h3', {}, 'Passcode'),
+        el('p', { class: 'small' }, 'Asked every time this panel opens. Forgot it? Use “Forgot passcode?” and the recovery code. '
+          + 'A new recovery code replaces the old one.'),
+        el('div', { class: 'row' },
+          el('button', { class: 'btn', type: 'button', 'data-act': 'change-pin', onclick: () => { close(); changePasscode(() => showPanel(entries)); } }, 'Change passcode'),
+          el('button', { class: 'btn', type: 'button', 'data-act': 'new-code', onclick: () => { close(); replaceRecoveryCode(() => showPanel(entries)); } }, 'New recovery code')),
+      ] : null,
       el('h3', {}, 'App updates'),
       offNote,
       el('div', { class: 'row' },
@@ -115,7 +133,7 @@ export function openParent(entries) {
         el('button', {
           class: 'btn', type: 'button',
           onclick: () => {
-            if (confirm('Erase all saved practice history on this device?')) { clearProgress(); clearStats(); close(); openParent(entries); }
+            if (confirm('Erase all saved practice history on this device?')) { clearProgress(); clearStats(); reopen(); }
           },
         }, 'Erase history'),
       ),

@@ -145,7 +145,11 @@ Open the panel from the home screen by either:
 - tapping the **"Spelling Time" title 5 times within 3 seconds**, or
 - typing **parent** on a keyboard.
 
-Nothing visible links to it. Data lives in `localStorage` for that browser on that device only (not synced between iPad and Chromebook). Browsers can clear site storage (Safari in particular if the site goes unused for a while), so treat it as a convenience, not a record.
+Nothing visible links to it.
+
+**Passcode.** The first time the panel opens it asks you to choose a 4–6 digit passcode (typed twice), then shows a **recovery code** (like `7K3Q-M9TD`) once: write it down or take a photo, and keep it where your child can't see it. After that the panel asks for the passcode every time it opens. After 3 wrong tries it waits 30 seconds, then twice as long after each further wrong try (up to an hour), even if the page is reloaded. **Forgot it?** Tap *Forgot passcode?* and enter the recovery code to choose a new passcode (you get a new recovery code too). Without the recovery code there is deliberately no reset inside the app, because a child could use it too; the only way out is clearing the website's data in the browser settings, which also erases the practice history, the garden and saved coding projects. Inside the panel: *Change passcode* (keeps the recovery code) and *New recovery code* (the old one stops working). The passcode is stored as a salted hash, not as the digits. It keeps a curious child out; it is not real security (anyone with the browser's developer tools can get past it). Set it up yourself before your child finds the panel. On plain `http://` (e.g. testing from another device over the local network) browsers don't allow the hashing, so the panel opens without a passcode and says so; the real site (https) and `localhost` are fine.
+
+Data lives in `localStorage` for that browser on that device only (not synced between iPad and Chromebook). Browsers can clear site storage (Safari in particular if the site goes unused for a while), so treat it as a convenience, not a record.
 
 ## Better pronunciation (optional): pre-generated audio
 
@@ -233,6 +237,9 @@ css/style.css
 js/app.js            menu + routing + hidden parent triggers
 js/util.js           parsing, speech, on-screen keyboard, progress, round runner
 js/parent.js         grown-ups panel
+js/settings.js       grown-ups settings (passcode and, later, parental controls)
+js/passcode.js       passcode hashing, wrong-try waits, recovery code
+js/parent-lock.js    passcode screens in front of the panel
 js/offline.js        registers sw.js, update checks, reload on the home menu
 js/math.js           math question generator, level picker, quiz loop
 js/games/*.js        one file per game (mathquiz.js holds 5 math games; robot-levels.js = Robot Course maps)
