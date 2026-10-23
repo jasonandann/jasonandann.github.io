@@ -71,6 +71,7 @@ pip install playwright && playwright install chromium   # tests only
 python3 tools/make_dictionary.py       # only when changing the source list or blocklist
 python3 tests/smoke_test.py && python3 tests/zombie_test.py && python3 tests/new_games_test.py && python3 tests/baffle_test.py && python3 tests/river_test.py && python3 tests/robot_test.py && python3 tests/turtle_test.py && python3 tests/studio_test.py && python3 tests/deeplink_test.py && python3 tests/keyboard_test.py && python3 tests/parent_test.py && python3 tests/sw_test.py   # 42 + 42 + 67 + 68 + 39 + 132 + 78 + 59 + 17 + 38 + 60 + 54 checks
 ```
+CDP touch drags in tests (`Input.dispatchTouchEvent`) must rest ~150 ms before `touchEnd`: a full-speed lift starts a Chromium fling, and a tap within ~1 s only stops it (pointer/touch events, no click), which made smoke's Home tap after Word Search flaky (measured 2026-10-23: 15/15 taps lost at 0.5 s, 5/15 at 1 s, 0 at 1.5 s or with a rest). Real Chromebook touchscreens may behave the same (unverified).
 Tests start their own `http.server` (ports 8765/8766/8768/8769/8770/8771/8772/8773/8774/8775/8776/8777), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
 ## Status / verified
