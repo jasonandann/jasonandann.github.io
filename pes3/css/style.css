@@ -475,6 +475,9 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
 .gd-plot { aspect-ratio: 1; font-size: clamp(1.6rem, 7vw, 2.6rem); background: rgba(120, 53, 15, .25); border: 0; border-radius: 12px; }
 .gd-plot.young { background: rgba(120, 53, 15, .35); }
 .gd-plot.boing { animation: flip .5s; }
+.gd-special { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; width: min(94vw, 520px); padding: 8px; background: #fef9c3; border: 2px solid #fde68a; border-radius: 14px; }
+.gd-rare { display: flex; flex-direction: column; align-items: center; font-weight: 700; font-size: .9rem; }
+.gd-rare-icon { font-size: 2rem; }
 .gd-sky { min-height: 2.2rem; font-size: 2rem; display: flex; gap: 14px; justify-content: center; }
 .gd-critter { animation: bob 3s ease-in-out infinite; animation-delay: calc(var(--i) * -.6s); }
 @keyframes bob { 50% { transform: translateY(-10px); } }
@@ -865,11 +868,20 @@ button.rb-cell:active { background: #dcfce7; }
 .bt-pair { gap: 18px; align-items: flex-start; }
 
 /* ---------- Dragon Egg Quest ---------- */
+.qt-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; width: min(100%, 760px); }
+.qt-pick { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 10px; min-height: 120px; background: var(--card); border: 2px solid var(--soft); border-radius: var(--radius); box-shadow: 0 2px 0 var(--soft); }
+.qt-pick:active { transform: translateY(2px); box-shadow: none; }
+.qt-pick-icon { font-size: 2.2rem; }
+.qt-pick-name { font-size: 1.15rem; font-weight: 800; }
+.qt-pick-blurb { font-size: .95rem; opacity: .7; }
+.qt-badge { font-size: .85rem; font-weight: 800; color: var(--brand); background: #eef2ff; border-radius: 999px; padding: 2px 10px; }
+.qt-badge.done { color: #166534; background: var(--good-bg); }
+.qt-all { margin-top: 4px; }
 .qt-shelf { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .qt-pet { display: flex; flex-direction: column; align-items: center; font-weight: 700; font-size: .95rem; }
-.qt-pet .qt-dragon { font-size: 2rem; }
-.qt-dragon { display: inline-block; }
-.qt-dragon.hatched { animation: qt-hatch .8s; }
+.qt-pet .qt-found { font-size: 2rem; }
+.qt-found { display: inline-block; }
+.qt-found.hatched { animation: qt-hatch .8s; }
 @keyframes qt-hatch { 0% { transform: scale(.2) rotate(-20deg); } 70% { transform: scale(1.2); } 100% { transform: none; } }
 .qt { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
 .qt-map { display: flex; align-items: center; width: min(100%, 760px); padding: 8px; background: #fefce8; border: 2px solid #fde68a; border-radius: 14px; }

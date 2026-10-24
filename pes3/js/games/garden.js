@@ -1,5 +1,5 @@
 // My Garden: every finished question in any game grows the garden. It only ever grows.
-import { el, gardenPoints } from '../util.js';
+import { el, gardenPoints, specialPlants } from '../util.js';
 
 const FLOWERS = ['🌷', '🌻', '🌼', '🌸', '🌹', '🪻', '🌺', '🍄', '🪷', '💐'];
 const PER_FLOWER = 4;   // points per new flower
@@ -28,10 +28,13 @@ export function mount(root) {
       }, sym),
     );
   }
+  const special = specialPlants(); // from Study Quest's Seed Ark
   const sky = el('div', { class: 'gd-sky' }, SKY.slice(0, critters).map((c, i) => el('span', { class: 'gd-critter', style: `--i:${i}` }, c)));
   root.append(
     el('p', { class: 'prompt' }, flowers === 0 && sprout === 0 ? 'Finish a question in any game to plant your first seed.' : 'Your garden grows every time you finish a question.'),
     sky,
+    special.length ? el('div', { class: 'gd-special', 'aria-label': 'Special plants' },
+      special.map((p) => el('span', { class: 'gd-rare' }, el('span', { class: 'gd-rare-icon' }, p.icon), el('span', {}, p.name)))) : null,
     el('div', { class: 'gd-field' }, plots),
   );
 }
