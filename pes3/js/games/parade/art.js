@@ -169,7 +169,7 @@ const EXTRA = {
 
 /* ---------- outfits (fixed anchors: head top y 62, eyes y 96, neck y 126) ---------- */
 const OUTFIT_BACK = {
-  cape: `<path d="M84 112 Q60 170 66 206 L174 206 Q180 170 156 112 Z" fill="#dc2626" ${S}/>`,
+  cape: `<path d="M82 126 Q60 170 66 206 L174 206 Q180 170 158 126 Z" fill="#dc2626" ${S}/>`,
 };
 const OUTFIT = {
   tophat: `<ellipse cx="120" cy="66" rx="34" ry="7" fill="${INK}"/><rect x="100" y="24" width="40" height="42" rx="3" fill="${INK}"/><rect x="100" y="54" width="40" height="7" fill="#dc2626"/>`,
@@ -185,7 +185,7 @@ const OUTFIT = {
   scarf: `<path d="M80 124 Q120 140 160 124 L162 136 Q120 152 78 136 Z" fill="#ef4444" ${S}/><path d="M140 136 L146 170 L132 170 L130 140 Z" fill="#ef4444" ${S}/><path d="M86 128 V138 M100 132 V143 M116 134 V146 M132 133 V145 M148 130 V140" stroke="#fff" stroke-width="3"/>`,
   sash: `<path d="M82 110 L92 104 L162 176 L152 184 Z" fill="#fde047" ${S}/><path d="M118 140 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1 Z" fill="#dc2626"/>`,
   shades: `<path class="shades" d="M82 88 H158 V98 Q158 110 146 110 H132 Q124 110 122 100 H118 Q116 110 108 110 H94 Q82 110 82 98 Z" fill="${INK}"/><path d="M90 92 L100 92" stroke="#fff" stroke-width="3" opacity=".6"/>`,
-  cape: `<path d="M84 112 Q120 124 156 112" fill="none" stroke="#dc2626" stroke-width="7" stroke-linecap="round"/><circle cx="120" cy="120" r="5" fill="#facc15" ${S}/>`,
+  cape: `<path d="M80 128 L94 136 L108 134 Z M160 128 L146 136 L132 134 Z" fill="#dc2626" ${S} stroke-width="2"/><path d="M86 130 Q120 142 154 130" fill="none" stroke="#dc2626" stroke-width="5" stroke-linecap="round"/><circle cx="120" cy="138" r="5" fill="#facc15" ${S}/>`, // collar at the shoulders, below the mouth
 };
 
 /* ---------- props (hands at (66,140) and (174,140)) ---------- */
@@ -291,8 +291,8 @@ const RIDES = {
     + '<g fill="#bfdbfe" stroke="#1f2340" stroke-width="2"><rect x="26" y="166" width="30" height="22" rx="3"/><rect x="64" y="166" width="30" height="22" rx="3"/><rect x="146" y="166" width="30" height="22" rx="3"/><rect x="184" y="166" width="30" height="22" rx="3"/></g>'
     + `<rect x="214" y="190" width="10" height="8" rx="2" fill="#fde047"/>` + wheel(56, 214, 14, mv) + wheel(184, 214, 14, mv) },
   car: { lift: 0, back: () => '', front: (mv) => `<path d="M10 178 Q20 152 64 152 H180 Q220 152 230 178 V216 H10 Z" fill="#06b6d4" ${S}/><path d="M176 152 L164 134" ${S} stroke-width="4"/><rect x="214" y="168" width="12" height="10" rx="3" fill="#fde047"/><path d="M110 166 V206" stroke="${INK}" stroke-width="2" opacity=".5"/>` + wheel(54, 218, 15, mv) + wheel(186, 218, 15, mv) },
-  firetruck: { lift: 6, back: () => `<path d="M20 120 L220 98" stroke="#9ca3af" stroke-width="10"/><path d="M20 120 L220 98" stroke="#e5e7eb" stroke-width="5" stroke-dasharray="4 10"/>`,
-    front: (mv) => `<rect x="10" y="162" width="220" height="44" rx="6" fill="#dc2626" ${S}/><rect x="182" y="140" width="44" height="30" rx="5" fill="#dc2626" ${S}/><rect x="190" y="146" width="28" height="16" rx="3" fill="#bfdbfe" stroke="${INK}" stroke-width="2"/><circle cx="204" cy="136" r="6" fill="#60a5fa" ${S}/><rect x="20" y="178" width="150" height="6" fill="#facc15"/>` + wheel(48, 208, 15, mv) + wheel(196, 208, 15, mv) },
+  firetruck: { lift: 6, back: () => '',
+    front: (mv) => `<rect x="10" y="162" width="220" height="44" rx="6" fill="#dc2626" ${S}/><rect x="182" y="140" width="44" height="30" rx="5" fill="#dc2626" ${S}/><rect x="190" y="146" width="28" height="16" rx="3" fill="#bfdbfe" stroke="${INK}" stroke-width="2"/><circle cx="204" cy="136" r="6" fill="#60a5fa" ${S}/>` + ladder(22, 178, 172, 178) + wheel(48, 208, 15, mv) + wheel(196, 208, 15, mv) }, // a ladder mounted along the truck's side
   band: { lift: 0, shift: 10, scale: 0.92, side: true, walk: true, back: (mv) => {
     // The monster leads at the front right; the band follows on the left in two lines: the far line (smaller,
     // higher, further away) behind the monster, the near line (bigger) in front of it.
@@ -321,6 +321,19 @@ function light(x, y, c, i, mv) {
   const dim = LIGHT_SHADES[c] || c;
   const anim = mv ? `<animate attributeName="fill" values="${dim};${c};${dim};${dim}" dur="1.2s" begin="${(i * 0.3).toFixed(1)}s" repeatCount="indefinite"/>` : '';
   return `<circle cx="${x}" cy="${y}" r="9" fill="${c}" ${S} stroke-width="2">${anim}</circle>`;
+}
+// The fire truck's ladder from (x1,y1) to (x2,y2): two rails and rungs.
+function ladder(x1, y1, x2, y2) {
+  const len = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+  const nx = -uy * 7, ny = ux * 7; // half the ladder's width, across it
+  const rail = (k) => `<path d="M${(x1 + nx * k).toFixed(1)} ${(y1 + ny * k).toFixed(1)} L${(x2 + nx * k).toFixed(1)} ${(y2 + ny * k).toFixed(1)}" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>`
+    + `<path d="M${(x1 + nx * k).toFixed(1)} ${(y1 + ny * k).toFixed(1)} L${(x2 + nx * k).toFixed(1)} ${(y2 + ny * k).toFixed(1)}" stroke="#e5e7eb" stroke-width="3.5" stroke-linecap="round"/>`;
+  let rungs = '';
+  for (let d = 8; d < len - 4; d += 12) {
+    const cx = x1 + ux * d, cy = y1 + uy * d;
+    rungs += `<path d="M${(cx - nx).toFixed(1)} ${(cy - ny).toFixed(1)} L${(cx + nx).toFixed(1)} ${(cy + ny).toFixed(1)}" stroke="#9ca3af" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  return rungs + rail(1) + rail(-1);
 }
 // A balloon rope from a handler's hand (x1,y1) up to the balloon (x2,y2); its top end sways with the balloon.
 function rope(x1, y1, x2, y2, mv) {
