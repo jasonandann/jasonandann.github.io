@@ -71,7 +71,7 @@ try:
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
         check("menu has 27 cards", page.locator(".mcard").count() == 27)
-        check("menu: Battle Buddies is in the Fun section", page.locator(".sect", has_text="Fun").locator(".mcard", has_text="Battle Buddies").count() == 1)
+        check("menu: Battle Buddies is in the Adventures section", page.locator(".sect", has_text="Adventures").locator(".mcard", has_text="Battle Buddies").count() == 1)
 
         # ---- believable math slips
         slips = page.evaluate("""async () => { const m = await import('/js/mistakes.js');

@@ -24,7 +24,7 @@ friend
 
 ## Games
 
-Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
+Home screen sections: **Spelling**, **Math**, **Coding**, **Adventures** (games that ask spelling, math or both), **Brain Games** (no spelling or math), **Rewards**.
 
 **Spelling** (use `words.txt`; each finished word is recorded in the hidden progress)
 
@@ -42,11 +42,13 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
 | Look, Cover, Write, Check | Studies the word, hides it, writes it from memory, compares |
 | See the Words | Study list; tap a word to hear it |
 
-**Math** (grade-3 style; levels: add/subtract within 100, times tables 2-5, 2-10, or times and division). The games start straight away at the remembered level (Add & subtract until one is chosen); the ⚙️ in the top corner changes it and starts again. Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Fun) can also do math. Not recorded in the hidden progress.
+**Math** (grade-3 style; levels: add/subtract within 100, times tables 2-5, 2-10, or times and division). The games start straight away at the remembered level (Add & subtract until one is chosen); the ⚙️ in the top corner changes it and starts again. Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Adventures) can also do math. Not recorded in the hidden progress.
 
 **Coding**: Robot Course, Turtle Draw and Code Studio (below). All three share one engine in `js/code/`.
 
-**Fun**: Zombie Trail (below), Battle Buddies and Study Quest (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
+**Adventures**: Zombie Trail (below), Battle Buddies, Study Quest and Crystal Cave (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games).
+
+**Brain Games**: Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 
 **Rewards**: My Garden. Every finished question in any game (right first time or not) is one point; every 4 points grows a flower, and butterflies and bees arrive later. It only grows, never shrinks, and shows no numbers. Stored in `localStorage` (`spelling-games.garden.v1`); the parent panel's "Erase history" does not touch it.
 
@@ -54,7 +56,7 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
 
 Add `#<name>` to the address, e.g. `https://jasonandann.net/pes3/#robot`. The page shows that game's card with a **▶ Tap to start** button: the tap is needed because an iPad only lets a page speak inside a tap. While a game is open the address bar shows its link (so you can copy it); **‹ Home** clears it. An unknown name just shows the menu. Names are not case-sensitive. The names live in `SECTIONS` in `js/app.js` (`id`).
 
-| Spelling | | Math | | Coding / Fun / Rewards | |
+| Spelling | | Math | | Coding / Adventures / Brain Games / Rewards | |
 |---|---|---|---|---|---|
 | See the Words | `#words` | Number Bubbles | `#bubbles` | Robot Course | `#robot` |
 | Word Jumble | `#jumble` | Number Cascade | `#cascade` | Zombie Trail | `#zombie` |
@@ -66,7 +68,7 @@ Add `#<name>` to the address, e.g. `https://jasonandann.net/pes3/#robot`. The pa
 | Baffle | `#baffle` | | | Code Studio | `#studio` |
 | Word Search | `#search` | | | Spot Match | `#spot` |
 | Wordal | `#wordal` | | | Study Quest | `#quest` |
-| Listen & Type | `#listen` | | | | |
+| Listen & Type | `#listen` | | | Crystal Cave | `#cave` |
 
 The new spelling and math games are original vanilla-JS re-implementations of the mechanics in [Spellbound](https://github.com/benSlaughter/spellbound) (MIT per its README); none of its code was copied. Differences from Spellbound, chosen for a child who discourages easily: no timers, no best scores, no unlock gating, no lives.
 
@@ -158,6 +160,20 @@ Oregon Trail-style journeys. Pick one of eight stories; each has a trail map, fo
 - Stories are data: one file each in `js/games/quests/` (the shape is described at the top of `js/games/quests/index.js`). To add a story, copy one, edit the words and add it to `STORIES`; `tests/quest_test.py` checks every story and plays each one to the end. The history and science facts were checked against the sources listed in each file.
 - Keys: `spelling-games.quest.<story>.save.v2`, `.quest.<story>.found.v1`, `.quest.mode`; Seed Ark's plants `spelling-games.garden.special.v1`. The first version's Dragon Egg save and dragons move over automatically.
 
+### Crystal Cave
+
+A dungeon crawl for 2–4 heroes, inspired by the board game *The Quest Kids* (issue #61; only the mechanics are borrowed, the names and pictures are our own). Heroes take turns turning over tiles in a cave of rooms and walls. Green tiles are always good, gray ones may hide a bad guy, red ones have the biggest bad guys and the best rewards.
+
+- **Cards are earned by answering.** A tile like "Double Power" gives 2 cards, one question each: **Power** = math, **Wisdom** = spelling, **Magic** = either. Green tiles ask easier questions, gray medium, red harder. A missed question just means one card fewer.
+- **Bad guys** are scared away by spending the cards they show. Short? **🤝 Ask for help** (the others are asked counter-clockwise, one card at a time; each card given earns the giver a Kind Kid card: a heart, a bonus card, a star or a treasure), **💪 Brave try** (one question a step harder per missing card; all right = scared away), or **🏃 Back away** (lose a heart; with none left you rest a turn and get one back). **Gems** are bought with cards (no help). Treasure tiles draw from the treasure bag. Each hero has a quest card (e.g. "Hold 3 Power cards") worth stars.
+- **Players**: seat 1 is her; seats 2–4 are **Nobody / 🙂 Person / 🤖 Computer** in any mix. One person (with or without computer heroes) = a **team game** against the cave, with 🥉🥈🥇 star targets; two or more people = **most stars wins** (ties: most Kind Kid cards), passing the device ("Pass to Dad ➜", "I'm Dad ▶"). Solo dive (nobody else) works too.
+- Each person picks a hero (viking, knight, elf, wizard; SVG drawings), a name, a **Math** level and **Words**: *Our word list* (hers), *Starter words* (Dolch sight words, without sound-alikes such as to/two), or *Grown-up words* (Baffle's dictionary, 6–9 letters; some are rare because the dictionary has no word frequencies, see issue #62).
+- **Computer heroes**: 🌱 Just right (plays a little below her hidden skill, like Battle Buddies), ⚔️ Normal, 🔥 No Mercy (when people compete: goes for red tiles and the bad guys she uncovered, answers almost everything). On her team they always help.
+- **⚙️ More options**: cave size Short / Medium / Long (16 / 25 / 42 tiles) and second chance on/off. The game is saved after every turn (**▶ Continue our adventure**).
+- Only her answers count: her list words go in the hidden progress, and each of her questions is a garden point. Other people's answers record nothing.
+- **Off by default while it's being tested**: tick it under *Games* in the grown-ups panel to try it on your device (it stays hidden on any device where it isn't ticked). Remove `off: true` from its entry in `js/app.js` when it's ready for her.
+- The cards and tiles in `js/games/cave/deck.js` are placeholders until the board game's card list (a CSV) arrives; the team targets are guesses from simulated games. Files: `js/games/cave.js` (screen), `cave/rules.js`, `cave/bot.js`, `cave/deck.js`, `cave/art.js`; questions come from `js/questions.js`.
+
 ### Zombie Trail
 
 Roll a die, answer a question. Right: move ahead by the roll. Wrong: move back by the roll. Landing on a 🚀 shortcut jumps you ahead; landing on a 🧟 zombie sends you back (arrows and "→ 23" / "← 11" labels show where). Reach square 35 (🏁) to win; you do not need an exact roll.
@@ -177,13 +193,15 @@ The on-screen keyboard avoids iPad autocorrect and predictive text. A physical k
 
 ## Hidden progress (grown-ups only)
 
-Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, Zombie Trail, Lily Pad River, Battle Buddies and Study Quest record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Code Studio, Spot Match, Simon Says, and math questions in the mixed games do not record anything (Battle Buddies keeps its own hidden estimate, above). In Wordal, "first try" means solved within the first two guesses.
+Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, Zombie Trail, Lily Pad River, Battle Buddies, Study Quest and Crystal Cave (her own list words) record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Code Studio, Spot Match, Simon Says, and math questions in the mixed games do not record anything (Battle Buddies keeps its own hidden estimate, above). In Wordal, "first try" means solved within the first two guesses.
 
 Open the panel from the home screen by either:
 - tapping the **"Spelling Time" title 5 times within 3 seconds**, or
 - typing **parent** on a keyboard.
 
 Nothing visible links to it.
+
+**Games on/off** (issue #33). The panel lists every game by section; untick one to hide it from the menu (saved at once, on this device only). A section with no games left disappears, and a link to a hidden game (`#simon`) opens the menu instead. A new game that's still being tested can ship switched off (`off: true` on its entry in `SECTIONS` in `js/app.js`): it stays hidden until you tick it here, so you can try it on your own device while it's invisible on hers. Settings are per device and browser, so on a shared device remember to untick it again.
 
 **Passcode.** The first time the panel opens it asks you to choose a 4–6 digit passcode (typed twice), or tap **Don't use a passcode** if you don't want one (you can set one later in the panel). With a passcode it then shows a **recovery code** (like `7K3Q-M9TD`): write it down or take a photo, and keep it where your child can't see it. Nothing is saved until you tap **I've saved it**, so the passcode can never be saved without you having seen its code; if the device refuses to save, or the passcode was changed in another tab meanwhile, it says "Not saved" and nothing changes. After that the panel asks for the passcode every time it opens. After 3 wrong tries it waits 30 seconds, then twice as long after each further wrong try (up to an hour), even if the page is reloaded. **Forgot it?** Tap *Forgot passcode?* and enter the recovery code to choose a new passcode (you get a new recovery code too). Without the recovery code there is deliberately no reset inside the app, because a child could use it too; the only way out is clearing the website's data in the browser settings, which also erases the practice history, the garden and saved coding projects. Inside the panel: *Change passcode* (keeps the recovery code), *New recovery code* (the old one stops working) and *Turn off passcode*. The passcode is stored as a salted hash, not as the digits. It keeps a curious child out; it is not real security (anyone with the browser's developer tools can get past it). Set it up yourself before your child finds the panel.
 
@@ -258,7 +276,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/parent_test.py`, `python3 tests/battle_test.py`, `python3 tests/quest_test.py`, `python3 tests/wordsearch_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/parent_test.py`, `python3 tests/battle_test.py`, `python3 tests/quest_test.py`, `python3 tests/cave_test.py`, `python3 tests/wordsearch_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 
@@ -282,10 +300,11 @@ js/passcode.js       passcode hashing, wrong-try waits, recovery code
 js/parent-lock.js    passcode screens in front of the panel
 js/offline.js        registers sw.js, update checks, reload on the home menu
 js/math.js           math question generator, level picker, quiz loop
-js/challenge.js      one question with an answer box (Battle Buddies, Study Quest)
+js/challenge.js      one question with an answer box (Battle Buddies, Study Quest, Crystal Cave)
 js/options.js        ⚙️ Options pop-up shared by the games (choice rows, summary button, corner gear)
+js/questions.js      questions by subject and difficulty tier (her list / Starter / Grown-up words, tiered math)
 js/mistakes.js       believable misspellings and math slips
-js/games/*.js        one file per game (mathquiz.js holds 5 math games; robot-levels.js = Robot Course maps; quests/ = Study Quest's stories; battle-bot.js = the computer player)
+js/games/*.js        one file per game (mathquiz.js holds 5 math games; robot-levels.js = Robot Course maps; quests/ = Study Quest's stories; battle-bot.js = the computer player; cave/ = Crystal Cave's rules, computer heroes, cards and pictures)
 js/code/             shared coding engine (program walker/runner, step chips, turn words, beeps)
 audio/               optional recordings + manifest.json + pronunciations.txt
 dict/words.txt       real-word list for Baffle (generated; see tools/make_dictionary.py)

@@ -122,7 +122,7 @@ try:
             return info
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
-        check("menu: Study Quest is in the Fun section (no Dragon Egg Quest card)", page.locator(".sect", has_text="Fun").locator(".mcard", has_text="Study Quest").count() == 1 and page.locator(".mcard", has_text="Dragon Egg Quest").count() == 0)
+        check("menu: Study Quest is in the Adventures section (no Dragon Egg Quest card)", page.locator(".sect", has_text="Adventures").locator(".mcard", has_text="Study Quest").count() == 1 and page.locator(".mcard", has_text="Dragon Egg Quest").count() == 0)
 
         # ---- every story's data is complete and follows the kid rules
         bad = page.evaluate("async () => { const m = await import('/js/games/quests/index.js'); return { ids: m.STORIES.map(s => s.id), bad: m.STORIES.flatMap(m.checkStory) }; }")
