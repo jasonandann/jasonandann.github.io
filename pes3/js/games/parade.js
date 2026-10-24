@@ -99,7 +99,7 @@ export function mount(root, entries, api) {
       slot: cur ? SLOTS[slotIx] || null : null, count: settings.count, mode: settings.mode,
     });
 
-    const draw = () => { stage.innerHTML = cur ? scene(cur.monster, cur.items) : ''; };
+    const draw = () => { stage.innerHTML = cur ? scene(cur.monster, cur.items, { blink: !still() }) : ''; }; // she watches this one: it blinks
     const drawLine = () => line.replaceChildren(...Array.from({ length: settings.count }, (_, i) => {
       const r = ready[i];
       return r ? el('div', { class: 'pd-spot done' }, art(scene(r.monster, r.items), 'pd-mini'), el('span', { class: 'pd-name' }, r.name))

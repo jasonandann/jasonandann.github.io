@@ -122,15 +122,25 @@ function arms(fill) {
 function feet(fill) {
   return `<ellipse cx="102" cy="198" rx="15" ry="8" fill="${fill}" ${S}/><ellipse cx="138" cy="198" rx="15" ry="8" fill="${fill}" ${S}/>`;
 }
-// side: facing right (rides seen side-on); walk: feet step while the parade moves (mv).
-export function monsterSvg(m, { side = false, walk = false, mv = false } = {}) {
+// side: facing right (rides seen side-on); walk: feet step while the parade moves (mv); blink: the eyes blink now
+// and then. A blink is one tiny animation per monster (the eyes squash flat for a moment), at a random pace so a
+// parade of monsters never blinks together.
+function blinking(eyesSvg, on) {
+  if (!on) return eyesSvg;
+  const dur = (3 + Math.random() * 3).toFixed(1);
+  const begin = (Math.random() * 3).toFixed(1);
+  return `<g transform="translate(0 96)"><g>`
+    + `<animateTransform attributeName="transform" type="scale" values="1 1;1 1;1 .1;1 1" keyTimes="0;.94;.97;1" dur="${dur}s" begin="${begin}s" repeatCount="indefinite"/>`
+    + `<g transform="translate(0 -96)">${eyesSvg}</g></g></g>`;
+}
+export function monsterSvg(m, { side = false, walk = false, mv = false, blink = false } = {}) {
   const fill = fillOf(m);
   const shiftTo = (x, sx, inner) => (side ? `<g transform="translate(${x} 0) scale(${sx} 1) translate(-120 0)">${inner}</g>` : inner);
   const ft = side && walk && mv
     ? [102, 138].map((x, i) => `<g><ellipse cx="${x}" cy="198" rx="15" ry="8" fill="${fill}" ${S}/>${step(i)}</g>`).join('')
     : feet(fill);
   return ft + shiftTo(130, 1, top(m, fill)) + `<path d="${BODY}" fill="${fill}" ${S}/>` + shiftTo(128, 0.85, pattern(m)) + arms(fill)
-    + eyes(m, side) + shiftTo(148, 0.7, mouth(m));
+    + blinking(eyes(m, side), blink) + shiftTo(148, 0.7, mouth(m));
 }
 
 /* ---------- extras (wings, tails, fur): all drawn behind the body, so they peek out around its fixed outline ---------- */
@@ -175,23 +185,43 @@ const OUTFIT = {
 };
 
 /* ---------- props (hands at (66,140) and (174,140)) ---------- */
+// Each prop is a function of mv (the parade is moving): then it does its thing (shake, wave, twirl, tap...).
+// moved(inner, anim) wraps a part so the animation moves only that part.
+const moved = (inner, anim, mv) => (mv ? `<g>${inner}${anim}</g>` : inner);
 const pom = (x, y, c) => `<g fill="${c}" stroke="${INK}" stroke-width="2">${Array.from({ length: 10 }, (_, i) => {
   const a = (i / 10) * Math.PI * 2;
   return `<circle cx="${(x + Math.cos(a) * 9).toFixed(1)}" cy="${(y + Math.sin(a) * 9).toFixed(1)}" r="6"/>`;
 }).join('')}<circle cx="${x}" cy="${y}" r="8" stroke="none"/></g>`;
+// A bubble that rises from the wand, growing, then pops (shrinks to nothing) and starts again.
+const bubble = (x, y, r, begin) => `<circle cx="${x}" cy="${y}" r="${r}"><animate attributeName="cy" values="${y + 34};${y}" dur="2.4s" begin="${begin}s" repeatCount="indefinite"/>`
+  + `<animate attributeName="r" values="2;${r};${r};0" keyTimes="0;.3;.9;1" dur="2.4s" begin="${begin}s" repeatCount="indefinite"/></circle>`;
+// A music note that floats up out of the trumpet's bell and shrinks away.
+const note = (begin) => `<g><g transform="translate(214 116)"><g><ellipse cx="0" cy="0" rx="6" ry="4.5" fill="${INK}"/><path d="M5.5 0 V-17 L13 -14" fill="none" stroke="${INK}" stroke-width="2.5"/>`
+  + `<animateTransform attributeName="transform" type="scale" values="1;1;0" keyTimes="0;.7;1" dur="1.6s" begin="${begin}s" repeatCount="indefinite"/></g></g>`
+  + `<animateTransform attributeName="transform" type="translate" values="0 0;12 -40" dur="1.6s" begin="${begin}s" repeatCount="indefinite"/></g>`;
 const PROP_BACK = {
-  flag: `<path d="M176 146 V46" ${S}/><path d="M176 48 Q190 42 204 52 Q190 60 176 74 Z" fill="#3b82f6" ${S}/><path d="M186 54 l2 5 5 0 -4 3 2 5 -5 -3 -4 3 2 -5 -4 -3 5 0 Z" fill="#fff"/>`,
-  baton: `<path d="M178 150 L190 50" stroke="#e5e7eb" stroke-width="7" stroke-linecap="round"/><path d="M178 150 L190 50" fill="none" ${S} stroke-width="1.5"/><circle cx="191" cy="44" r="10" fill="#facc15" ${S}/><path d="M190 56 Q200 66 194 78" fill="none" stroke="#dc2626" stroke-width="3.5"/>`,
-  balloons: `<path d="M176 146 L188 66 M176 146 L202 82 M176 146 L174 80" stroke="${INK}" stroke-width="1.5" fill="none"/>`
+  flag: (mv) => `<path d="M176 146 V46" ${S}/>` + moved(`<path d="M176 48 Q190 42 204 52 Q190 60 176 74 Z" fill="#3b82f6" ${S}/><path d="M186 54 l2 5 5 0 -4 3 2 5 -5 -3 -4 3 2 -5 -4 -3 5 0 Z" fill="#fff"/>`,
+    swing(176, 60, 0, 9, 0.9), mv),
+  baton: (mv) => moved(`<path d="M178 150 L190 50" stroke="#e5e7eb" stroke-width="7" stroke-linecap="round"/><path d="M178 150 L190 50" fill="none" ${S} stroke-width="1.5"/><circle cx="191" cy="44" r="10" fill="#facc15" ${S}/><path d="M190 56 Q200 66 194 78" fill="none" stroke="#dc2626" stroke-width="3.5"/>`,
+    swing(178, 150, 0, 24, 1.1), mv),
+  balloons: (mv) => moved(`<path d="M176 146 L188 66 M176 146 L202 82 M176 146 L174 80" stroke="${INK}" stroke-width="1.5" fill="none"/>`
     + `<ellipse cx="188" cy="54" rx="12" ry="15" fill="#ef4444" ${S}/><ellipse cx="203" cy="72" rx="12" ry="15" fill="#22c55e" ${S}/><ellipse cx="173" cy="70" rx="12" ry="15" fill="#3b82f6" ${S}/>`,
-  bubbles: `<path d="M176 146 L192 100" stroke="#a16207" stroke-width="4" stroke-linecap="round"/><circle cx="195" cy="91" r="10" fill="none" stroke="#a16207" stroke-width="3"/>`
-    + '<g fill="#bae6fd" fill-opacity=".45" stroke="#38bdf8" stroke-width="2"><circle cx="204" cy="66" r="8"/><circle cx="188" cy="54" r="6"/><circle cx="206" cy="44" r="5"/></g>',
-  streamers: `<path d="M176 146 L182 108" stroke="#a16207" stroke-width="4" stroke-linecap="round"/><path d="M182 108 Q196 96 188 80 Q182 66 198 58" fill="none" stroke="#ec4899" stroke-width="4"/><path d="M182 108 Q202 108 204 92 Q206 78 212 70" fill="none" stroke="#22c55e" stroke-width="4"/><path d="M182 108 Q192 122 208 116" fill="none" stroke="#facc15" stroke-width="4"/>`,
+  swing(176, 146, 0, 6, 2.2), mv),
+  bubbles: (mv) => `<path d="M176 146 L192 100" stroke="#a16207" stroke-width="4" stroke-linecap="round"/><circle cx="195" cy="91" r="10" fill="none" stroke="#a16207" stroke-width="3"/>`
+    + `<g fill="#bae6fd" fill-opacity=".45" stroke="#38bdf8" stroke-width="2">${mv ? bubble(204, 66, 8, 0) + bubble(190, 54, 6, 0.8) + bubble(206, 44, 5, 1.6)
+      : '<circle cx="204" cy="66" r="8"/><circle cx="188" cy="54" r="6"/><circle cx="206" cy="44" r="5"/>'}</g>`,
+  streamers: (mv) => `<path d="M176 146 L182 108" stroke="#a16207" stroke-width="4" stroke-linecap="round"/>`
+    + moved('<path d="M182 108 Q196 96 188 80 Q182 66 198 58" fill="none" stroke="#ec4899" stroke-width="4"/>', swing(182, 108, 0, 10, 0.8), mv)
+    + moved('<path d="M182 108 Q202 108 204 92 Q206 78 212 70" fill="none" stroke="#22c55e" stroke-width="4"/>', swing(182, 108, 0.25, 8, 0.8), mv)
+    + moved('<path d="M182 108 Q192 122 208 116" fill="none" stroke="#facc15" stroke-width="4"/>', swing(182, 108, 0.5, 12, 0.8), mv),
 };
 const PROP = {
-  pompoms: pom(64, 146, '#ec4899') + pom(176, 146, '#facc15'),
-  drum: `<path d="M98 158 H142" stroke="#fff" stroke-width="0"/><rect x="94" y="150" width="52" height="34" rx="4" fill="#ef4444" ${S}/><ellipse cx="120" cy="150" rx="26" ry="7" fill="#f8fafc" ${S}/><path d="M96 158 L120 180 L144 158" fill="none" stroke="#facc15" stroke-width="3"/><path d="M66 146 L104 138 M174 146 L136 138" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="104" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/><circle cx="136" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/>`,
-  trumpet: `<path d="M176 144 L200 132" stroke="#eab308" stroke-width="7" stroke-linecap="round"/><path d="M196 126 L212 116 L214 144 L198 138 Z" fill="#facc15" ${S}/><rect x="182" y="130" width="5" height="10" fill="#a16207"/><rect x="189" y="126" width="5" height="10" fill="#a16207"/>`,
+  pompoms: (mv) => moved(pom(64, 146, '#ec4899'), swing(66, 146, 0, 14, 0.5), mv) + moved(pom(176, 146, '#facc15'), swing(174, 146, 0.25, 14, 0.5), mv),
+  drum: (mv) => `<rect x="94" y="150" width="52" height="34" rx="4" fill="#ef4444" ${S}/><ellipse cx="120" cy="150" rx="26" ry="7" fill="#f8fafc" ${S}/><path d="M96 158 L120 180 L144 158" fill="none" stroke="#facc15" stroke-width="3"/>`
+    + moved(`<path d="M66 146 L104 138" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="104" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, swing(66, 146, 0, 9, 0.5), mv)
+    + moved(`<path d="M174 146 L136 138" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="136" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, swing(174, 146, 0.25, 9, 0.5), mv),
+  trumpet: (mv) => `<path d="M176 144 L200 132" stroke="#eab308" stroke-width="7" stroke-linecap="round"/><path d="M196 126 L212 116 L214 144 L198 138 Z" fill="#facc15" ${S}/><rect x="182" y="130" width="5" height="10" fill="#a16207"/><rect x="189" y="126" width="5" height="10" fill="#a16207"/>`
+    + (mv ? note(0) + note(0.8) : ''),
 };
 
 /* ---------- rides (the monster sits in, on or under them) ---------- */
@@ -265,11 +295,13 @@ function scallops() {
   for (let x = 28; x < 212; x += 20) d += ` Q${x + 10} ${x % 40 === 28 ? 208 : 211} ${Math.min(x + 20, 212)} 222`;
   return d;
 }
-// One of the float's lights; while moving they blink one after another (a chase), with a soft glow.
+// One of the float's lights; while moving they glow brighter one after another (a chase). Colour changes between a
+// deep and a bright shade, so a light dims and brightens but never disappears.
+const LIGHT_SHADES = { '#fde047': '#a16207', '#fb7185': '#9f1239' };
 function light(x, y, c, i, mv) {
-  const blink = (vals) => (mv ? `<animate attributeName="opacity" values="${vals}" dur="1.2s" begin="${(i * 0.3).toFixed(1)}s" repeatCount="indefinite"/>` : '');
-  return `<circle cx="${x}" cy="${y}" r="14" fill="${c}" opacity="${mv ? 0 : 0}">${blink('0;.55;0;0')}</circle>`
-    + `<circle cx="${x}" cy="${y}" r="9" fill="${c}" ${S} stroke-width="2">${blink('1;1;.25;1')}</circle>`;
+  const dim = LIGHT_SHADES[c] || c;
+  const anim = mv ? `<animate attributeName="fill" values="${dim};${c};${dim};${dim}" dur="1.2s" begin="${(i * 0.3).toFixed(1)}s" repeatCount="indefinite"/>` : '';
+  return `<circle cx="${x}" cy="${y}" r="9" fill="${c}" ${S} stroke-width="2">${anim}</circle>`;
 }
 // A balloon rope from a handler's hand (x1,y1) up to the balloon (x2,y2); its top end sways with the balloon.
 function rope(x1, y1, x2, y2, mv) {
@@ -281,9 +313,11 @@ export const VIEWBOX = '0 -50 240 290'; // tall enough for the tallest hat on th
 // True if this ride shows the monster side-on (it then faces right, the way the parade goes).
 export const sideOn = (ride) => !!(RIDES[ride] && RIDES[ride].side);
 // The whole picture: the monster plus whatever it has so far. items = {extra?, outfit?, prop?, ride?} (item ids).
-// opts.moving = the parade is rolling: wheels turn, legs march, the balloon bobs. Leave it off for still
-// pictures (choices, the line-up) and when the device asks for reduced motion.
-export function scene(monster, items = {}, { moving = false } = {}) {
+// opts.moving = the parade is rolling: wheels turn, legs march, the balloon bobs, props do their thing. Leave it
+// off for still pictures (choices, the line-up) and when the device asks for reduced motion.
+// opts.blink = the eyes blink now and then (on by default when moving; the game also turns it on for the big
+// monster she is dressing, unless reduced motion).
+export function scene(monster, items = {}, { moving = false, blink = moving } = {}) {
   const ride = RIDES[items.ride] || null;
   const mv = !!moving;
   const lift = ride ? ride.lift : 0;
@@ -293,8 +327,8 @@ export function scene(monster, items = {}, { moving = false } = {}) {
   let outfit = OUTFIT[items.outfit] || '';
   if (side && items.outfit === 'shades') outfit = `<g transform="translate(143 0) scale(0.78 1) translate(-120 0)">${outfit}</g>`;
   const extra = EXTRA[items.extra] ? EXTRA[items.extra](fillOf(monster)) : '';
-  const body = extra + (OUTFIT_BACK[items.outfit] || '') + (PROP_BACK[items.prop] || '') + monsterSvg(monster, { side, walk: ride && ride.walk, mv }) + shine
-    + outfit + (PROP[items.prop] || '');
+  const body = extra + (OUTFIT_BACK[items.outfit] || '') + (PROP_BACK[items.prop] ? PROP_BACK[items.prop](mv) : '') + monsterSvg(monster, { side, walk: ride && ride.walk, mv, blink }) + shine
+    + outfit + (PROP[items.prop] ? PROP[items.prop](mv) : '');
   const dx = ride && ride.shift ? ride.shift : 0;
   let me = `<g transform="translate(${120 + dx} ${200 - lift}) scale(${k}) translate(-120 -200)">${body}</g>`;
   if (ride && ride.bob && mv) me = `<g>${me}<animateTransform attributeName="transform" type="translate" values="0 0;0 -8;0 0" dur="2.6s" repeatCount="indefinite"/></g>`;

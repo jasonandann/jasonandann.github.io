@@ -121,8 +121,8 @@ try:
         # ---- a 3-monster math parade
         g0 = gp()
         tap(".pd-start")
-        check("stage: the monster is big (>= 50% of the window's height) and not moving", page.locator(".pd-stage").bounding_box()["height"] >= 0.5 * 768
-              and "<animate" not in page.locator(".pd-stage").inner_html(), str(page.locator(".pd-stage").bounding_box()))
+        check("stage: the monster is big (>= 50% of the window's height); it only blinks", page.locator(".pd-stage").bounding_box()["height"] >= 0.5 * 768
+              and page.locator(".pd-stage").inner_html().count("<animate") == 1 and 'values="1 1;1 1;1 .1;1 1"' in page.locator(".pd-stage").inner_html(), str(page.locator(".pd-stage").bounding_box()))
         check("a monster arrives with a name box and Skip", page.locator(".pd-stage svg").count() == 1 and page.locator(".pd-panel .text-in").count() == 1 and page.locator(".pd-skip").count() == 1)
         check("strip: 3 places, none ready yet", page.locator(".pd-spot").count() == 3 and page.locator(".pd-spot.done").count() == 0)
         page.locator(".pd-panel .text-in").fill("Gloopy"); tap(".pd-named")
