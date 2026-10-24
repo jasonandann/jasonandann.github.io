@@ -3,6 +3,7 @@
 // no longer fit, until she can name it. "Take turns" also has the computer guess her word, asking her the
 // same kind of questions. Questions are buttons, never typed; answers come from js/sounds.js (CMU dictionary).
 import { el, speak, speakWord, chooseWords, celebrate, scope, award, cheer } from '../util.js';
+import { choice, openOptions, optionsButton } from '../options.js';
 import { loadSounds, knowsSound, splitting, answer, FAMILIES } from '../sounds.js';
 
 const OPTS_KEY = 'spelling-games.guesswhat.options';
@@ -39,6 +40,7 @@ const put = (node, ...kids) => node.replaceChildren(...kids.flat().filter(Boolea
 export function mount(root, entries, api) {
   let sc = scope();
   let alive = true;
+  let pop = null; // open options pop-up (Putting cards down is a grown-up option, Jason 2026-10-24)
   const settings = loadOptions();
   const bot = robotName();
   const ms = (n) => (fast() ? Math.round(n / 8) : n);
@@ -76,7 +78,13 @@ export function mount(root, entries, api) {
         el('h2', {}, '❓ Guess What'),
         el('p', { class: 'prompt' }, 'The computer hides one of your words. Ask how it sounds, put down the words that don’t fit, and find it!'),
         seg('Play', 'play', [['solo', '🔎 Just me'], ['turns', `🤖 Take turns with ${bot}`]]),
-        seg('Putting cards down', 'flip', [['me', '✋ I do it'], ['auto', '🪄 Help me']]),
+        optionsButton({ summary: `Putting cards down: ${settings.flip === 'auto' ? 'Help me' : 'I do it'}`, onOpen: () => {
+          pop = openOptions({
+            onClose: setup,
+            body: (redraw) => [choice('Putting cards down', settings.flip, [['me', '✋ I do it'], ['auto', '🪄 Help me']],
+              (v) => { settings.flip = v; saveOptions(settings); redraw(); })],
+          });
+        } }),
         el('button', { class: 'btn primary big gw-start', type: 'button', onclick: () => start(known) }, 'Start!'),
       ),
     );
@@ -332,5 +340,5 @@ export function mount(root, entries, api) {
     } else herTurn();
   }
 
-  return () => { alive = false; sc.dispose(); };
+  return () => { alive = false; sc.dispose(); if (pop) pop.dispose(); };
 }

@@ -53,7 +53,10 @@ try:
         def open_game(play="solo", flip="me"):
             page.goto(URL); page.wait_for_selector(".mcard")
             tap(".mcard", has_text="Guess What"); page.wait_for_selector(".gw-start", timeout=10000)
-            opt("play", play); opt("flip", flip); tap(".gw-start")
+            opt("play", play)
+            tap(".opt-more"); page.wait_for_selector(".opt-panel")
+            tap(".opt-panel button:has-text('" + ("Help me" if flip == "auto" else "I do it") + "')"); tap(".opt-panel .opt-done")
+            tap(".gw-start")
             page.wait_for_selector(".gw-card")
         def flip_right():  # put down exactly the cards the answer ruled out, then Done
             s = state()
@@ -224,7 +227,8 @@ try:
 
         # ---- options are remembered
         page.goto(URL); page.wait_for_selector(".mcard"); tap(".mcard", has_text="Guess What"); page.wait_for_selector(".gw-start")
-        check("options remembered (turns, I do it)", page.locator("[data-opt='play:turns'].primary").count() == 1 and page.locator("[data-opt='flip:me'].primary").count() == 1)
+        check("options remembered (turns, I do it)", page.locator("[data-opt='play:turns'].primary").count() == 1 and page.locator(".opt-summary").inner_text() == "Putting cards down: I do it")
+        check("start screen: only Just me / Take turns; cards-down is under ⚙️ Options", page.locator("[data-opt^='flip:']").count() == 0 and page.locator(".opt-more").count() == 1)
 
         # ---- phone width
         page.set_viewport_size({"width": 390, "height": 760})
