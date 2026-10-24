@@ -3,7 +3,14 @@
 import { el, chooseWords, isLetters, speakWord, celebrate, noWords } from '../util.js';
 
 const DIRS = [[0, 1], [1, 0], [1, 1]];
-const MAX = 14;
+const MIN = 8; // smaller boards = bigger letters for small fingers (issue #51)
+const MAX = 12;
+const WORDS = 6;
+// All 8 drag directions as [dr, dc], in angle order (0 = right, then clockwise since rows go down).
+const DIRS8 = [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]];
+const HYST = 0.25; // a drag reaches a quarter cell into the next letter before it grows or shrinks
+const DIR_HYST = 0.14; // radians (~8 deg) past a direction boundary before the line swings over
+const SLACK = 1; // a selection may run one letter past the word (issue #51: fingers overshoot)
 
 // words: UPPERCASE strings. Returns {grid, placements, size} or null if it can't fit.
 export function generate(words, size) {
@@ -45,9 +52,30 @@ export function lineCells(a, b) {
   return Array.from({ length: len + 1 }, (_, k) => ({ r: a.r + sr * k, c: a.c + sc * k }));
 }
 
+// Where a drag from `start` ends, snapped to the nearest of 8 directions (issue #51: diagonals needed a
+// perfect 45 deg). pos = pointer in cell units ({x: col, y: row}, cell centres at k + 0.5). prev = the last
+// result, so small wobbles near a boundary don't flip the length or the direction. Returns {r, c, dir, len}.
+export function snapEnd(start, pos, size, prev) {
+  const dx = pos.x - (start.c + 0.5);
+  const dy = pos.y - (start.r + 0.5);
+  const angle = Math.atan2(dy, dx);
+  let dir = ((Math.round(angle / (Math.PI / 4)) % 8) + 8) % 8;
+  if (prev && prev.len) {
+    const off = Math.abs(Math.atan2(Math.sin(angle - prev.dir * Math.PI / 4), Math.cos(angle - prev.dir * Math.PI / 4)));
+    if (off < Math.PI / 8 + DIR_HYST) dir = prev.dir;
+  }
+  const [dr, dc] = DIRS8[dir];
+  const steps = (dx * dc + dy * dr) / (dr && dc ? 2 : 1);
+  const was = prev && (prev.dir === dir || !prev.len) ? prev.len : null;
+  let len = was !== null && Math.abs(steps - was) < 0.5 + HYST ? was : Math.max(0, Math.round(steps));
+  const fits = (k) => { const r = start.r + dr * k; const c = start.c + dc * k; return r >= 0 && r < size && c >= 0 && c < size; };
+  while (len > 0 && !fits(len)) len--;
+  return { r: start.r + dr * len, c: start.c + dc * len, dir, len };
+}
+
 function build(words) {
   const longest = Math.max(...words.map((w) => w.length));
-  for (let s = Math.min(MAX, Math.max(10, longest + 1)); s <= MAX; s++) {
+  for (let s = Math.min(MAX, Math.max(MIN, longest)); s <= MAX; s++) {
     for (let t = 0; t < 30; t++) {
       const r = generate(words, s);
       if (r) return r;
@@ -61,7 +89,7 @@ export function mount(root, entries, api) {
   if (!pool.length) return noWords(root);
 
   function play() {
-    let chosen = chooseWords(pool, 8);
+    let chosen = chooseWords(pool, WORDS);
     let built = null;
     while (chosen.length) {
       built = build(chosen.map((e) => e.word.toUpperCase()));
@@ -94,26 +122,50 @@ export function mount(root, entries, api) {
 
     let preview = [];
     const clearPreview = () => { preview.forEach((d) => d.classList.remove('sel')); preview = []; };
-    function showPreview(a, b) {
+    function showPreview(line) {
       clearPreview();
-      const line = lineCells(a, b) || [a];
       preview = line.map((p) => cells[p.r][p.c]);
       preview.forEach((d) => d.classList.add('sel'));
     }
+    // A miss fades out the letters that were checked, so she can see what the game read (never says "wrong").
+    function showMiss(line) {
+      gridEl.querySelectorAll('.miss').forEach((d) => d.classList.remove('miss'));
+      line.forEach((p) => {
+        const d = cells[p.r][p.c];
+        void d.offsetWidth; // restart the animation
+        d.classList.add('miss');
+      });
+    }
+    const placed = (p) => Array.from({ length: p.word.length }, (_, k) => ({ r: p.r + p.dr * k, c: p.c + p.dc * k }));
 
-    function evaluate(a, b) {
-      const line = lineCells(a, b);
-      if (!line || line.length < 2) return;
+    // line = selected cells. Accepts the exact word (either way round), or a remaining word lying inside the
+    // selection with at most SLACK extra letters. Returns true if a word was found.
+    function evaluate(line) {
+      if (!line || line.length < 2) return false;
       const str = line.map((p) => grid[p.r][p.c]).join('');
       const rev = [...str].reverse().join('');
-      const hit = remaining.has(str) ? str : remaining.has(rev) ? rev : null;
-      if (!hit) return; // quietly ignore misses
+      let hit = remaining.has(str) ? str : remaining.has(rev) ? rev : null;
+      let lit = line;
+      if (!hit) {
+        const sel = new Set(line.map((p) => p.r + ',' + p.c));
+        for (const p of remaining.values()) {
+          if (p.word.length > line.length || line.length - p.word.length > SLACK) continue;
+          if ((!hit || p.word.length > hit.length) && placed(p).every((q) => sel.has(q.r + ',' + q.c))) hit = p.word;
+        }
+        if (hit) lit = placed(remaining.get(hit));
+      }
+      if (!hit) return false;
       remaining.delete(hit);
       const f = foundCount++ % 6;
-      line.forEach((p) => { const d = cells[p.r][p.c]; d.classList.add('found'); d.dataset.f = f; });
+      lit.forEach((p) => { const d = cells[p.r][p.c]; d.classList.add('found'); d.dataset.f = f; });
       chips.get(hit).classList.add('found');
       speakWord(hit.toLowerCase());
       if (!remaining.size) win();
+      return true;
+    }
+    function finish(line) {
+      clearPreview();
+      if (line && !evaluate(line)) showMiss(line);
     }
 
     function win() {
@@ -127,50 +179,66 @@ export function mount(root, entries, api) {
       celebrate(root);
     }
 
+    // Pointer position in cell units, measured from the corner cells so the gaps between letters aren't dead
+    // zones (issue #51: elementFromPoint found no cell there).
+    function gridPos(e) {
+      const a = cells[0][0].getBoundingClientRect();
+      const z = cells[size - 1][size - 1].getBoundingClientRect();
+      return { x: ((e.clientX - a.left) / (z.right - a.left)) * size, y: ((e.clientY - a.top) / (z.bottom - a.top)) * size };
+    }
     function cellAt(e) {
-      let t = document.elementFromPoint ? document.elementFromPoint(e.clientX, e.clientY) : null;
-      if (!t || !t.closest) t = e.target;
-      const c = t && t.closest ? t.closest('.cell') : null;
-      return c && gridEl.contains(c) ? { r: +c.dataset.r, c: +c.dataset.c } : null;
+      const { x, y } = gridPos(e);
+      if (x < -0.25 || y < -0.25 || x > size + 0.25 || y > size + 0.25) return null;
+      const clamp = (v) => Math.min(size - 1, Math.max(0, Math.floor(v)));
+      return { r: clamp(y), c: clamp(x) };
     }
 
-    let start = null;
+    // One finger at a time (issue #51: a resting palm or second finger reset the drag). The answer is checked
+    // against the line on screen, never re-measured where the finger lifts (lifting rolls the contact point).
+    // A press that never leaves its letter is a tap: tap the first letter, then the last.
+    let drag = null; // {id, start, end: snapEnd result, moved}
     let tapStart = null;
-    let dragging = false;
     const same = (a, b) => a.r === b.r && a.c === b.c;
     gridEl.addEventListener('pointerdown', (e) => {
+      if (drag) return;
       const cell = cellAt(e);
       if (!cell) return;
       e.preventDefault();
-      if (tapStart) { // second tap of a tap-tap selection
-        evaluate(tapStart, cell);
-        tapStart = null;
-        clearPreview();
-        return;
-      }
-      start = cell;
-      dragging = true;
-      showPreview(cell, cell);
+      if (gridEl.setPointerCapture) try { gridEl.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      drag = { id: e.pointerId, start: cell, end: { ...cell, dir: 0, len: 0 }, moved: false };
+      showPreview(tapStart ? lineCells(tapStart, cell) || [cell] : [cell]);
     });
     gridEl.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      const cell = cellAt(e);
-      if (cell) showPreview(start, cell);
+      if (!drag || e.pointerId !== drag.id) return;
+      drag.end = snapEnd(drag.start, gridPos(e), size, drag.end);
+      if (drag.end.len) drag.moved = true;
+      if (!drag.moved) return;
+      tapStart = null; // a real drag starts over, whatever was tapped before
+      showPreview(lineCells(drag.start, drag.end));
     });
     gridEl.addEventListener('pointerup', (e) => {
-      if (!dragging) return;
-      dragging = false;
-      const cell = cellAt(e) || start;
-      if (same(cell, start)) {
-        tapStart = start; // keep it highlighted; waiting for the second tap
-        showPreview(start, start);
-      } else {
-        evaluate(start, cell);
+      if (!drag || e.pointerId !== drag.id) return;
+      const { start, end, moved } = drag;
+      drag = null;
+      if (moved) {
+        if (end.len) finish(lineCells(start, end));
+        else clearPreview(); // slid back to the first letter: nothing selected
+      } else if (!tapStart) {
+        tapStart = start; // keep it highlighted; waiting for the last letter
+        showPreview([start]);
+      } else if (same(tapStart, start)) {
+        tapStart = null; // tapped the same letter again: cancel
         clearPreview();
+      } else {
+        const line = lineCells(tapStart, start);
+        if (line) { tapStart = null; finish(line); }
+        else { tapStart = start; showPreview([start]); } // not in a line: start over from this letter
       }
-      start = null;
     });
-    gridEl.addEventListener('pointercancel', () => { dragging = false; start = null; tapStart = null; clearPreview(); });
+    gridEl.addEventListener('pointercancel', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      drag = null; tapStart = null; clearPreview();
+    });
 
     root.replaceChildren(
       el('p', { class: 'prompt' }, 'Find the words. Drag across the letters, or tap the first and last letter.'),
