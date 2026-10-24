@@ -204,11 +204,23 @@ const bubble = (x, y, r, begin) => `<circle cx="${x}" cy="${y}" r="${r}"><animat
 const note = (begin, x = 196, y = 112, dx = -14, dy = -42) => `<g><g transform="translate(${x} ${y})"><g><ellipse cx="0" cy="0" rx="6" ry="4.5" fill="${INK}"/><path d="M5.5 0 V-17 L13 -14" fill="none" stroke="${INK}" stroke-width="2.5"/>`
   + `<animateTransform attributeName="transform" type="scale" values="1;1;0" keyTimes="0;.7;1" dur="1.6s" begin="${begin}s" repeatCount="indefinite"/></g></g>`
   + `<animateTransform attributeName="transform" type="translate" values="0 0;${dx} ${dy}" dur="1.6s" begin="${begin}s" repeatCount="indefinite"/></g>`;
+const MACE = `<path d="M176 168 L189 60" stroke="${INK}" stroke-width="11" stroke-linecap="round"/>`
+  + `<path d="M176 168 L189 60" stroke="#f8fafc" stroke-width="7" stroke-linecap="round"/>`
+  + `<path d="M176 168 L189 60" stroke="#facc15" stroke-width="7" stroke-dasharray="4 8"/>`
+  + `<circle cx="175.5" cy="170" r="5" fill="#facc15" ${S} stroke-width="2"/>`
+  + `<path d="M183 62 Q174 74 177 88 M197 62 Q206 74 201 90" fill="none" stroke="#dc2626" stroke-width="3"/>`
+  + `<path d="M173 86 l8 0 -1 9 -6 0 Z M197 88 l8 0 -1 9 -6 0 Z" fill="#dc2626" ${S} stroke-width="1.5"/>`
+  + `<ellipse cx="190" cy="57" rx="9" ry="4" fill="#facc15" ${S} stroke-width="2"/>`
+  + `<circle cx="191" cy="44" r="12" fill="#facc15" ${S}/><circle cx="187" cy="40" r="3.5" fill="#fff" opacity=".8"/>`
+  + `<path d="M182 44 H200" stroke="#a16207" stroke-width="2"/>`
+  + `<path d="M188 32 L191 22 L194 32 Z" fill="#facc15" ${S} stroke-width="2"/>`;
 const PROP_BACK = {
   flag: (mv) => `<path d="M176 146 V46" ${S}/>` + moved(`<path d="M176 48 Q190 42 204 52 Q190 60 176 74 Z" fill="#3b82f6" ${S}/><path d="M186 54 l2 5 5 0 -4 3 2 5 -5 -3 -4 3 2 -5 -4 -3 5 0 Z" fill="#fff"/>`,
     swing(176, 60, 0, 9, 0.9), mv),
-  baton: (mv) => moved(`<path d="M178 150 L190 50" stroke="#e5e7eb" stroke-width="7" stroke-linecap="round"/><path d="M178 150 L190 50" fill="none" ${S} stroke-width="1.5"/><circle cx="191" cy="44" r="10" fill="#facc15" ${S}/><path d="M190 56 Q200 66 194 78" fill="none" stroke="#dc2626" stroke-width="3.5"/>`,
-    `<animateTransform attributeName="transform" type="rotate" values="-28 178 150;4 178 150;-28 178 150" dur="1.1s" repeatCount="indefinite"/>`, mv),
+  // A drum major's mace: thick banded shaft, an ornate gold head (collar, shine, finial), red cords with tassels.
+  // Moving: it swings inward and pumps up and down, the way a drum major struts.
+  baton: (mv) => moved(MACE, `<animateTransform attributeName="transform" type="rotate" values="-24 178 150;4 178 150;-24 178 150" dur="1.1s" repeatCount="indefinite"/>`
+    + `<animateTransform attributeName="transform" type="translate" values="0 0;0 -6;0 0;0 -6;0 0" dur="1.1s" repeatCount="indefinite" additive="sum"/>`, mv),
   balloons: (mv) => moved(`<path d="M176 146 L188 66 M176 146 L202 82 M176 146 L174 80" stroke="${INK}" stroke-width="1.5" fill="none"/>`
     + `<ellipse cx="188" cy="54" rx="12" ry="15" fill="#ef4444" ${S}/><ellipse cx="203" cy="72" rx="12" ry="15" fill="#22c55e" ${S}/><ellipse cx="173" cy="70" rx="12" ry="15" fill="#3b82f6" ${S}/>`,
   `<animateTransform attributeName="transform" type="rotate" values="-8 176 146;0 176 146;-8 176 146" dur="2.2s" repeatCount="indefinite"/>`, mv), // sways toward the monster, never past the edge
