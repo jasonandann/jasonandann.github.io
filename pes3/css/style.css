@@ -919,6 +919,41 @@ button.rb-cell:active { background: #dcfce7; }
   .qt-scene { padding: 10px; }
 }
 
+/* Guess What (issue #57) */
+.gw { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.gw-top { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; min-height: 0; }
+.gw-top:empty { display: none; }
+.btn.gw-mine { background: var(--warm-bg); border-color: var(--warm); }
+.gw-bot { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.gw-bot-face { font-size: 1.6rem; margin-right: 4px; }
+.gw-bot-tile { width: 14px; height: 20px; border-radius: 4px; background: var(--brand); transition: opacity .3s; }
+.gw-bot-tile.down { opacity: .18; }
+.gw-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; width: 100%; }
+.gw-card {
+  min-height: 58px; padding: 6px 8px; border-radius: 14px; border: 3px solid var(--soft); background: var(--card);
+  font-size: 1.35rem; font-weight: 800; transition: opacity .25s, transform .25s, background .25s;
+}
+.gw-card.down { opacity: .32; background: #e5e7eb; transform: scale(.94); text-decoration: line-through; }
+.gw-card.mine { border-color: var(--warm); }
+.gw-card.found { background: var(--good-bg); border-color: var(--good); opacity: 1; transform: scale(1.05); text-decoration: none; }
+.gw-card.nudge { animation: gw-nudge .8s; }
+@keyframes gw-nudge { 0%,100% { transform: none; } 25% { transform: rotate(-4deg) scale(1.05); } 75% { transform: rotate(4deg) scale(1.05); } }
+.gw-history { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.gw-history:empty { display: none; }
+.gw-chip { padding: 4px 10px; border-radius: 999px; background: var(--soft); font-weight: 700; font-size: .95rem; }
+.gw-chip.bot { background: #eef2ff; }
+.gw-panel { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.gw-q { min-width: 88px; font-size: 1.3rem; }
+.gw-q mark, .gw-chip mark { background: var(--warm-bg); color: inherit; border-radius: 4px; padding: 0 1px; text-decoration: underline; }
+.gw-hint { margin: 0; font-size: 1rem; opacity: .8; text-align: center; }
+.gw-botq { max-width: 560px; }
+@media (max-width: 560px) {
+  .gw-board { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+  .gw-card { font-size: 1.1rem; min-height: 50px; }
+  .gw-tab { padding: 0 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .gw-card.nudge { animation: none; outline: 3px solid var(--warm); } }
+
 /* ---------- Crystal Cave (js/games/cave.js) ---------- */
 .zt-setup.cv-setup { max-width: 940px; }
 .cv-seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; width: 100%; }

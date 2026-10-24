@@ -88,7 +88,7 @@ try:
             page.wait_for_selector(".pd-next", timeout=5000)
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.3)
-        check("menu has 28 cards", page.locator(".mcard").count() == 28)
+        check("menu has 29 cards", page.locator(".mcard").count() == 29)
         check("menu: Monster Parade is in Adventures", page.locator(".sect", has_text="Adventures").locator(".mcard", has_text="Monster Parade").count() == 1)
 
         # ---- art: every item renders and changes the picture
