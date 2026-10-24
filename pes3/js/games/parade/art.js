@@ -175,6 +175,23 @@ const EXTRA = {
 const OUTFIT_BACK = {
   cape: `<path d="M82 126 Q52 170 50 208 Q120 214 190 208 Q188 170 158 126 Z" fill="#dc2626" ${S}/>`,
 };
+// Side-view drawings for things that have a front (Jason, 2026-10-24): a crown seen from the side (narrower, within
+// the head, its round band curving, the big red jewel moved toward the front, a small one at the back) and a
+// turkey in profile facing the way the parade goes (tail fan back to the left, one eye, beak forward).
+const OUTFIT_SIDE = {
+  crown: `<path d="M96 70 L97 44 L107 56 L117 34 L129 54 L143 38 L148 68 Q122 76 96 70 Z" fill="#facc15" ${S}/>`
+    + `<path d="M97 66 Q122 72 148 64" fill="none" stroke="#a16207" stroke-width="2"/>`
+    + `<circle cx="97" cy="42" r="3" fill="#facc15" ${S} stroke-width="2"/><circle cx="117" cy="32" r="3.5" fill="#facc15" ${S} stroke-width="2"/><circle cx="143" cy="36" r="4" fill="#facc15" ${S}/>`
+    + `<circle cx="132" cy="61" r="5" fill="#ef4444" ${S}/><circle cx="108" cy="63" r="3" fill="#3b82f6"/>`,
+  turkey: (() => {
+    const cols = ['#dc2626', '#f97316', '#facc15', '#a16207', '#f97316'];
+    const fan = cols.map((c, i) => `<ellipse cx="104" cy="34" rx="7" ry="22" transform="rotate(${-78 + i * 18} 108 58)" fill="${c}" ${S}/>`).join('');
+    return fan + `<ellipse cx="120" cy="62" rx="22" ry="12" fill="#92400e" ${S}/><path d="M132 58 Q138 46 140 40" fill="none" stroke="${INK}" stroke-width="10" stroke-linecap="round"/><path d="M132 58 Q138 46 140 40" fill="none" stroke="#b45309" stroke-width="6" stroke-linecap="round"/>`
+      + `<circle cx="141" cy="37" r="8" fill="#b45309" ${S}/><circle cx="144" cy="35" r="2.6" fill="#fff"/><circle cx="144.8" cy="35.4" r="1.4" fill="${INK}"/>`
+      + `<path d="M148 36 L157 39 L148 42 Z" fill="#facc15" stroke="${INK}" stroke-width="1.5"/><path d="M149 42 Q151 48 147 51" fill="none" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round"/>`
+      + `<path d="M114 60 Q120 54 128 60" fill="none" stroke="#a16207" stroke-width="2"/>`;
+  })(),
+};
 // In side view the cape streams out behind (to the left), in the wind of the parade.
 const CAPE_SIDE = (mv) => moved(`<path d="M96 126 Q64 132 34 160 Q22 178 30 200 Q44 190 52 200 Q60 188 72 198 L150 200 Q152 160 150 126 Z" fill="#dc2626" ${S}/>`,
   swing(110, 126, 0, 4, 1.2), mv);
@@ -370,7 +387,8 @@ export function scene(monster, items = {}, { moving = false, blink = moving, sid
   let prop = PROP[items.prop] ? PROP[items.prop](mv) : '';
   if (side) { // facing right: things on the face and head follow the turned face; capes and scarf ends stream back
     if (items.outfit === 'shades') outfit = `<g transform="translate(143 0) scale(0.78 1) translate(-120 0)">${outfit}</g>`;
-    if (HATS.has(items.outfit) || items.outfit === 'cape') outfit = `<g transform="translate(8 0)">${outfit}</g>`;
+    if (OUTFIT_SIDE[items.outfit]) outfit = OUTFIT_SIDE[items.outfit];
+    else if (HATS.has(items.outfit) || items.outfit === 'cape') outfit = `<g transform="translate(8 0)">${outfit}</g>`;
     if (items.outfit === 'scarf') outfit = OUTFIT.scarf_side;
     if (items.outfit === 'cape') outfitBack = CAPE_SIDE(mv);
     if (items.prop === 'drum') prop = `<g transform="translate(9 0)">${prop}</g>`;
