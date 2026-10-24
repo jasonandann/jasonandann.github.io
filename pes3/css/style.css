@@ -1025,8 +1025,8 @@ button.rb-cell:active { background: #dcfce7; }
 .pd-empty { font-size: 1.3rem; opacity: .5; }
 .pd-name { font-size: .8rem; font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pd-main { display: flex; gap: 16px; align-items: flex-start; justify-content: center; flex-wrap: wrap; width: 100%; }
-/* As big as fits: ~58% of an iPad's height, nearly full width on a phone (art.js VIEWBOX is 240 x 276). */
-.pd-stage { width: min(92vw, 50vh, 520px); aspect-ratio: 240 / 276; flex: none; border-radius: 18px; background: linear-gradient(#e0f2fe, #fef9c3); box-shadow: 0 2px 0 var(--soft); }
+/* As big as fits: ~58% of an iPad's height, nearly full width on a phone (art.js VIEWBOX is 240 x 290). */
+.pd-stage { width: min(92vw, 50vh, 520px); aspect-ratio: 240 / 290; flex: none; border-radius: 18px; background: linear-gradient(#e0f2fe, #fef9c3); box-shadow: 0 2px 0 var(--soft); }
 .pd-stage svg { width: 100%; height: auto; display: block; }
 .pd-stage.pop { animation: pd-pop .5s; }
 @keyframes pd-pop { 0% { transform: scale(.94); } 60% { transform: scale(1.04); } 100% { transform: none; } }

@@ -122,7 +122,7 @@ try:
         g0 = gp()
         tap(".pd-start")
         check("stage: the monster is big (>= 50% of the window's height) and not moving", page.locator(".pd-stage").bounding_box()["height"] >= 0.5 * 768
-              and "animateTransform" not in page.locator(".pd-stage").inner_html(), str(page.locator(".pd-stage").bounding_box()))
+              and "<animate" not in page.locator(".pd-stage").inner_html(), str(page.locator(".pd-stage").bounding_box()))
         check("a monster arrives with a name box and Skip", page.locator(".pd-stage svg").count() == 1 and page.locator(".pd-panel .text-in").count() == 1 and page.locator(".pd-skip").count() == 1)
         check("strip: 3 places, none ready yet", page.locator(".pd-spot").count() == 3 and page.locator(".pd-spot.done").count() == 0)
         page.locator(".pd-panel .text-in").fill("Gloopy"); tap(".pd-named")
@@ -165,7 +165,7 @@ try:
         check("finale: the parade rolls by (an animation is running)", moving >= 1, str(moving))
         mv = page.evaluate("""() => { const a = document.querySelector('.pd-row').getAnimations()[0]; const k = a.effect.getKeyframes();
           return { from: k[0].transform, to: k[k.length - 1].transform,
-                   svgMove: [...document.querySelectorAll('.pd-marcher svg')].every((s) => s.innerHTML.includes('animateTransform')) }; }""")
+                   svgMove: [...document.querySelectorAll('.pd-marcher svg')].every((s) => s.innerHTML.includes('<animate')) }; }""")
         check("finale: rolls left to right", mv["from"].startswith("translateX(-") and not mv["to"].startswith("translateX(-"), str(mv))
         check("finale: monsters move (wheels/legs/bobbing in the SVG)", mv["svgMove"], str(mv))
         names = page.locator(".pd-marcher .pd-name").all_inner_texts()
@@ -230,7 +230,7 @@ try:
             p2.locator(".pd-next").first.click()
         p2.wait_for_selector(".pd-parade")
         check("reduced motion: the parade is a still row, nothing moving in the pictures", p2.locator(".pd-road.still").count() == 1
-              and "animateTransform" not in p2.locator(".pd-road").inner_html())
+              and "<animate" not in p2.locator(".pd-road").inner_html())
         ctx2.close()
 
         check("no console/page errors", not errors, "; ".join(errors[:3]))

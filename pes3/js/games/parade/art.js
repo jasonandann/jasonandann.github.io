@@ -208,37 +208,46 @@ const handler = (x, y, s, i, mv) => sideWalker(x, y, s, { coat: '#f97316', cap: 
 // walk (the monster's feet step), bob (the monster sways up and down), back(mv) drawn before it, front(mv) after.
 // The parade moves LEFT TO RIGHT: vehicles face right, and whatever follows is on the left.
 const RIDES = {
-  float: { lift: 14, back: (mv) => wheel(60, 229, 10, mv) + wheel(180, 229, 10, mv), front: () => `<path d="M18 186 H222 L212 222 H28 Z" fill="#a855f7" ${S}/><path d="M28 222 Q38 210 48 222 Q58 210 68 222 Q78 210 88 222 Q98 210 108 222 Q118 210 128 222 Q138 210 148 222 Q158 210 168 222 Q178 210 188 222 Q198 210 212 222" fill="#f0abfc" ${S}/>`
+  float: { lift: 14, back: () => '', front: (mv) => `<path d="M18 186 H222 L212 222 H28 Z" fill="#a855f7" ${S}/>${skirt(mv)}`
     + '<g><circle cx="40" cy="186" r="9" fill="#fde047"/><circle cx="80" cy="186" r="9" fill="#fb7185"/><circle cx="160" cy="186" r="9" fill="#fde047"/><circle cx="200" cy="186" r="9" fill="#fb7185"/></g>' },
-
-  bus: { lift: 20, back: () => '', front: (mv) => `<rect x="14" y="150" width="212" height="62" rx="10" fill="#ef4444" ${S}/><rect x="14" y="146" width="212" height="10" rx="4" fill="#facc15" ${S}/>`
+  bus: { lift: 4, back: () => '', front: (mv) => `<rect x="14" y="150" width="212" height="62" rx="10" fill="#ef4444" ${S}/><rect x="14" y="146" width="212" height="10" rx="4" fill="#facc15" ${S}/>`
     + '<g fill="#bfdbfe" stroke="#1f2340" stroke-width="2"><rect x="26" y="166" width="30" height="22" rx="3"/><rect x="64" y="166" width="30" height="22" rx="3"/><rect x="146" y="166" width="30" height="22" rx="3"/><rect x="184" y="166" width="30" height="22" rx="3"/></g>'
     + `<rect x="214" y="190" width="10" height="8" rx="2" fill="#fde047"/>` + wheel(56, 214, 14, mv) + wheel(184, 214, 14, mv) },
-  car: { lift: 12, back: () => '', front: (mv) => `<path d="M10 176 Q20 150 64 150 H180 Q220 150 230 176 V204 H10 Z" fill="#06b6d4" ${S}/><path d="M176 150 L164 132" ${S} stroke-width="4"/><rect x="214" y="166" width="12" height="10" rx="3" fill="#fde047"/>` + wheel(54, 206, 15, mv) + wheel(186, 206, 15, mv) },
+  car: { lift: 0, back: () => '', front: (mv) => `<path d="M10 178 Q20 152 64 152 H180 Q220 152 230 178 V216 H10 Z" fill="#06b6d4" ${S}/><path d="M176 152 L164 134" ${S} stroke-width="4"/><rect x="214" y="168" width="12" height="10" rx="3" fill="#fde047"/><path d="M110 166 V206" stroke="${INK}" stroke-width="2" opacity=".5"/>` + wheel(54, 218, 15, mv) + wheel(186, 218, 15, mv) },
   firetruck: { lift: 6, back: () => `<path d="M20 120 L220 98" stroke="#9ca3af" stroke-width="10"/><path d="M20 120 L220 98" stroke="#e5e7eb" stroke-width="5" stroke-dasharray="4 10"/>`,
     front: (mv) => `<rect x="10" y="162" width="220" height="44" rx="6" fill="#dc2626" ${S}/><rect x="182" y="140" width="44" height="30" rx="5" fill="#dc2626" ${S}/><rect x="190" y="146" width="28" height="16" rx="3" fill="#bfdbfe" stroke="${INK}" stroke-width="2"/><circle cx="204" cy="136" r="6" fill="#60a5fa" ${S}/><rect x="20" y="178" width="150" height="6" fill="#facc15"/>` + wheel(48, 208, 15, mv) + wheel(196, 208, 15, mv) },
-  band: { lift: 0, shift: 32, scale: 0.92, side: true, walk: true, back: (mv) => {
-    // The monster leads at the front right; the band follows on the left in two lines: the far line smaller and
-    // higher (further away), the near line bigger.
-    const far = [18, 52, 86].map((x, i) => bandMember(x, 180, 0.95, i, mv)).join('');
-    const near = [26, 72, 118].map((x, i) => bandMember(x, 230, 1.25, i + 1, mv)).join('');
-    return far + near;
-  }, front: () => '' },
+  band: { lift: 0, shift: 14, scale: 0.92, side: true, walk: true, back: (mv) => {
+    // The monster leads at the front right; the band follows on the left in two lines: the far line (smaller,
+    // higher, further away) behind the monster, the near line (bigger) in front of it.
+    return [18, 52, 86].map((x, i) => bandMember(x, 180, 0.95, i, mv)).join('');
+  }, front: (mv) => [26, 72, 118].map((x, i) => bandMember(x, 230, 1.25, i + 1, mv)).join('') }, // the near line passes in front of the monster
   balloon: { lift: 30, scale: 0.95, side: true, shine: true, bob: true,
     // Handlers on both sides: the far ones (smaller, higher) are drawn first, so the balloon hides part of them.
     back: (mv) => [76, 166].map((x, i) => rope(x + 7, 166, x + 7 + (120 - x) * 0.25, 160, mv) + handler(x, 204, 0.75, i, mv)).join(''),
     front: (mv) => [40, 140, 206].map((x, i) => rope(x + 10, 214, x + 10 + (120 - x) * 0.4, 166, mv) + handler(x, 238, 1.05, i + 1, mv)).join('') },
-  unicycle: { lift: 30, side: true, back: () => '', front: (mv) => `<path d="M120 168 V206" ${S} stroke-width="6"/><ellipse cx="120" cy="168" rx="16" ry="5" fill="#ef4444" ${S}/>`
-    + `<circle cx="120" cy="208" r="27" fill="none" stroke="${INK}" stroke-width="6"/>`
-    + `<g><circle cx="120" cy="208" r="23" fill="none" stroke="#9ca3af" stroke-width="2"/><path d="M120 208 V231 M97 208 H143" stroke="#9ca3af" stroke-width="3"/><path d="M120 208 V185" stroke="#ef4444" stroke-width="4"/>${mv ? spin(120, 208, 27) : ''}</g><circle cx="120" cy="208" r="4" fill="${INK}"/>` },
+  unicycle: { lift: 20, side: true, back: () => '', front: (mv) => `<path d="M120 178 V189" ${S} stroke-width="6"/><ellipse cx="120" cy="178" rx="16" ry="5" fill="#ef4444" ${S}/>`
+    + `<circle cx="120" cy="214" r="24" fill="none" stroke="${INK}" stroke-width="6"/>`
+    + `<g><path d="M120 194 V234 M100 214 H140" stroke="#9ca3af" stroke-width="3.5" stroke-linecap="round"/><circle cx="120" cy="191.5" r="3.5" fill="#ef4444"/>${mv ? spin(120, 214, 24) : ''}</g>`
+    + `<circle cx="120" cy="214" r="4.5" fill="${INK}"/>` },
 };
+// The float's scalloped skirt; while moving, the scallops ripple as if blown back by the wind.
+function scallops(dx) {
+  let d = 'M28 222';
+  for (let x = 28; x < 212; x += 20) d += ` Q${x + 10 + dx} ${x % 40 === 28 ? 208 : 211} ${Math.min(x + 20, 212)} 222`;
+  return d;
+}
+function skirt(mv) {
+  const still = scallops(0);
+  const wave = mv ? `<animate attributeName="d" values="${still};${scallops(-5)};${scallops(3)};${still}" dur="1.3s" repeatCount="indefinite"/>` : '';
+  return `<path d="${still}" fill="#f0abfc" ${S}>${wave}</path>`;
+}
 // A balloon rope from a handler's hand (x1,y1) up to the balloon (x2,y2); its top end sways with the balloon.
 function rope(x1, y1, x2, y2, mv) {
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${INK}" stroke-width="2">${mv ? `<animate attributeName="y2" values="${y2};${y2 - 8};${y2}" dur="2.6s" repeatCount="indefinite"/>` : ''}</line>`;
 }
 
 export const MONSTER_SCALE = 1.2;
-export const VIEWBOX = '0 -36 240 276';
+export const VIEWBOX = '0 -50 240 290'; // tall enough for the tallest hat on the highest ride
 // True if this ride shows the monster side-on (it then faces right, the way the parade goes).
 export const sideOn = (ride) => !!(RIDES[ride] && RIDES[ride].side);
 // The whole picture: the monster plus whatever it has so far. items = {outfit?, prop?, ride?} (item ids).
