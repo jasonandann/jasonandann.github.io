@@ -4,6 +4,7 @@
 import { el, getProgress, clearProgress, isLetters, abcAllowed, setAbcAllowed } from './util.js';
 import { offlineStatus, updateNow, resetOffline } from './offline.js';
 import { lookaheadMode, setLookaheadMode, getStats, clearStats, isFluent, fluentCount, fluentNeeded, getFluency, setFluency } from './games/baffle.js';
+import { clearSkill } from './games/battle-bot.js';
 import { canHash, hasPin, passcodeOff, snapshot, turnOff } from './passcode.js';
 import { unlock, changePasscode, setPasscode, replaceRecoveryCode } from './parent-lock.js';
 
@@ -154,7 +155,7 @@ function showPanel(entries) {
         el('button', {
           class: 'btn', type: 'button',
           onclick: () => {
-            if (confirm('Erase all saved practice history on this device?')) { clearProgress(); clearStats(); reopen(); }
+            if (confirm('Erase all saved practice history on this device?')) { clearProgress(); clearStats(); clearSkill(); reopen(); }
           },
         }, 'Erase history'),
       ),

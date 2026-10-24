@@ -23,6 +23,8 @@ import * as river from './games/river.js';
 import * as robot from './games/robot.js';
 import * as turtle from './games/turtle.js';
 import * as studio from './games/studio.js';
+import * as battle from './games/battle.js';
+import * as quest from './games/quest.js';
 
 // id: deep-link name (index.html#robot opens Robot Course); keep them stable once shared.
 // needsWords: game uses words.txt (spelling). Sections appear in this order on the home screen.
@@ -56,6 +58,8 @@ const SECTIONS = [
   { title: '🎲 Fun', games: [
     { icon: '🧟', id: 'zombie', name: 'Zombie Trail', blurb: 'Race to the finish', needsWords: true, mod: zombie },
     { icon: '🐸', id: 'river', name: 'Lily Pad River', blurb: 'Hop on the right answer', mod: river },
+    { icon: '🛡️', id: 'battle', name: 'Battle Buddies', blurb: 'Answer to send a sparkle', mod: battle },
+    { icon: '🥚', id: 'quest', name: 'Dragon Egg Quest', blurb: 'Take the egg home', mod: quest },
     { icon: '👁️', id: 'spot', name: 'Spot Match', blurb: 'Find the matching picture', mod: spotmatch },
     { icon: '🎵', id: 'simon', name: 'Simon Says', blurb: 'Copy the pattern', mod: simon },
   ] },

@@ -155,9 +155,11 @@ try:
         check("after the wait the right passcode works and resets the count", panel_open() and settings()["lock"] == {"fails": 0, "until": 0})
 
         # ---------- Erase history keeps the passcode ----------
+        page.evaluate("localStorage.setItem('spelling-games.battle.skill.v1', JSON.stringify({ spell: { p: 0.9, n: 5 } }))")
         page.once("dialog", lambda d: d.accept())
         page.locator(".overlay button", has_text="Erase history").tap()
         check("Erase history keeps the passcode and reopens the panel", panel_open() and settings()["pin"] is not None)
+        check("Erase history also clears Battle Buddies' hidden skill estimate", page.evaluate("localStorage.getItem('spelling-games.battle.skill.v1')") is None)
 
         # ---------- change passcode (keeps the recovery code) ----------
         rec_before = settings()["recovery"]
