@@ -261,7 +261,7 @@ python3 tools/serve.py          # serves the whole repository; open http://local
 7. **Kill switch (optional):** `cp tools/sw-off.js sw.js`, reload twice: DevTools shows no service worker and no `pes3-` cache. Then `git checkout sw.js` to restore the real one (don't commit the kill switch by accident).
 8. **Clean up:** grown-ups panel > Reset offline copy, or DevTools > Application > Clear site data. `localhost` has its own storage, separate from the real site, so this doesn't touch her data on jasonandann.net.
 
-## Two-device link test (spike, not a game yet)
+## Two-device link test (spike, not a game yet; issue #71)
 
 `net-test.html` (not in the menu; open `https://<your site>/pes3/net-test.html`) checks whether two iPads on **different networks** can play together with no server of our own: device A taps **Invite** and texts the link; device B opens it, taps **Join** and texts back the reply link; A taps the reply (or pastes it) and the two connect directly (WebRTC data channel, encrypted). Then there's a tiny chat and a round-trip time. The code is in `js/net.js`, ready for Battle Buddies if the test works.
 

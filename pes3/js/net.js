@@ -1,4 +1,4 @@
-// Two-device play without a server of our own: WebRTC with the signalling carried by the users (issue: link spike).
+// Two-device play without a server of our own: WebRTC with the signalling carried by the users (issue #71).
 // The host makes an offer and texts it as a link; the guest opens it, makes an answer and texts back a reply link
 // (or a code to paste). Then the two browsers talk directly over an encrypted data channel.
 // Only public STUN is used (to learn each side's public address); there is no TURN, so networks with symmetric
