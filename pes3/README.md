@@ -43,7 +43,7 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Adventures** (games 
 | Guess What | Guess Who? with the list: asks yes/no questions about how the hidden word *sounds* and puts down the words that don't fit (see below) |
 | See the Words | Study list; tap a word to hear it |
 
-**Math** (grade-3 style; each game starts with a level choice that is remembered: add/subtract within 100, times tables 2-5, 2-10, or times and division). Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Adventures) can also do math. Not recorded in the hidden progress.
+**Math** (grade-3 style; levels: add/subtract within 100, times tables 2-5, 2-10, or times and division). The games start straight away at the remembered level (Add & subtract until one is chosen); the ⚙️ in the top corner changes it and starts again. Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Adventures) can also do math. Not recorded in the hidden progress.
 
 **Coding**: Robot Course, Turtle Draw and Code Studio (below). All three share one engine in `js/code/`.
 
@@ -138,14 +138,19 @@ A virtual copy of her Fisher-Price Code 'n Learn Kinderbot (Code mode only), dra
 
 ### Battle Buddies
 
-Two buddies face each other, each with a row of hearts (3, 5 or 7). Players take turns; each turn is one question (Spelling / Math / Both, plus the shared math level). Right answer (second chance included): your buddy sends a ✨ sparkle that pops one of the other side's hearts. Not right this time: no sparkle, and nothing is lost. Pop all the other side's hearts to win.
+Two buddies take turns; each turn is one question. Right answer (second chance included) = something good happens; not right this time = nothing happens, nothing is lost. Two themes, chosen on the start screen:
+
+- **💗 Love meter** (default): each buddy has an empty meter of 🤍 hearts. A right answer floats a 💗 from your buddy into your own meter; first to fill it wins. **Together** (an option) gives both players one shared meter of twice the size, filled by everyone's right answers, and both win with confetti.
+- **⚔️ Battle**: each buddy has a row of hearts; a right answer sends a ✨ sparkle that pops one of the other side's. Pop them all to win.
+
+Start screen: players (1 vs the computer / 2), buddies, theme. **⚙️ Options** (one-line summary under the button): Race / Together (love meter only), questions Spelling / Math / **Both**, math level (**Add & subtract**, shared with the other games), how tricky the computer is (**Just right**), hearts **3 / 5 / 7**. Defaults in bold.
 
 - **1 player** plays the computer (🤖, named after her Robot Course robot, else Robo). **How tricky**: Easy / Just right (default) / Tricky.
 - The computer follows her quietly: `js/games/battle-bot.js` keeps a hidden estimate per kind (spelling, and each math level): a weighted average of her answers (right first time = 1, on the second chance = ½, else 0) that leans on recent turns. On an ordinary turn the computer's chance of being right is her estimate minus a random 8–20% of it (Just right; Easy 25–40%, Tricky 2–8%), so strictly below her. On a "lucky" turn (12%; Easy 5%, Tricky 20%) it plays at her level or up to 8% above (Easy 5%, Tricky 10%). Tune `BOT_LEVELS`.
 - Its mistakes are believable (`js/mistakes.js`) and explained afterwards. Spelling: sounds-like spellings (*becuz*, *cood*, *whail*, *sed*, *peeple*), y/ie traps, doubled/undoubled letters, swapped vowels; never a real word or another list word. Math: forgot to carry (47 + 38 = 75), the "wrote 15 in the ones place" slip (715), subtracting the smaller digit from the bigger (53 − 27 = 34), borrowing without taking the ten away (36), a times-table neighbour (7 × 8 = 63), the wrong operation, one off. These follow the classic "buggy procedure" studies (Brown & Burton 1978) and table-neighbour errors (Campbell & Graham 1985). Questions are single operations, so there are no order-of-operations slips.
 - **2 players** take turns on one device; no computer.
 - Spelling answers count in the hidden progress (hers only, never the computer's); every answer of hers is a garden point. Grown-ups panel **Erase history** also clears the computer's estimate. Options are remembered on the device (`spelling-games.battle.options`); estimate `spelling-games.battle.skill.v1`.
-- Hearts and a winner are new for this site (the other games avoid anything that looks like losing). The copy stays gentle ("No sparkle this time", "Robo wins this time! That was a close one. Rematch?"), and with Just right she should win most games. Watch how she takes a loss; Easy is there if needed.
+- A winner is new for this site, and the ⚔️ Battle theme also takes hearts away (the other games avoid anything that looks like losing); the love meter only fills, and Together has no loser. The copy stays gentle ("No sparkle this time", "Robo wins this time! That was a close one. Rematch?"), and with Just right she should win most games. Watch how she takes a loss; Easy is there if needed.
 
 ### Study Quest
 
@@ -164,6 +169,7 @@ Oregon Trail-style journeys. Pick one of eight stories; each has a trail map, fo
 
 - Each step eats one food and may bring an event; most events ask a question (Spelling / Math / Both), and a right answer turns out a bit better.
 - Nothing is ever lost for good: a missed answer costs at most one food, running out of food means a stop to find more, a shop never refuses her, and every trip ends well. About 15–20 questions per trip.
+- Questions (Spelling / Math / **Both**) and the math level are under **⚙️ Options** on the picker and story screens.
 - Each story's trip is saved as she goes (**Continue the quest**; the picker shows "▶ On the way"). **🔊 Read to me** reads each scene aloud.
 - Stories are data: one file each in `js/games/quests/` (the shape is described at the top of `js/games/quests/index.js`). To add a story, copy one, edit the words and add it to `STORIES`; `tests/quest_test.py` checks every story and plays each one to the end. The history and science facts were checked against the sources listed in each file.
 - Keys: `spelling-games.quest.<story>.save.v2`, `.quest.<story>.found.v1`, `.quest.mode`; Seed Ark's plants `spelling-games.garden.special.v1`. The first version's Dragon Egg save and dragons move over automatically.
@@ -317,7 +323,7 @@ js/parent-lock.js    passcode screens in front of the panel
 js/offline.js        registers sw.js, update checks, reload on the home menu
 js/math.js           math question generator, level picker, quiz loop
 js/challenge.js      one question with an answer box (Battle Buddies, Study Quest, Crystal Cave, Monster Parade)
-js/options.js        ⚙️ Options pop-up shared by the games (choice rows, summary button)
+js/options.js        ⚙️ Options pop-up shared by the games (choice rows, summary button, corner gear)
 js/questions.js      questions by subject and difficulty tier (her list / Starter / Grown-up words, tiered math)
 js/mistakes.js       believable misspellings and math slips
 js/games/*.js        one file per game (mathquiz.js holds 5 math games; parade/art.js = Monster Parade's pictures; robot-levels.js = Robot Course maps; quests/ = Study Quest's stories; battle-bot.js = the computer player; cave/ = Crystal Cave's rules, computer heroes, cards and pictures)

@@ -63,6 +63,11 @@ try:
                 type_answer("1" if page.locator(".ch-q .bigword").count() else "zq")
             tap(".ch-q button:has-text('OK')")
         def wait_next(): page.wait_for_selector(".bt-next, .bt-go, .bt-finish", timeout=8000)
+        def options(*labels):  # open ⚙️ Options, tap each choice by its text, Done
+            tap(".bt-setup .opt-more"); page.wait_for_selector(".opt-panel")
+            for t in labels: page.locator(".opt-panel .btn").get_by_text(t, exact=t.isdigit()).first.tap()
+            tap(".opt-panel .opt-done")
+        def love(): return page.evaluate("document.querySelector('.game').__battle.state()")
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
         check("menu has 29 cards", page.locator(".mcard").count() == 29)
@@ -124,10 +129,23 @@ try:
         # ---- 1 player vs the computer, math
         g0 = gp()
         page.locator(".mcard", has_text="Battle Buddies").first.tap()
-        check("setup: players, buddies, questions, how tricky, hearts", all(page.locator(f".bt-setup button:has-text('{t}')").count() >= 1 for t in ["1 player", "2 players", "Spelling", "Math", "Both", "Easy", "Just right", "Tricky", "3", "7"]))
+        check("setup: players, buddies and theme on the start screen", all(page.locator(f".bt-setup button:has-text('{t}')").count() >= 1 for t in ["1 player", "2 players", "Love meter", "Battle"]))
+        check("setup: questions, level, how tricky, hearts are not on the start screen",
+              all(page.locator(f".bt-setup button:text-is('{t}')").count() == 0 for t in ["Spelling", "Both", "Easy", "Just right", "Tricky", "3", "7"]))
+        check("setup: defaults = Love meter; Both · Add & subtract · Just right · 5 hearts · Race",
+              page.locator(".bt-setup button.primary:has-text('Love meter')").count() == 1
+              and page.locator(".opt-summary").inner_text() == "Both · Add & subtract · Robo: Just right · 5 hearts · Race", page.locator(".opt-summary").inner_text())
         check("setup: 8 buddies to pick", page.locator(".bt-pick").count() == 8)
-        tap(".bt-setup button:has-text('Math')"); tap(".bt-setup button:has-text('Times tables 2–5')")
-        tap(".bt-setup .bt-pick[data-a='🦊']"); tap(".bt-setup button:text-is('3')")
+        tap(".bt-setup .opt-more"); page.wait_for_selector(".opt-panel")
+        check("options: how to play, questions, level, how tricky, hearts", all(page.locator(f".opt-panel button:has-text('{t}')").count() >= 1
+              for t in ["Race", "Together", "Spelling", "Math", "Both", "Add & subtract", "Easy", "Just right", "Tricky", "3", "7"]))
+        tap(".opt-panel .opt-done")
+        tap(".bt-setup button:has-text('Battle')")
+        check("battle theme: no Race/Together option", (tap(".bt-setup .opt-more"), page.locator(".opt-panel button:has-text('Together')").count())[1] == 0)
+        tap(".opt-panel .opt-done")
+        options("Math", "Times tables 2–5", "3")
+        check("options summary updates", page.locator(".opt-summary").inner_text() == "Math · Times tables 2–5 · Robo: Just right · 3 hearts", page.locator(".opt-summary").inner_text())
+        tap(".bt-setup .bt-pick[data-a='🦊']")
         page.screenshot(path=f"{SHOTS}/battle_setup.png")
         tap(".bt-setup button:has-text('Start!')")
         check("arena: you (🦊) vs 🤖, 3 hearts each", page.locator(".bt-side.s0 .bt-face").inner_text() == "🦊" and page.locator(".bt-side.s1 .bt-face").inner_text() == "🤖" and hearts() == [3, 3], str(hearts()))
@@ -186,7 +204,7 @@ try:
 
         # ---- spelling: hear the word, the computer's misspelling is believable and marked
         page.locator(".mcard", has_text="Battle Buddies").first.tap()
-        tap(".bt-setup button:has-text('Spelling')")
+        options("Spelling")
         tap(".bt-setup button:has-text('Start!')")
         n0 = len(page.evaluate("window.__heard"))
         tap(".bt-go")
@@ -208,9 +226,11 @@ try:
 
         # ---- 2 players
         page.locator(".mcard", has_text="Battle Buddies").first.tap()
-        tap(".bt-setup button:has-text('2 players')"); tap(".bt-setup button:has-text('Math')")
+        tap(".bt-setup button:has-text('2 players')"); options("Math")
         check("2 players: two buddy rows; a buddy taken by one player is greyed for the other", page.locator(".bt-setup .bt-picks").count() == 2 and page.locator(".bt-pick:disabled").count() == 2)
-        check("2 players: no 'How tricky' choice", page.locator(".bt-setup button:has-text('Just right')").count() == 0)
+        tap(".bt-setup .opt-more")
+        check("2 players: no 'How tricky' option", page.locator(".opt-panel button:has-text('Just right')").count() == 0)
+        tap(".opt-panel .opt-done")
         tap(".bt-setup button:has-text('Start!')")
         check("2 players: no computer in the arena", "🤖" not in page.locator(".bt-arena").inner_text())
         tap(".bt-go"); answer_math_right()
@@ -218,6 +238,62 @@ try:
         check("2 players: next button names Player 2", "Player 2" in page.locator(".bt-next").inner_text(), page.locator(".bt-next").inner_text())
         tap(".bt-next")
         check("2 players: Player 2's side is highlighted", page.locator(".bt-side.s1.on").count() == 1)
+        home()
+
+        # ---- 💗 love meter, race (1 player, math, 3 hearts to fill)
+        page.locator(".mcard", has_text="Battle Buddies").first.tap()
+        tap(".bt-setup button:has-text('1 player')"); tap(".bt-setup button:has-text('Love meter')"); options("Race")
+        tap(".bt-setup button:has-text('Start!')")
+        st = love()
+        check("love: empty meters, no hearts to lose", st["love"] == [0, 0] and st["goal"] == 3 and page.locator(".bt-side .bt-meter").count() == 2
+              and page.locator(".bt-side[data-hearts]").count() == 0)
+        tap(".bt-go"); bot(False); answer_math_right()
+        page.wait_for_function("document.querySelector('.bt-side.s0').dataset.love === '1'", timeout=5000)
+        check("love: a right answer floats a heart into YOUR meter; nobody loses anything", love()["love"] == [1, 0]
+              and page.locator(".bt-side.s0 .bt-heart:text-is('💗')").count() == 1 and page.locator(".bt-side.s1 .bt-heart:text-is('💗')").count() == 0)
+        page.wait_for_selector(".bt-next", timeout=8000)
+        check("love: computer slip leaves both meters as they were", love()["love"] == [1, 0])
+        tap(".bt-next"); bot(True); answer_wrong()
+        check("love: not right this time = 'No heart this time'", "No heart" in page.locator(".bt-panel > .msg").inner_text())
+        page.wait_for_function("document.querySelector('.bt-side.s1').dataset.love === '1'", timeout=8000)
+        check("love: the computer's right answer fills its own meter, not yours", love()["love"] == [1, 1])
+        for _ in range(6):
+            wait_next()
+            if page.locator(".bt-finish").count(): break
+            tap(".bt-next"); bot(False); answer_math_right()
+            page.wait_for_selector(".bt-next, .bt-finish", timeout=8000)
+        t = page.locator(".bt-finish").inner_text()
+        check("love: first to fill wins, gently ('You filled your love meter!', Play again)", "You filled your love meter!" in t and "Play again" in t and page.locator(".confetti").count() == 1, t)
+        page.screenshot(path=f"{SHOTS}/battle_love_win.png")
+        tap(".bt-finish button:has-text('Play again')")
+        for _ in range(4):
+            tap(".bt-go") if page.locator(".bt-go").count() else tap(".bt-next")
+            bot(True); answer_wrong()
+            page.wait_for_selector(".bt-next, .bt-finish", timeout=8000)
+            if page.locator(".bt-finish").count(): break
+        t = page.locator(".bt-finish").inner_text()
+        check("love: the computer can fill first (no confetti, no 'lose')", "filled the love meter first" in t and page.locator(".confetti").count() == 0
+              and not re.search(r"\blos[et]", t.lower()), t)
+        home()
+
+        # ---- 💗 together: one shared meter of 2 x hearts
+        page.locator(".mcard", has_text="Battle Buddies").first.tap()
+        options("Together")
+        check("together: summary says Together", page.locator(".opt-summary").inner_text().endswith("Together"))
+        tap(".bt-setup button:has-text('Start!')")
+        check("together: one shared meter of 6, none on the buddies", love()["goal"] == 6 and page.locator(".bt-shared .bt-heart").count() == 6
+              and page.locator(".bt-side .bt-meter").count() == 0)
+        tap(".bt-go"); bot(True); answer_math_right()
+        page.wait_for_function("document.querySelector('.bt-shared').dataset.love === '2'", timeout=8000)
+        check("together: her heart and the computer's both go into the shared meter", love()["shared"] == 2)
+        page.screenshot(path=f"{SHOTS}/battle_together.png")
+        for _ in range(6):
+            wait_next()
+            if page.locator(".bt-finish").count(): break
+            tap(".bt-next"); bot(True); answer_math_right()
+            page.wait_for_selector(".bt-next, .bt-finish", timeout=8000)
+        t = page.locator(".bt-finish").inner_text()
+        check("together: everyone wins with confetti", "together" in t and page.locator(".confetti").count() == 1, t)
         home()
 
         # ---- phone layout

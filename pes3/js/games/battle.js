@@ -1,9 +1,12 @@
 // Battle Buddies: two buddies take turns. Answer your question right and your buddy sends a sparkle that
 // pops one of the other side's hearts; pop all of them to win. Not right this time = no sparkle, nothing lost.
+// 💗 Love meter theme (Jason 2026-10-24, the default): a right answer floats a heart into your own meter
+// instead, so nothing is ever taken away; first to fill it wins, or (Together) both fill one shared meter.
 // 1 player = against the computer (🤖, named after her Robot Course robot), which plays a little below her
 // own hidden skill (battle-bot.js) and makes believable mistakes (mistakes.js) that are then explained.
 import { el, celebrate, scope, cheer, opKind } from '../util.js';
-import { LEVELS, savedLevel, saveLevel } from '../math.js';
+import { LEVELS, savedLevel, saveLevel, levelChoice } from '../math.js';
+import { choice, openOptions, optionsButton } from '../options.js';
 import { loadDictionary } from '../dictionary.js';
 import { problems, ask } from '../challenge.js';
 import { spellingSlip, mathSlip } from '../mistakes.js';
@@ -14,7 +17,9 @@ const FAST_KEY = 'spelling-games.battle.fast'; // '1' = short pauses (tests)
 export const AVATARS = ['🦄', '🐉', '🦊', '🐼', '🐯', '🦖', '🐙', '🐧'];
 export const HEARTS = [3, 5, 7];
 const BOT_FACE = '🤖';
-const DEFAULTS = { players: 1, mode: 'both', bot: 'right', hearts: 5, avatars: ['🦄', '🐉'] };
+const DEFAULTS = { players: 1, mode: 'both', bot: 'right', hearts: 5, avatars: ['🦄', '🐉'], theme: 'love', play: 'race' };
+const MODES = [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']];
+const BOTS = [['easy', 'Easy'], ['right', 'Just right'], ['tricky', 'Tricky']];
 
 function loadOptions(canSpell) {
   let o = { ...DEFAULTS };
@@ -24,11 +29,13 @@ function loadOptions(canSpell) {
   if (!canSpell) o.mode = 'math';
   if (!['easy', 'right', 'tricky'].includes(o.bot)) o.bot = 'right';
   if (!HEARTS.includes(o.hearts)) o.hearts = 5;
+  if (!['love', 'battle'].includes(o.theme)) o.theme = DEFAULTS.theme;
+  if (!['race', 'together'].includes(o.play)) o.play = DEFAULTS.play;
   if (!Array.isArray(o.avatars) || o.avatars.length !== 2 || !o.avatars.every((a) => AVATARS.includes(a)) || o.avatars[0] === o.avatars[1]) o.avatars = [...DEFAULTS.avatars];
   return o;
 }
 function saveOptions(o) {
-  try { localStorage.setItem(OPTS_KEY, JSON.stringify({ players: o.players, mode: o.mode, bot: o.bot, hearts: o.hearts, avatars: o.avatars })); } catch { /* ignore */ }
+  try { localStorage.setItem(OPTS_KEY, JSON.stringify({ players: o.players, mode: o.mode, bot: o.bot, hearts: o.hearts, avatars: o.avatars, theme: o.theme, play: o.play })); } catch { /* ignore */ }
 }
 function robotName() {
   try { return (localStorage.getItem('spelling-games.robot.name') || '').trim() || 'Robo'; } catch { return 'Robo'; }
@@ -42,6 +49,7 @@ export function mount(root, entries, api) {
   const settings = { ...loadOptions(canSpell), level: savedLevel() };
   const listWords = new Set(entries.map((e) => e.word));
   let sc = scope();
+  let pop = null; // open options pop-up
   const ms = (n) => (fast() ? Math.round(n / 8) : n);
   const hooks = { botNext: null }; // tests: set root.__battle.botNext = true/false to decide the computer's next answer
   root.__battle = hooks;
@@ -73,22 +81,46 @@ export function mount(root, entries, api) {
       ),
     );
 
+  // Players, buddies and theme are chosen on the start screen; the rest are grown-up options behind ⚙️.
+  const summary = () => [
+    canSpell ? MODES.find(([m]) => m === settings.mode)[1] : null,
+    settings.mode !== 'spelling' ? LEVELS.find((l) => l.id === settings.level).name : null,
+    settings.players === 1 ? `${robotName()}: ${BOTS.find(([b]) => b === settings.bot)[1]}` : null,
+    `${settings.hearts} hearts`,
+    settings.theme === 'love' ? (settings.play === 'together' ? 'Together' : 'Race') : null,
+  ].filter(Boolean).join(' · ');
+  function openMore() {
+    pop = openOptions({
+      onClose: setup,
+      body: (redraw) => {
+        const set = (key, after) => (v) => { settings[key] = v; if (after) after(v); saveOptions(settings); redraw(); };
+        const love = settings.theme === 'love';
+        return [
+          love ? choice('How to play', settings.play, [['race', '🏁 Race: first to fill'], ['together', '🤝 Together: one meter']], set('play')) : null,
+          canSpell ? choice('Questions', settings.mode, MODES, set('mode')) : null,
+          settings.mode !== 'spelling' ? levelChoice(settings.level, set('level', saveLevel)) : null,
+          settings.players === 1 ? choice(`How tricky is ${robotName()}?`, settings.bot, BOTS, set('bot')) : null,
+          choice(love ? 'Hearts to fill' : 'Hearts each', settings.hearts, HEARTS.map((n) => [n, String(n)]), set('hearts')),
+        ];
+      },
+    });
+  }
+
   function setup() {
     sc.dispose();
     sc = scope();
+    const love = settings.theme === 'love';
     root.replaceChildren(
       el('div', { class: 'zt-setup bt-setup' },
-        el('h2', {}, '🛡️ Battle Buddies'),
-        el('p', { class: 'prompt' }, 'Take turns answering. Get yours right and your buddy sends a sparkle that pops a heart!'),
+        el('h2', {}, love ? '💗 Battle Buddies' : '🛡️ Battle Buddies'),
+        el('p', { class: 'prompt' }, !love ? 'Take turns answering. Get yours right and your buddy sends a sparkle that pops a heart!'
+          : settings.play === 'together' ? 'Take turns answering. Every right answer floats a heart into the love meter. Fill it together!'
+            : 'Take turns answering. Get yours right and a heart floats into your love meter. Fill it first!'),
         seg('Players', 'players', [[1, `1 player (vs ${BOT_FACE})`], [2, '2 players']]),
         avatarRow(0),
         settings.players === 2 ? avatarRow(1) : null,
-        canSpell ? seg('Questions', 'mode', [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']]) : null,
-        settings.mode !== 'spelling' ? seg('Math', 'level', LEVELS.map((l) => [l.id, l.name]), saveLevel) : null,
-        el('div', { class: 'row bt-pair' },
-          settings.players === 1 ? seg(`How tricky is ${robotName()}?`, 'bot', [['easy', 'Easy'], ['right', 'Just right'], ['tricky', 'Tricky']]) : null,
-          seg('Hearts each', 'hearts', HEARTS.map((n) => [n, String(n)])),
-        ),
+        seg('Theme', 'theme', [['love', '💗 Love meter'], ['battle', '⚔️ Battle']]),
+        optionsButton({ summary: summary(), onOpen: openMore }),
         el('button', { class: 'btn primary big', type: 'button', onclick: start }, 'Start!'),
       ),
     );
@@ -106,20 +138,32 @@ export function mount(root, entries, api) {
         : { name: 'Player 2', face: settings.avatars[1], hearts: settings.hearts, bot: false },
     ];
     let turn = 0;
+    const love = settings.theme === 'love';
+    const together = love && settings.play === 'together';
+    const goal = together ? settings.hearts * 2 : settings.hearts; // Together: about as many turns as a race
+    let shared = 0;
+    sides.forEach((s) => { s.love = 0; });
+    const meter = (n, label) => el('div', { class: 'bt-hearts bt-meter', 'aria-label': label },
+      Array.from({ length: n }, () => el('span', { class: 'bt-heart' }, '🤍')));
 
     const fighter = (s, i) => {
-      s.heartsEl = el('div', { class: 'bt-hearts', 'aria-label': `${s.name}: hearts` },
-        Array.from({ length: settings.hearts }, () => el('span', { class: 'bt-heart' }, '❤️')));
+      s.heartsEl = love ? (together ? null : meter(goal, `${s.name}: love meter`))
+        : el('div', { class: 'bt-hearts', 'aria-label': `${s.name}: hearts` },
+          Array.from({ length: settings.hearts }, () => el('span', { class: 'bt-heart' }, '❤️')));
       s.faceEl = el('div', { class: 'bt-face' }, s.face);
-      s.el = el('div', { class: `bt-side s${i}`, 'data-hearts': s.hearts }, s.heartsEl, el('div', { class: 'bt-ava' }, s.faceEl), el('div', { class: 'bt-name' }, s.name));
+      s.el = el('div', { class: `bt-side s${i}`, 'data-hearts': love ? null : s.hearts, 'data-love': love && !together ? 0 : null },
+        s.heartsEl, el('div', { class: 'bt-ava' }, s.faceEl), el('div', { class: 'bt-name' }, s.name));
       return s.el;
     };
-    const arena = el('div', { class: 'bt-arena' }, fighter(sides[0], 0), el('div', { class: 'bt-vs' }, 'VS'), fighter(sides[1], 1));
+    const sharedEl = together ? meter(goal, 'Our love meter') : null;
+    if (sharedEl) { sharedEl.classList.add('bt-shared'); sharedEl.dataset.love = 0; }
+    const arena = el('div', { class: 'bt-arena' + (love ? ' love' : '') }, fighter(sides[0], 0),
+      el('div', { class: 'bt-vs' }, love ? '💞' : 'VS'), fighter(sides[1], 1));
     const panel = el('div', { class: 'bt-panel' });
     const msg = el('div', { class: 'msg', 'aria-live': 'polite' });
     const say = (t) => { msg.textContent = t; };
-    root.replaceChildren(el('div', { class: 'bt' }, arena, panel));
-    hooks.state = () => ({ turn, hearts: sides.map((s) => s.hearts) });
+    root.replaceChildren(el('div', { class: 'bt' }, arena, sharedEl, panel));
+    hooks.state = () => ({ turn, hearts: sides.map((s) => s.hearts), love: sides.map((s) => s.love), shared, goal, theme: settings.theme, play: settings.play });
 
     const whose = (s) => (s.name === 'You' ? 'Your turn' : `${s.name}’s turn`);
     const status = (s) => el('div', { class: 'bt-status' }, el('span', { class: 'bt-mini' }, s.face), whose(s));
@@ -146,7 +190,7 @@ export function mount(root, entries, api) {
         done: ({ ok, firstTry }) => {
           if (vsBot) noteResult(p.kind === 'spell' ? 'spell' : `math:${settings.level}`, ok ? (firstTry ? 1 : 0.5) : 0);
           if (ok) hit(turn, cheer(p.kind === 'spell' ? 'spell' : opKind(p.text)));
-          else { say('No sparkle this time.'); pass(); }
+          else { say(love ? 'No heart this time.' : 'No sparkle this time.'); pass(); }
         },
       }), msg);
     }
@@ -190,9 +234,10 @@ export function mount(root, entries, api) {
     }
 
     function hit(from, line) {
+      if (love) return fill(from, line);
       const to = 1 - from;
       say(line);
-      sparkle(from, to, () => {
+      fly('✨', sides[from].faceEl, sides[to].faceEl, () => {
         const d = sides[to];
         d.hearts--;
         d.el.dataset.hearts = d.hearts;
@@ -215,12 +260,32 @@ export function mount(root, entries, api) {
       panel.append(el('button', { class: 'btn primary big bt-next', type: 'button', onclick: () => { intro(); humanTurn(); } }, label));
     }
 
-    // A sparkle flies from one buddy to the other (its own element, so the buddies' styles never change mid-flight).
-    function sparkle(from, to, cb) {
+    // Love meter: a heart floats from the buddy into the next empty spot of their meter (or the shared one).
+    function fill(from, line) {
+      say(line);
+      const s = sides[from];
+      const box = together ? sharedEl : s.heartsEl;
+      const n = together ? shared : s.love;
+      const spot = box.children[n];
+      fly('💗', s.faceEl, spot, () => {
+        if (together) { shared++; sharedEl.dataset.love = shared; } else { s.love++; s.el.dataset.love = s.love; }
+        spot.textContent = '💗';
+        spot.classList.add('pop');
+        s.faceEl.classList.remove('happy');
+        void s.faceEl.offsetWidth;
+        s.faceEl.classList.add('happy');
+        if ((together ? shared : s.love) >= goal) return later(() => (together ? hugWin() : win(from)), ms(700));
+        pass();
+      });
+    }
+
+    // Something flies from one element to another (its own element, so the buddies' styles never change mid-flight).
+    function fly(glyph, fromEl, toEl, cb) {
       if (still() || !arena.animate) return later(cb, ms(300));
-      const a = sides[from].faceEl.getBoundingClientRect(), b = sides[to].faceEl.getBoundingClientRect(), box = arena.getBoundingClientRect();
-      const zap = el('div', { class: 'bt-zap', 'aria-hidden': 'true' }, '✨');
-      arena.append(zap);
+      const host = root.querySelector('.bt');
+      const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect(), box = host.getBoundingClientRect();
+      const zap = el('div', { class: 'bt-zap', 'aria-hidden': 'true' }, glyph);
+      host.append(zap);
       const x0 = a.left + a.width / 2 - box.left, y0 = a.top + a.height / 2 - box.top;
       const x1 = b.left + b.width / 2 - box.left, y1 = b.top + b.height / 2 - box.top;
       const lift = Math.min(80, box.height / 3);
@@ -235,15 +300,17 @@ export function mount(root, entries, api) {
     function win(w) {
       const s = sides[w];
       const botWon = s.bot;
-      const title = botWon ? `${s.name} wins this time!` : vsBot ? 'You win!' : `${s.name} wins!`;
-      const line = botWon ? 'That was a close one. Rematch?' : vsBot ? `Great battle! ${sides[1].name} says “Well played!”` : 'Great battle, both of you!';
+      const title = love ? (botWon ? `${s.name} filled the love meter first!` : vsBot ? 'You filled your love meter!' : `${s.name} filled the love meter!`)
+        : botWon ? `${s.name} wins this time!` : vsBot ? 'You win!' : `${s.name} wins!`;
+      const line = love ? (botWon ? 'So close! Play again?' : vsBot ? `${sides[1].name} says “Thank you for all the hearts!”` : 'Lovely playing, both of you!')
+        : botWon ? 'That was a close one. Rematch?' : vsBot ? `Great battle! ${sides[1].name} says “Well played!”` : 'Great battle, both of you!';
       panel.replaceChildren(
         el('div', { class: 'finish bt-finish' },
-          el('div', { class: 'big-emoji' }, s.face, botWon ? '' : '🏆'),
+          el('div', { class: 'big-emoji' }, s.face, botWon ? '' : love ? '💖' : '🏆'),
           el('h2', {}, title),
           el('p', { class: 'prompt' }, line),
           el('div', { class: 'row' },
-            el('button', { class: 'btn primary big', type: 'button', onclick: start }, 'Rematch'),
+            el('button', { class: 'btn primary big', type: 'button', onclick: start }, love ? 'Play again' : 'Rematch'),
             el('button', { class: 'btn big', type: 'button', onclick: setup }, 'Change buddies'),
             el('button', { class: 'btn big', type: 'button', onclick: api.home }, 'Home'),
           ),
@@ -252,11 +319,28 @@ export function mount(root, entries, api) {
       if (!botWon) celebrate(root);
     }
 
+    // Together: everyone filled the meter, so everyone gets the celebration.
+    function hugWin() {
+      panel.replaceChildren(
+        el('div', { class: 'finish bt-finish' },
+          el('div', { class: 'big-emoji' }, sides[0].face, '💖', sides[1].face),
+          el('h2', {}, 'You filled the love meter together!'),
+          el('p', { class: 'prompt' }, vsBot ? `${sides[1].name} says “What a team!”` : 'What a team!'),
+          el('div', { class: 'row' },
+            el('button', { class: 'btn primary big', type: 'button', onclick: start }, 'Play again'),
+            el('button', { class: 'btn big', type: 'button', onclick: setup }, 'Change buddies'),
+            el('button', { class: 'btn big', type: 'button', onclick: api.home }, 'Home'),
+          ),
+        ),
+      );
+      celebrate(root);
+    }
+
     intro();
   }
 
   setup();
-  return () => { sc.dispose(); delete root.__battle; };
+  return () => { sc.dispose(); if (pop) pop.dispose(); delete root.__battle; };
 }
 
 // Letters of what was written, marked where they differ from the right spelling (same idea as LCWC).

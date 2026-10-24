@@ -142,7 +142,10 @@ try:
         picker()
         check("picker: one card per story", page.locator(".qt-pick").count() == 8)
         page.screenshot(path=f"{SHOTS}/quest_picker.png", full_page=True)
-        tap(".qt-setup button:has-text('Math')"); tap(".qt-setup button:has-text('Times tables 2–5')")
+        check("picker: questions are under ⚙️ Options (default Both · Add & subtract)", page.locator(".qt-setup button:text-is('Math')").count() == 0
+              and page.locator(".opt-summary").inner_text() == "Both · Add & subtract", page.locator(".opt-summary").inner_text())
+        tap(".qt-setup .opt-more"); tap(".opt-panel button:text-is('Math')"); tap(".opt-panel button:has-text('Times tables 2–5')"); tap(".opt-panel .opt-done")
+        check("picker: options summary updates", page.locator(".opt-summary").inner_text() == "Math · Times tables 2–5", page.locator(".opt-summary").inner_text())
         tap(".qt-pick[data-story='dragon']")
         check("story screen: name, blurb, Start, ‹ All quests", "Dragon Egg Quest" in page.locator(".qt-setup h2").inner_text() and page.locator(".qt-new").count() == 1 and page.locator(".qt-all").count() == 1)
         tap(".qt-all")
@@ -182,7 +185,7 @@ try:
         # ---- every other story, start to finish (spelling + math), with its own finale
         for s in STORY_IDS[1:]:
             open_story(s)
-            tap(".qt-setup button:has-text('Both')")
+            tap(".qt-setup .opt-more"); tap(".opt-panel button:text-is('Both')"); tap(".opt-panel .opt-done")
             tap(".qt-new")
             tap(".qt-act button.primary")  # shop: buy
             if page.locator(".ch-q").count(): answer(True)
@@ -221,7 +224,7 @@ try:
         p2 = ctx2.new_page()
         p2.goto(URL); p2.wait_for_selector(".mcard")
         p2.locator(".mcard", has_text="Study Quest").first.tap()
-        p2.locator(".qt-setup button:has-text('Spelling')").first.tap()
+        p2.locator(".qt-setup .opt-more").first.tap(); p2.locator(".opt-panel button:text-is('Spelling')").first.tap(); p2.locator(".opt-panel .opt-done").first.tap()
         p2.locator(".qt-pick[data-story='library']").first.tap()
         p2.locator(".qt-new").first.tap()
         p2.locator(".qt-act button.primary").first.tap()
@@ -232,7 +235,7 @@ try:
 
         # ---- save and continue; the picker shows a trip on the way
         open_story("island")
-        tap(".qt-setup button:has-text('Spelling')")
+        tap(".qt-setup .opt-more"); tap(".opt-panel button:text-is('Spelling')"); tap(".opt-panel .opt-done")
         tap(".qt-new")
         tap(".qt-act button:has-text('No thanks')")
         while page.locator(".ch-q").count() == 0 and page.locator(".qt-title", has_text="Coral Reef").count() == 0:

@@ -1,6 +1,6 @@
 // Puzzle Pieces: tap a piece, answer its question, and the piece of the picture appears.
 import { el, shuffle, scope, celebrate, cheer, opKind, award } from '../util.js';
-import { pickLevel, makeQuestions, choices, nudge } from '../math.js';
+import { savedLevel, levelGear, makeQuestions, choices, nudge } from '../math.js';
 
 const PICTURES = [
   { name: 'Sunny Garden', cells: ['☁️', '☀️', '☁️', '🌳', '🏡', '🌳', '🌷', '🐇', '🌻'] },
@@ -66,10 +66,10 @@ export function mount(root, _e, api) {
         ),
       );
     }
-    root.replaceChildren(el('p', { class: 'prompt' }, 'Tap a piece, answer the question, and reveal the picture.'), grid, panel, msg);
+    root.replaceChildren(levelGear(start, sc.onLeave), el('p', { class: 'prompt' }, 'Tap a piece, answer the question, and reveal the picture.'), grid, panel, msg);
     draw();
   }
 
-  pickLevel(root, 'Puzzle Pieces', start);
+  start(savedLevel());
   return () => { alive = false; sc.dispose(); };
 }
