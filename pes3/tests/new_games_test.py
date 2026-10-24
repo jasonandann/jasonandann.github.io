@@ -79,7 +79,7 @@ try:
               page.locator(".sect", has_text="Brain Games").locator(".mcard").count() == 2
               and page.locator(".sect", has_text="Brain Games").locator(".mcard", has_text="Spot Match").count() == 1
               and page.locator(".sect", has_text="Brain Games").locator(".mcard", has_text="Simon Says").count() == 1)
-        check("menu has 28 cards", page.locator(".mcard").count() == 28)
+        check("menu has 27 cards", page.locator(".mcard").count() == 27)
         for name in ["Spell Catcher", "Word Volcano", "Wordal", "Number Bubbles", "Number Cascade", "Times Table Explorer",
                      "Number Maze", "Number Mountain", "Puzzle Pieces", "Lily Pad River", "Spot Match", "Simon Says", "My Garden"]:
             check(f"menu has {name}", page.locator(".mcard", has_text=name).count() == 1)

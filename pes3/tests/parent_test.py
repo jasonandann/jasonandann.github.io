@@ -233,6 +233,35 @@ try:
         check("…and the panel opens without asking", panel_open() and page.locator(".pin-pad").count() == 0)
         page.keyboard.press("Escape")
 
+        # ---------- games on/off (issue #33) ----------
+        def cards(): return page.locator(".mcard .name").all_inner_texts()
+        def heads(): return page.locator(".sect h2").all_inner_texts()
+        n0 = len(cards())
+        page.keyboard.type("parent"); page.wait_for_selector(".overlay .game-toggles")
+        boxes = page.locator(".game-toggle input")
+        check("games list: one checkbox per game, grouped by section, all on by default",
+              boxes.count() == n0 and page.locator(".game-sect").count() == len(heads()) and all(boxes.nth(i).is_checked() for i in range(boxes.count())), f"{boxes.count()} vs {n0}")
+        page.locator(".game-toggle input[data-game='simon']").uncheck()
+        check("unticking saves at once, by game id", settings()["games"] == {"simon": False}, str(settings().get("games")))
+        page.keyboard.press("Escape")
+        check("closing the panel redraws the menu without the hidden game", "Simon Says" not in cards() and len(cards()) == n0 - 1)
+        page.goto(URL + "#simon"); page.wait_for_selector(".mcard"); time.sleep(0.2)
+        check("a link to a hidden game opens the menu", page.locator(".start-gate").count() == 0 and page.url.endswith("/") and len(cards()) == n0 - 1, page.url)
+        page.keyboard.type("parent"); page.wait_for_selector(".overlay .game-toggles")
+        check("the hidden game shows unticked", not page.locator(".game-toggle input[data-game='simon']").is_checked())
+        page.locator(".game-toggle input[data-game='spot']").uncheck()
+        page.keyboard.press("Escape")
+        check("a section with no games left is hidden", "🧠 Brain Games" not in heads() and "🏰 Adventures" in heads(), str(heads()))
+        page.keyboard.type("parent"); page.wait_for_selector(".overlay .game-toggles")
+        page.locator(".game-toggle input[data-game='simon']").check(); page.locator(".game-toggle input[data-game='spot']").check()
+        tap(".overlay button:has-text('Close')")
+        check("ticking them again brings them back", len(cards()) == n0 and "🧠 Brain Games" in heads())
+        d = page.evaluate("""async () => { const s = await import('/js/settings.js'); const g = { id: 'zz-new', off: true };
+          const a = s.gameOn(g); s.setGameOn('zz-new', true); const b = s.gameOn(g); s.setGameOn('zz-new', false); return [a, b, s.gameOn(g), s.gameOn({ id: 'simon' })]; }""")
+        check("a new game marked off stays hidden until a grown-up turns it on", d == [False, True, False, True], str(d))
+        page.evaluate("(async () => { const s = await import('/js/settings.js'); const g = s.getSettings().games; delete g['zz-new']; s.updateSettings({ games: g }); })()")
+        page.goto(URL); page.wait_for_selector(".mcard")
+
         # ---------- no Web Crypto (plain http on a LAN address): the panel stays shut ----------
         page2 = new_page(INIT + "Object.defineProperty(window.crypto, 'subtle', { get: () => undefined });")
         page2.keyboard.type("parent"); page2.wait_for_selector(".overlay")

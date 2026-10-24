@@ -83,7 +83,13 @@ try:
             page.wait_for_selector(".cv-setup")
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
-        check("menu has 28 cards", page.locator(".mcard").count() == 28)
+        # Off by default while it's being tested (issue #33): no card, and a link to it opens the menu.
+        check("off by default: 27 cards, no Crystal Cave", page.locator(".mcard").count() == 27 and page.locator(".mcard", has_text="Crystal Cave").count() == 0)
+        page.goto(URL + "#cave"); page.wait_for_selector(".mcard"); time.sleep(0.2)
+        check("off by default: a #cave link opens the menu", page.locator(".start-gate").count() == 0 and page.locator(".cv-setup").count() == 0)
+        js("(async () => { const s = await import('/js/settings.js'); s.setGameOn('cave', true); })()")
+        page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.3)
+        check("turned on in the grown-ups settings: menu has 28 cards", page.locator(".mcard").count() == 28)
         check("menu: Crystal Cave is in the Adventures section", page.locator(".sect", has_text="Adventures").locator(".mcard", has_text="Crystal Cave").count() == 1)
 
         # ---------------- question layer ----------------

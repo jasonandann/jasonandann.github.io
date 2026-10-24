@@ -1,5 +1,6 @@
 import { el, loadWords } from './util.js';
 import { openParent } from './parent.js';
+import { gameOn } from './settings.js';
 import { initOffline, checkForUpdates, reloadIfPending } from './offline.js';
 import * as jumble from './games/jumble.js';
 import * as typeit from './games/typeit.js';
@@ -27,7 +28,9 @@ import * as battle from './games/battle.js';
 import * as quest from './games/quest.js';
 import * as cave from './games/cave.js';
 
-// id: deep-link name (index.html#robot opens Robot Course); keep them stable once shared.
+// id: deep-link name (index.html#robot opens Robot Course); keep them stable once shared. Also the key for the
+// grown-ups panel's games on/off list (issue #33). off: true = hidden until a grown-up turns it on (a new game
+// still being tested).
 // needsWords: game uses words.txt (spelling). Sections appear in this order on the home screen.
 const SECTIONS = [
   { title: '✏️ Spelling', needsWords: true, games: [
@@ -62,7 +65,7 @@ const SECTIONS = [
     { icon: '🐸', id: 'river', name: 'Lily Pad River', blurb: 'Hop on the right answer', mod: river },
     { icon: '🛡️', id: 'battle', name: 'Battle Buddies', blurb: 'Answer to send a sparkle', mod: battle },
     { icon: '🗺️', id: 'quest', name: 'Study Quest', blurb: 'Pick an adventure', mod: quest },
-    { icon: '💎', id: 'cave', name: 'Crystal Cave', blurb: 'Explore with your team', mod: cave },
+    { icon: '💎', id: 'cave', name: 'Crystal Cave', blurb: 'Explore with your team', off: true, mod: cave }, // being tested (#61)
   ] },
   { title: '🧠 Brain Games', games: [
     { icon: '👁️', id: 'spot', name: 'Spot Match', blurb: 'Find the matching picture', mod: spotmatch },
@@ -90,7 +93,7 @@ function setHash(id) {
 
 function findGame(hash) {
   const id = decodeURIComponent(hash.replace(/^#/, '')).trim().toLowerCase();
-  for (const sec of SECTIONS) for (const g of sec.games) if (g.id === id) return { game: g, sec };
+  for (const sec of SECTIONS) for (const g of sec.games) if (g.id === id) return gameOn(g) ? { game: g, sec } : null; // hidden: menu
   return null;
 }
 
@@ -121,10 +124,13 @@ function home() {
   if (reloadIfPending()) return; // an update arrived during the game: load it now, on the way to the menu
   inGame = false;
   backBtn.hidden = true;
+  // Games a grown-up turned off are left out, and so is a section with none left.
+  const shown = SECTIONS.map((sec) => ({ ...sec, games: sec.games.filter(gameOn) })).filter((sec) => sec.games.length);
   app.replaceChildren(
     el('div', { class: 'menu-wrap' },
       data.title ? el('p', { class: 'listname' }, data.title) : null,
-      SECTIONS.map((sec) =>
+      shown.length ? null : el('p', { class: 'note' }, 'All the games are turned off in the grown-ups panel.'),
+      shown.map((sec) =>
         el('section', { class: 'sect' },
           el('h2', {}, sec.title),
           el('div', { class: 'menu' },
@@ -164,6 +170,9 @@ function showError(text, hint) {
 
 backBtn.addEventListener('click', home);
 
+// The panel lists every game (to turn them on/off) and redraws the menu when it closes.
+const panelOpts = { sections: SECTIONS, onClose: () => { if (!inGame && !location.hash) home(); } };
+
 // Hidden parent access #1: tap the title 5 times within 3 seconds (home screen only).
 let taps = [];
 titleEl.addEventListener('click', () => {
@@ -172,7 +181,7 @@ titleEl.addEventListener('click', () => {
   taps.push(now);
   if (taps.length >= 5) {
     taps = [];
-    if (!inGame) openParent(data.words);
+    if (!inGame) openParent(data.words, panelOpts);
   }
 });
 
@@ -181,7 +190,7 @@ let buf = '';
 document.addEventListener('keydown', (e) => {
   if (inGame || e.key.length !== 1) return;
   buf = (buf + e.key.toLowerCase()).slice(-6);
-  if (buf === 'parent') { buf = ''; openParent(data.words); }
+  if (buf === 'parent') { buf = ''; openParent(data.words, panelOpts); }
 });
 
 (async function init() {

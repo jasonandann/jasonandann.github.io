@@ -65,7 +65,7 @@ try:
         def wait_next(): page.wait_for_selector(".bt-next, .bt-go, .bt-finish", timeout=8000)
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
-        check("menu has 28 cards", page.locator(".mcard").count() == 28)
+        check("menu has 27 cards", page.locator(".mcard").count() == 27)
         check("menu: Battle Buddies is in the Adventures section", page.locator(".sect", has_text="Adventures").locator(".mcard", has_text="Battle Buddies").count() == 1)
 
         # ---- believable math slips
