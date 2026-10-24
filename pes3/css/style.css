@@ -928,6 +928,41 @@ button.rb-cell:active { background: #dcfce7; }
   .qt-scene { padding: 10px; }
 }
 
+/* Guess What (issue #57) */
+.gw { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.gw-top { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; min-height: 0; }
+.gw-top:empty { display: none; }
+.btn.gw-mine { background: var(--warm-bg); border-color: var(--warm); }
+.gw-bot { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.gw-bot-face { font-size: 1.6rem; margin-right: 4px; }
+.gw-bot-tile { width: 14px; height: 20px; border-radius: 4px; background: var(--brand); transition: opacity .3s; }
+.gw-bot-tile.down { opacity: .18; }
+.gw-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; width: 100%; }
+.gw-card {
+  min-height: 58px; padding: 6px 8px; border-radius: 14px; border: 3px solid var(--soft); background: var(--card);
+  font-size: 1.35rem; font-weight: 800; transition: opacity .25s, transform .25s, background .25s;
+}
+.gw-card.down { opacity: .32; background: #e5e7eb; transform: scale(.94); text-decoration: line-through; }
+.gw-card.mine { border-color: var(--warm); }
+.gw-card.found { background: var(--good-bg); border-color: var(--good); opacity: 1; transform: scale(1.05); text-decoration: none; }
+.gw-card.nudge { animation: gw-nudge .8s; }
+@keyframes gw-nudge { 0%,100% { transform: none; } 25% { transform: rotate(-4deg) scale(1.05); } 75% { transform: rotate(4deg) scale(1.05); } }
+.gw-history { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.gw-history:empty { display: none; }
+.gw-chip { padding: 4px 10px; border-radius: 999px; background: var(--soft); font-weight: 700; font-size: .95rem; }
+.gw-chip.bot { background: #eef2ff; }
+.gw-panel { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.gw-q { min-width: 88px; font-size: 1.3rem; }
+.gw-q mark, .gw-chip mark { background: var(--warm-bg); color: inherit; border-radius: 4px; padding: 0 1px; text-decoration: underline; }
+.gw-hint { margin: 0; font-size: 1rem; opacity: .8; text-align: center; }
+.gw-botq { max-width: 560px; }
+@media (max-width: 560px) {
+  .gw-board { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+  .gw-card { font-size: 1.1rem; min-height: 50px; }
+  .gw-tab { padding: 0 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .gw-card.nudge { animation: none; outline: 3px solid var(--warm); } }
+
 /* ---------- Crystal Cave (js/games/cave.js) ---------- */
 .zt-setup.cv-setup { max-width: 940px; }
 .cv-seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; width: 100%; }
@@ -1022,3 +1057,44 @@ button.rb-cell:active { background: #dcfce7; }
   .cv-tile.can.down .cv-crystal { animation: none; box-shadow: 0 0 0 4px #fde047; }
   .cv-big.gone svg { animation: none; opacity: .3; }
 }
+
+/* ---------- Monster Parade (js/games/parade.js; art in js/games/parade/art.js) ---------- */
+.pd-setup .opt-summary { margin: 2px 0 0; font-size: .9rem; opacity: .7; }
+.pd { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.pd-line { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.pd-spot { width: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 64px; border-radius: 12px; border: 2px dashed var(--soft); background: var(--card); }
+.pd-spot.done { border-style: solid; border-color: #fde68a; background: #fffbeb; }
+.pd-spot.now { border-color: var(--warm); }
+.pd-mini svg { width: 50px; height: auto; display: block; }
+.pd-empty { font-size: 1.3rem; opacity: .5; }
+.pd-name { font-size: .8rem; font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-main { display: flex; gap: 16px; align-items: flex-start; justify-content: center; flex-wrap: wrap; width: 100%; }
+/* As big as fits: ~58% of an iPad's height, nearly full width on a phone (art.js VIEWBOX is 240 x 290). */
+.pd-stage { width: min(92vw, 50vh, 520px); aspect-ratio: 240 / 290; flex: none; border-radius: 18px; background: linear-gradient(#e0f2fe, #fef9c3); box-shadow: 0 2px 0 var(--soft); }
+.pd-stage svg { width: 100%; height: auto; display: block; }
+.pd-stage.pop { animation: pd-pop .5s; }
+@keyframes pd-pop { 0% { transform: scale(.94); } 60% { transform: scale(1.04); } 100% { transform: none; } }
+.pd-panel { flex: 1 1 340px; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pd-panel .text-in { width: min(100%, 300px); text-align: center; }
+.pd-hint { margin: 0; opacity: .75; }
+.pd-choices { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: 100%; }
+.btn.pd-choice { flex: 1 1 0; max-width: 184px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px; min-width: 0; }
+.pd-preview { width: 100%; }
+.pd-preview svg { width: 100%; height: auto; display: block; }
+.pd-label { font-weight: 800; }
+.pd-parade { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.pd-parade h2 { margin: 0; }
+.pd-crowd { font-size: 1.6rem; letter-spacing: .1em; white-space: nowrap; overflow: hidden; max-width: 100%; }
+.pd-road { position: relative; width: 100%; overflow: hidden; padding: 8px 0 18px; border-radius: 18px; background: linear-gradient(#bae6fd 0 62%, #9ca3af 62% 100%); }
+.pd-row { display: flex; gap: 14px; width: max-content; align-items: flex-end; }
+.pd-road.still .pd-row { width: auto; flex-wrap: wrap; justify-content: center; }
+.pd-marcher { display: flex; flex-direction: column; align-items: center; }
+.pd-big svg { height: min(250px, 34vh); width: auto; display: block; }
+.pd-marcher .pd-name { font-size: 1rem; background: #fff; padding: 0 8px; border-radius: 999px; }
+@media (max-width: 560px) {
+  .btn.pd-choice { padding: 4px; }
+  .pd-big svg { height: 200px; }
+  .pd-spot { width: 52px; min-height: 52px; }
+  .pd-mini svg { width: 40px; }
+}
+@media (prefers-reduced-motion: reduce) { .pd-stage.pop { animation: none; } }

@@ -60,7 +60,7 @@ try:
 
         # ---- load + menu
         page.goto(URL); page.wait_for_selector(".mcard")
-        check("menu shows 27 cards", page.locator(".mcard").count() == 27)
+        check("menu shows 29 cards", page.locator(".mcard").count() == 29)
         check("list title shown", "Week of Oct 26" in page.locator(".listname").inner_text())
         page.screenshot(path=f"{SHOTS}/menu.png")
 

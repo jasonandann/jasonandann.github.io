@@ -17,6 +17,9 @@ ROOT = Path(__file__).resolve().parent.parent
 path = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "words.txt"
 dict_path = ROOT / "dict" / "words.txt"  # built by tools/make_dictionary.py
 dictionary = set(dict_path.read_text(encoding="utf-8").split()) if dict_path.exists() else set()
+sounds_path = ROOT / "dict" / "sounds.txt"  # built by tools/make_sounds.py (Guess What)
+sounds = {l.split(" ", 1)[0] for l in sounds_path.read_text(encoding="utf-8").splitlines()
+          if l and not l.startswith("#")} if sounds_path.exists() else set()
 if not path.exists():
     sys.exit(f"error: {path} not found")
 
@@ -42,6 +45,8 @@ for word, _ in words:
         warnings.append(f"not letters-only (skipped in Jumble/Word Search): {word!r}")
     elif dictionary and 3 <= len(word) <= 12 and word not in dictionary:
         warnings.append(f"not in the dictionary, check the spelling (Baffle accepts it anyway): {word}")
+    if sounds and word not in sounds:
+        warnings.append(f"no pronunciation in dict/sounds.txt (left out of Guess What): {word}")
     if len(word) > MAX_SEARCH_LEN:
         warnings.append(f"longer than {MAX_SEARCH_LEN} letters (skipped in Word Search): {word}")
 

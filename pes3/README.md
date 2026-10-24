@@ -40,13 +40,14 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Adventures** (games 
 | Word Search | Drags across letters, or taps first and last letter |
 | Baffle | Boggle-style 5×5 letter grid: slides across touching letters to make words (see below) |
 | Look, Cover, Write, Check | Studies the word, hides it, writes it from memory, compares |
+| Guess What | Guess Who? with the list: asks yes/no questions about how the hidden word *sounds* and puts down the words that don't fit (see below) |
 | See the Words | Study list; tap a word to hear it |
 
 **Math** (grade-3 style; levels: add/subtract within 100, times tables 2-5, 2-10, or times and division). The games start straight away at the remembered level (Add & subtract until one is chosen); the ⚙️ in the top corner changes it and starts again. Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Adventures) can also do math. Not recorded in the hidden progress.
 
 **Coding**: Robot Course, Turtle Draw and Code Studio (below). All three share one engine in `js/code/`.
 
-**Adventures**: Zombie Trail (below), Battle Buddies, Study Quest and Crystal Cave (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games).
+**Adventures**: Zombie Trail (below), Battle Buddies, Study Quest, Monster Parade and Crystal Cave (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games).
 
 **Brain Games**: Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 
@@ -69,6 +70,7 @@ Add `#<name>` to the address, e.g. `https://jasonandann.net/pes3/#robot`. The pa
 | Word Search | `#search` | | | Spot Match | `#spot` |
 | Wordal | `#wordal` | | | Study Quest | `#quest` |
 | Listen & Type | `#listen` | | | Crystal Cave | `#cave` |
+| Guess What | `#guess` | | | Monster Parade | `#parade` |
 
 The new spelling and math games are original vanilla-JS re-implementations of the mechanics in [Spellbound](https://github.com/benSlaughter/spellbound) (MIT per its README); none of its code was copied. Differences from Spellbound, chosen for a child who discourages easily: no timers, no best scores, no unlock gating, no lives.
 
@@ -85,6 +87,18 @@ A 5×5 grid of letters. Slide a finger across letters that touch (diagonals coun
 - After 8 minutes, 40 tries, or 12 tries in a row with nothing new, it offers "Getting tired? Let's take a break!" (Keep playing / All done). All done shows what she found and an optional "Peek at the hiding words". Tune these at the top of `js/games/baffle.js`.
 - Every new word (list or bonus) is a garden point. Baffle keeps its own hidden per-word stats (found with no hint / with look-ahead off / with a hint / in a row), shown in the parent panel; it does not touch the main progress table.
 - Dictionary: `dict/words.txt`, built by `python3 tools/make_dictionary.py` from the public-domain [ENABLE list](https://github.com/dolph/dictionary) (3–12 letters, about 152k words, 1.4 MB; downloaded only when Baffle opens). ENABLE is from about 2000, so newer words (email, selfie) are missing, and it includes Scrabble oddities (aah, zax). `tools/blocklist.txt` removes swear words and slurs; add to it and re-run the script. To switch to [SCOWL](http://wordlist.aspell.net/) later, pass its word file to the script.
+
+### Guess What
+
+[Guess Who?](https://en.wikipedia.org/wiki/Guess_Who%3F) with up to 12 of this week's words (issue #57). The computer hides one; she asks yes/no questions by tapping buttons (nothing is typed or parsed), and puts down the words that no longer fit.
+
+- **Questions are about sounds, not letters**, so it isn't just reading: 👏 beats (syllables), ⬅️ starts with the same sound as *sun*, ➡️ ends with the same sound as *buzz*, 🗣️ has the vowel sound in *cake*. Each button shows an example word with the sound's letters marked. Only questions that split the words still in play are offered. A y/ies week splits by itself on "ends like *pie*" (dry) vs "ends like *tree*" (puppy) vs "ends like *buzz*" (dries, puppies).
+- **Putting cards down** (under ⚙️ Options; the start screen only asks *Just me* / *Take turns*): ✋ *I do it* (default): she taps the words to put down (each one is spoken), then ✔ Done. A word that still fits stands back up ("Listen: … so it stays up"); missed words get one "Look again", then go down by themselves. 🪄 *Help me*: they go down by themselves.
+- 💡 *I know it!* lets her guess any time; a wrong guess just puts that card down. With one word left, or words that sound the same to every question (*their/there*), she is asked to guess.
+- **Take turns with the robot** (her Robot Course robot's name): she picks a secret word too (never the same as the computer's), and the computer asks about it; she answers 👍 Yes / 👎 No. A slip gets "say it out loud and listen again", then the answer is shown. The computer picks a random useful question, so it is not a perfect player. The game has a winner (like Battle Buddies); no confetti when the computer wins. *Just me* (default) has no opponent.
+- Garden: 1 point per question she finishes (flips checked) and per computer question she answers. Not recorded in the hidden progress.
+- Pronunciations: `dict/sounds.txt`, built by `python3 tools/make_sounds.py` from the [CMU Pronouncing Dictionary](https://github.com/cmusphinx/cmudict) (BSD-style licence, notice in `dict/CMUDICT-LICENSE.txt`), limited to the Baffle dictionary's words plus 1–2 letter and apostrophe words: about 56k words, 1.6 MB, downloaded only when Guess What opens. American pronunciations. A word it doesn't have is left off the board (`tools/check_words.py` warns); fewer than 4 known words = a note instead of a game.
+- How sounds are judged (`js/sounds.js`; choices, not facts): unstressed short vowels (the *a* in *about*, the *i* in *because*) don't count as vowel sounds; *hot* and *saw* are one sound (cot/caught merger); a vowel before *r* is its own sound (*car*, *corn*, *hair*, *hear*); a word whose pronunciations disagree on a question (*live*, *read*, *whale* with or without the *h*) makes that question unavailable while it is on the board.
 
 ### Code Studio
 
@@ -160,6 +174,14 @@ Oregon Trail-style journeys. Pick one of eight stories; each has a trail map, fo
 - Stories are data: one file each in `js/games/quests/` (the shape is described at the top of `js/games/quests/index.js`). To add a story, copy one, edit the words and add it to `STORIES`; `tests/quest_test.py` checks every story and plays each one to the end. The history and science facts were checked against the sources listed in each file.
 - Keys: `spelling-games.quest.<story>.save.v2`, `.quest.<story>.found.v1`, `.quest.mode`; Seed Ark's plants `spelling-games.garden.special.v1`. The first version's Dragon Egg save and dragons move over automatically.
 
+### Monster Parade
+
+Monsters are getting ready for a big parade (issue #67). Each monster (simple cartoon SVGs, all the same size; colour, eyes, top, mouth and pattern vary) needs **something extra** (bat, fairy or bird wings, a dragon or fluffy tail, fuzzy fur), **something to wear** (hat, crown, cape, scarf, sunglasses…), **something to hold** (pom-poms, flag, baton, drum…) and **a way to ride** (float, open-top bus, fire truck, marching band, giant balloon…). Before each, a ▶ Next question tap; a right answer (second chance included) lets her pick one of 3 choices, each shown on the monster; items not used yet in this parade come first. Not right this time: "Let's try another question!" and nothing is lost. She can name each monster (or Skip for a fun name); the monster she is dressing blinks now and then. Ready monsters fill a strip at the top; after the last one the parade rolls across the screen from left to right: wheels turn, the float's lights chase, props move (pom-poms shake, the flag waves, the baton twirls, music notes float out of the trumpet...), the band and balloon handlers march, the giant balloon bobs (a still row with reduced motion). The marching band, giant balloon and unicycle show the monster side-on, facing the way it goes.
+
+- One player. **⚙️ Options**: questions Spelling / Math / **Both**, math level (shared), monsters per parade 3–**4**–7, second chance **On**. Defaults in bold; kept in `spelling-games.parade.options`.
+- Garden: one point per answered question (via the shared question box); spelling words count in the hidden progress.
+- All drawing is in `js/games/parade/art.js` (style approved by Jason; individual items still being tuned). Saving parades as pictures is a later idea (issue #70).
+
 ### Crystal Cave
 
 A dungeon crawl for 2–4 heroes, inspired by the board game *The Quest Kids* (issue #61; only the mechanics are borrowed, the names and pictures are our own). Heroes take turns turning over tiles in a cave of rooms and walls. Green tiles are always good, gray ones may hide a bad guy, red ones have the biggest bad guys and the best rewards.
@@ -193,7 +215,7 @@ The on-screen keyboard avoids iPad autocorrect and predictive text. A physical k
 
 ## Hidden progress (grown-ups only)
 
-Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, Zombie Trail, Lily Pad River, Battle Buddies, Study Quest and Crystal Cave (her own list words) record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Code Studio, Spot Match, Simon Says, and math questions in the mixed games do not record anything (Battle Buddies keeps its own hidden estimate, above). In Wordal, "first try" means solved within the first two guesses.
+Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, Zombie Trail, Lily Pad River, Battle Buddies, Study Quest and Crystal Cave (her own list words) record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Guess What, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Code Studio, Spot Match, Simon Says, and math questions in the mixed games do not record anything (Battle Buddies keeps its own hidden estimate, above). In Wordal, "first try" means solved within the first two guesses.
 
 Open the panel from the home screen by either:
 - tapping the **"Spelling Time" title 5 times within 3 seconds**, or
@@ -276,7 +298,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/parent_test.py`, `python3 tests/battle_test.py`, `python3 tests/quest_test.py`, `python3 tests/cave_test.py`, `python3 tests/wordsearch_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/parent_test.py`, `python3 tests/battle_test.py`, `python3 tests/quest_test.py`, `python3 tests/cave_test.py`, `python3 tests/wordsearch_test.py`, `python3 tests/guesswhat_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 
@@ -300,14 +322,16 @@ js/passcode.js       passcode hashing, wrong-try waits, recovery code
 js/parent-lock.js    passcode screens in front of the panel
 js/offline.js        registers sw.js, update checks, reload on the home menu
 js/math.js           math question generator, level picker, quiz loop
-js/challenge.js      one question with an answer box (Battle Buddies, Study Quest, Crystal Cave)
+js/challenge.js      one question with an answer box (Battle Buddies, Study Quest, Crystal Cave, Monster Parade)
 js/options.js        ⚙️ Options pop-up shared by the games (choice rows, summary button, corner gear)
 js/questions.js      questions by subject and difficulty tier (her list / Starter / Grown-up words, tiered math)
 js/mistakes.js       believable misspellings and math slips
-js/games/*.js        one file per game (mathquiz.js holds 5 math games; robot-levels.js = Robot Course maps; quests/ = Study Quest's stories; battle-bot.js = the computer player; cave/ = Crystal Cave's rules, computer heroes, cards and pictures)
+js/games/*.js        one file per game (mathquiz.js holds 5 math games; parade/art.js = Monster Parade's pictures; robot-levels.js = Robot Course maps; quests/ = Study Quest's stories; battle-bot.js = the computer player; cave/ = Crystal Cave's rules, computer heroes, cards and pictures)
 js/code/             shared coding engine (program walker/runner, step chips, turn words, beeps)
 audio/               optional recordings + manifest.json + pronunciations.txt
 dict/words.txt       real-word list for Baffle (generated; see tools/make_dictionary.py)
+dict/sounds.txt      pronunciations for Guess What (generated; see tools/make_sounds.py; CMUDICT-LICENSE.txt)
+js/sounds.js         sound questions (beats, first/last sound, vowel sound) from dict/sounds.txt
 tests/               Playwright tests
 sw.js                offline copy + update checks (service worker)
 manifest.webmanifest  app name/icons for installing (Chromebook)
@@ -316,6 +340,7 @@ CLAUDE.md            context for Claude Code
 tools/check_words.py optional list checker
 tools/make_audio.py  optional macOS audio generator
 tools/make_dictionary.py + blocklist.txt   rebuilds dict/words.txt
+tools/make_sounds.py rebuilds dict/sounds.txt (run make_dictionary.py first if both change)
 tools/serve.py       local server that behaves like GitHub Pages (for trying the offline copy)
 tools/sw-off.js      kill switch: copy over sw.js to turn the offline copy off everywhere
 ```
