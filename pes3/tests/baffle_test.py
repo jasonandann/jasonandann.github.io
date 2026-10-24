@@ -95,7 +95,7 @@ try:
             page.mouse.up(); time.sleep(0.15)
 
         page.goto(URL); page.wait_for_selector(".mcard")
-        check("menu has 25 cards", page.locator(".mcard").count() == 25)
+        check("menu has 27 cards", page.locator(".mcard").count() == 27)
         check("Baffle is in the Spelling section", page.locator(".sect", has_text="Spelling").locator(".mcard", has_text="Baffle").count() == 1)
 
         # ---- generator (pure function)

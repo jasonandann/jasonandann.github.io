@@ -3,53 +3,16 @@
 // Pads loop forever and wrong pads just sink a little, so nothing is ever lost or missed.
 import { el, shuffle, chooseWords, hearBar, speakWord, cheer, opKind, logRound, award, celebrate, scope, finish } from '../util.js';
 import { LEVELS, savedLevel, saveLevel, makeQuestion, choices as mathChoices, nudge } from '../math.js';
-import { loadDictionary, inDictionary } from '../dictionary.js';
+import { loadDictionary } from '../dictionary.js';
+import { misspellings } from '../mistakes.js';
+
+export { misspellings }; // tests import it from here
 
 const COUNT = 10;
 const MODE_KEY = 'spelling-games.river.mode';
 const LANE_SPEED = [40, 30]; // px per second; the lower lane drifts a little slower
 const PER_LANE = 4; // pads per lane: the answer + 3 different wrong ones (6 wrong answers in all)
 const LIST_DECOYS = 2; // spelling: how many of the wrong pads are other words from the list
-const VOWELS = 'aeiou';
-const VOWEL_SWAPS = { a: 'e', e: 'ia', i: 'ey', o: 'u', u: 'o' };
-
-// Plausible misspellings of `word`: y/ie/ies mix-ups, doubled or undoubled letters,
-// a swapped vowel, two letters swapped, silent e. Never a real word or another list word.
-export function misspellings(word, avoid = new Set()) {
-  const near = new Set(); // the classic traps, shown first
-  const far = new Set();
-  const add = (set, w) => {
-    if (w && w !== word && w.length > 1 && !avoid.has(w) && !inDictionary(w)) set.add(w);
-  };
-  if (word.endsWith('ies')) {
-    const st = word.slice(0, -3);
-    ['ys', 'yes', 'eys', 'ees'].forEach((end) => add(near, st + end));
-  } else if (word.endsWith('ied')) {
-    const st = word.slice(0, -3);
-    ['yed', 'eid', 'ide'].forEach((end) => add(near, st + end));
-  } else if (word.endsWith('y')) {
-    const st = word.slice(0, -1);
-    ['ie', 'ey', 'ee'].forEach((end) => add(near, st + end));
-  }
-  for (let i = 1; i < word.length; i++) {
-    const c = word[i];
-    if (word[i - 1] === c) add(near, word.slice(0, i) + word.slice(i + 1)); // puppy -> pupy
-    else if (/[bcdfglmnprst]/.test(c) && word[i + 1] !== c && i < word.length - 1) add(far, word.slice(0, i + 1) + c + word.slice(i + 1)); // lady -> laddy
-  }
-  for (let i = 0; i < word.length; i++) {
-    for (const v of VOWEL_SWAPS[word[i]] || '') add(far, word.slice(0, i) + v + word.slice(i + 1));
-    // two vowels swapped (friend -> freind, because -> becuase); other swaps look like typos, not spelling
-    const pair = word.slice(i, i + 2);
-    if (/^[aeiou]{2}$/.test(pair) && pair[0] !== pair[1]) add(far, word.slice(0, i) + pair[1] + pair[0] + word.slice(i + 2));
-  }
-  if (word.endsWith('e')) add(far, word.slice(0, -1));
-  else if (!(VOWELS + 'ys').includes(word.at(-1))) add(far, word + 'e');
-  // Up to two classic traps first, then the rest, so the pads aren't all the same kind of slip.
-  const nearAll = shuffle([...near]);
-  const rest = shuffle([...far].filter((w) => !near.has(w)));
-  return [...nearAll.slice(0, 2), ...rest, ...nearAll.slice(2)];
-}
-
 // Six different wrong answers for a spelling question: misspellings plus a couple of other list words.
 function wordWrongs(entry, entries) {
   const want = 2 * (PER_LANE - 1);

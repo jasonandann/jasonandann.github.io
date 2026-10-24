@@ -46,7 +46,7 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
 
 **Coding**: Robot Course, Turtle Draw and Code Studio (below). All three share one engine in `js/code/`.
 
-**Fun**: Zombie Trail (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
+**Fun**: Zombie Trail (below), Battle Buddies and Dragon Egg Quest (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 
 **Rewards**: My Garden. Every finished question in any game (right first time or not) is one point; every 4 points grows a flower, and butterflies and bees arrive later. It only grows, never shrinks, and shows no numbers. Stored in `localStorage` (`spelling-games.garden.v1`); the parent panel's "Erase history" does not touch it.
 
@@ -59,13 +59,13 @@ Add `#<name>` to the address, e.g. `https://jasonandann.net/pes3/#robot`. The pa
 | See the Words | `#words` | Number Bubbles | `#bubbles` | Robot Course | `#robot` |
 | Word Jumble | `#jumble` | Number Cascade | `#cascade` | Zombie Trail | `#zombie` |
 | Fill the Blanks | `#blanks` | Times Table Explorer | `#times` | Lily Pad River | `#river` |
-| Look, Cover, Write, Check | `#lcwc` | Number Maze | `#maze` | Spot Match | `#spot` |
+| Look, Cover, Write, Check | `#lcwc` | Number Maze | `#maze` | Battle Buddies | `#battle` |
 | Spell Catcher | `#catcher` | Number Mountain | `#mountain` | Simon Says | `#simon` |
 | Word Volcano | `#volcano` | Puzzle Pieces | `#puzzle` | My Garden | `#garden` |
 | Memory Match | `#memory` | | | Turtle Draw | `#turtle` |
 | Baffle | `#baffle` | | | Code Studio | `#studio` |
-| Word Search | `#search` | | | | |
-| Wordal | `#wordal` | | | | |
+| Word Search | `#search` | | | Spot Match | `#spot` |
+| Wordal | `#wordal` | | | Dragon Egg Quest | `#quest` |
 | Listen & Type | `#listen` | | | | |
 
 The new spelling and math games are original vanilla-JS re-implementations of the mechanics in [Spellbound](https://github.com/benSlaughter/spellbound) (MIT per its README); none of its code was copied. Differences from Spellbound, chosen for a child who discourages easily: no timers, no best scores, no unlock gating, no lives.
@@ -120,6 +120,26 @@ A virtual copy of her Fisher-Price Code 'n Learn Kinderbot (Code mode only), dra
 - First launch asks her to name the robot with the device's own keyboard (optional; "Skip" = Robo). ✏️ Rename is on the picker.
 - Stored on the device only: `spelling-games.robot.name`, `.robot.done.v1` (finished course ids), `.robot.mine.v1` (her courses). Not in the hidden progress.
 
+### Battle Buddies
+
+Two buddies face each other, each with a row of hearts (3, 5 or 7). Players take turns; each turn is one question (Spelling / Math / Both, plus the shared math level). Right answer (second chance included): your buddy sends a ✨ sparkle that pops one of the other side's hearts. Not right this time: no sparkle, and nothing is lost. Pop all the other side's hearts to win.
+
+- **1 player** plays the computer (🤖, named after her Robot Course robot, else Robo). **How tricky**: Easy / Just right (default) / Tricky.
+- The computer follows her quietly: `js/games/battle-bot.js` keeps a hidden estimate per kind (spelling, and each math level): a weighted average of her answers (right first time = 1, on the second chance = ½, else 0) that leans on recent turns. On an ordinary turn the computer's chance of being right is her estimate minus a random 8–20% of it (Just right; Easy 25–40%, Tricky 2–8%), so strictly below her. On a "lucky" turn (12%; Easy 5%, Tricky 20%) it plays at her level or up to 8% above (Easy 5%, Tricky 10%). Tune `BOT_LEVELS`.
+- Its mistakes are believable (`js/mistakes.js`) and explained afterwards. Spelling: sounds-like spellings (*becuz*, *cood*, *whail*, *sed*, *peeple*), y/ie traps, doubled/undoubled letters, swapped vowels; never a real word or another list word. Math: forgot to carry (47 + 38 = 75), the "wrote 15 in the ones place" slip (715), subtracting the smaller digit from the bigger (53 − 27 = 34), borrowing without taking the ten away (36), a times-table neighbour (7 × 8 = 63), the wrong operation, one off. These follow the classic "buggy procedure" studies (Brown & Burton 1978) and table-neighbour errors (Campbell & Graham 1985). Questions are single operations, so there are no order-of-operations slips.
+- **2 players** take turns on one device; no computer.
+- Spelling answers count in the hidden progress (hers only, never the computer's); every answer of hers is a garden point. Grown-ups panel **Erase history** also clears the computer's estimate. Options are remembered on the device (`spelling-games.battle.options`); estimate `spelling-games.battle.skill.v1`.
+- Hearts and a winner are new for this site (the other games avoid anything that looks like losing). The copy stays gentle ("No sparkle this time", "Robo wins this time! That was a close one. Rematch?"), and with Just right she should win most games. Watch how she takes a loss; Easy is there if needed.
+
+### Dragon Egg Quest
+
+An Oregon Trail-style journey: carry a dragon egg from Willow Village to Dragon Mountain with Pip the pony. The trail map shows the stops: Willow Village (shop) → Whispering Woods → Rushing River → a fork (🌉 Troll Bridge, short, or 🌼 Sunny Meadow, long and restful) → Market Town (shop) → Crystal Caves → a fork (🏔️ Windy Pass, short, or 🦉 Owl Tower, long) → Dragon Mountain, where the egg hatches and she names the baby dragon (device keyboard). Her dragons line up on the setup screen.
+
+- Each trail step eats a 🍎 snack and may bring an event (berries, rain, a lost horseshoe, a faded sign, a cheeky squirrel, a wizard…); most events ask a question (Spelling / Math / Both), and a right answer turns out a bit better. The river has three ways across (wade: 1 question, raft: 2, ferry: 4 🪙). Shops ask a money word problem for her math level (change, totals, "how many can you buy").
+- Nothing is ever lost for good: a missed answer costs at most one snack, running out of snacks means a stop to find food, a shop never refuses her, and every trip ends with the egg hatching. About 15–20 questions per trip.
+- The trip is saved as she goes (`spelling-games.quest.save.v1`): **Continue the quest** next time. Dragons: `spelling-games.quest.dragons.v1`. **🔊 Read to me** reads each scene aloud.
+- All story text is in `js/games/quest-story.js` (stops, events, prices); edit freely.
+
 ### Zombie Trail
 
 Roll a die, answer a question. Right: move ahead by the roll. Wrong: move back by the roll. Landing on a 🚀 shortcut jumps you ahead; landing on a 🧟 zombie sends you back (arrows and "→ 23" / "← 11" labels show where). Reach square 35 (🏁) to win; you do not need an exact roll.
@@ -139,7 +159,7 @@ The on-screen keyboard avoids iPad autocorrect and predictive text. A physical k
 
 ## Hidden progress (grown-ups only)
 
-Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, and Zombie Trail record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Code Studio, Spot Match, Simon Says, and Zombie Trail math questions do not record anything. In Wordal, "first try" means solved within the first two guesses.
+Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, Zombie Trail, Lily Pad River, Battle Buddies and Dragon Egg Quest record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Code Studio, Spot Match, Simon Says, and math questions in the mixed games do not record anything (Battle Buddies keeps its own hidden estimate, above). In Wordal, "first try" means solved within the first two guesses.
 
 Open the panel from the home screen by either:
 - tapping the **"Spelling Time" title 5 times within 3 seconds**, or
@@ -220,7 +240,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/parent_test.py`, `python3 tests/battle_test.py`, `python3 tests/quest_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 
@@ -244,7 +264,9 @@ js/passcode.js       passcode hashing, wrong-try waits, recovery code
 js/parent-lock.js    passcode screens in front of the panel
 js/offline.js        registers sw.js, update checks, reload on the home menu
 js/math.js           math question generator, level picker, quiz loop
-js/games/*.js        one file per game (mathquiz.js holds 5 math games; robot-levels.js = Robot Course maps)
+js/challenge.js      one question with an answer box (Battle Buddies, Dragon Egg Quest)
+js/mistakes.js       believable misspellings and math slips
+js/games/*.js        one file per game (mathquiz.js holds 5 math games; robot-levels.js = Robot Course maps; quest-story.js = Dragon Egg Quest's story; battle-bot.js = the computer player)
 js/code/             shared coding engine (program walker/runner, step chips, turn words, beeps)
 audio/               optional recordings + manifest.json + pronunciations.txt
 dict/words.txt       real-word list for Baffle (generated; see tools/make_dictionary.py)
