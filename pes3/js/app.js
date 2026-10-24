@@ -28,6 +28,7 @@ import * as battle from './games/battle.js';
 import * as quest from './games/quest.js';
 import * as guesswhat from './games/guesswhat.js';
 import * as cave from './games/cave.js';
+import * as parade from './games/parade.js';
 
 // id: deep-link name (index.html#robot opens Robot Course); keep them stable once shared. Also the key for the
 // grown-ups panel's games on/off list (issue #33). off: true = hidden until a grown-up turns it on (a new game
@@ -67,6 +68,7 @@ const SECTIONS = [
     { icon: '🐸', id: 'river', name: 'Lily Pad River', blurb: 'Hop on the right answer', mod: river },
     { icon: '🛡️', id: 'battle', name: 'Battle Buddies', blurb: 'Answer to send a sparkle', mod: battle },
     { icon: '🗺️', id: 'quest', name: 'Study Quest', blurb: 'Pick an adventure', mod: quest },
+    { icon: '🎈', id: 'parade', name: 'Monster Parade', blurb: 'Get the monsters ready for the parade', mod: parade },
     { icon: '💎', id: 'cave', name: 'Crystal Cave', blurb: 'Explore with your team', off: true, mod: cave }, // being tested (#61)
   ] },
   { title: '🧠 Brain Games', games: [

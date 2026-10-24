@@ -71,7 +71,7 @@ try:
             return False
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.3)
-        check("menu has 28 cards", page.locator(".mcard").count() == 28)
+        check("menu has 29 cards", page.locator(".mcard").count() == 29)
         check("menu: Guess What is the last Spelling card",
               page.locator(".sect", has_text="Spelling").locator(".mcard").last.inner_text().find("Guess What") >= 0)
 
@@ -238,7 +238,7 @@ try:
         check("phone: cards are touch-sized (>= 44px tall)", page.locator(".gw-card").first.bounding_box()["height"] >= 44)
         page.screenshot(path=os.path.join(SHOTS, "guesswhat_phone.png"), full_page=True)
         tap("#back"); page.wait_for_selector(".mcard")
-        check("home mid-game", page.locator(".mcard").count() == 28)
+        check("home mid-game", page.locator(".mcard").count() == 29)
         page.set_viewport_size({"width": 1024, "height": 768})
 
         # ---- too few words it can say
