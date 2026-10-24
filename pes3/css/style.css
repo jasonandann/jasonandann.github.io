@@ -165,6 +165,8 @@ main { flex: 1; width: 100%; max-width: 980px; margin: 0 auto; padding: 16px; }
   font-weight: 800; font-size: clamp(.8rem, 3.6vw, 1.5rem);
 }
 .cell.sel { background: #c7d2fe; }
+.cell.miss:not(.found) { animation: ws-miss .6s ease-out; } /* fades out the letters a missed drag checked */
+@keyframes ws-miss { from { background: #c7d2fe; } to { background: #fff; } }
 .cell.found { color: #14532d; }
 .cell.found[data-f="0"] { background: #bbf7d0; }
 .cell.found[data-f="1"] { background: #fde68a; }
