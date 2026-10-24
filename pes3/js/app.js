@@ -25,6 +25,7 @@ import * as turtle from './games/turtle.js';
 import * as studio from './games/studio.js';
 import * as battle from './games/battle.js';
 import * as quest from './games/quest.js';
+import * as guesswhat from './games/guesswhat.js';
 
 // id: deep-link name (index.html#robot opens Robot Course); keep them stable once shared.
 // needsWords: game uses words.txt (spelling). Sections appear in this order on the home screen.
@@ -41,6 +42,7 @@ const SECTIONS = [
     { icon: '🔎', id: 'search', name: 'Word Search', blurb: 'Find the hidden words', mod: wordsearch },
     { icon: '🟩', id: 'wordal', name: 'Wordal', blurb: 'Guess the word in six tries', mod: wordal },
     { icon: '👂', id: 'listen', name: 'Listen & Type', blurb: 'Hear it, then spell it', mod: typeit },
+    { icon: '❓', id: 'guess', name: 'Guess What', blurb: 'Find the word by its sounds', mod: guesswhat },
   ] },
   { title: '➗ Math', games: [
     { icon: '🫧', id: 'bubbles', name: 'Number Bubbles', blurb: 'Pop the right answer', mod: mq.bubbles },

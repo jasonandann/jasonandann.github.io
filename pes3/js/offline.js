@@ -38,7 +38,7 @@ async function ask(msg, ms = 60000) {
 // Everything the page loaded, plus files it only loads later (dictionary, recordings, icons).
 async function warmList() {
   const urls = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png',
-    '../images/pes-logo.png', 'words.txt', 'audio/manifest.json', 'dict/words.txt'];
+    '../images/pes-logo.png', 'words.txt', 'audio/manifest.json', 'dict/words.txt', 'dict/sounds.txt'];
   for (const r of performance.getEntriesByType('resource')) urls.push(r.name);
   try {
     const m = await (await fetch('audio/manifest.json')).json();
