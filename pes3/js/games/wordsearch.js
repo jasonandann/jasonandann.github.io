@@ -3,7 +3,9 @@
 import { el, chooseWords, isLetters, speakWord, celebrate, noWords } from '../util.js';
 
 const DIRS = [[0, 1], [1, 0], [1, 1]];
-const MAX = 14;
+const MIN = 8; // smaller boards = bigger letters for small fingers (issue #51)
+const MAX = 12;
+const WORDS = 6;
 // All 8 drag directions as [dr, dc], in angle order (0 = right, then clockwise since rows go down).
 const DIRS8 = [[0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1], [-1, 0], [-1, 1]];
 const HYST = 0.25; // a drag reaches a quarter cell into the next letter before it grows or shrinks
@@ -73,7 +75,7 @@ export function snapEnd(start, pos, size, prev) {
 
 function build(words) {
   const longest = Math.max(...words.map((w) => w.length));
-  for (let s = Math.min(MAX, Math.max(10, longest + 1)); s <= MAX; s++) {
+  for (let s = Math.min(MAX, Math.max(MIN, longest)); s <= MAX; s++) {
     for (let t = 0; t < 30; t++) {
       const r = generate(words, s);
       if (r) return r;
@@ -87,7 +89,7 @@ export function mount(root, entries, api) {
   if (!pool.length) return noWords(root);
 
   function play() {
-    let chosen = chooseWords(pool, 8);
+    let chosen = chooseWords(pool, WORDS);
     let built = null;
     while (chosen.length) {
       built = build(chosen.map((e) => e.word.toUpperCase()));

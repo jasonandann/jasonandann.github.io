@@ -168,8 +168,8 @@ try:
           return {n, grid, words};
         }""")
         n, grid, wl = info["n"], info["grid"], info["words"]
-        check("wordsearch grid sized 10-14", 10 <= n <= 14, str(n))
-        check("wordsearch has <=8 words", 1 <= len(wl) <= 8, str(wl))
+        check("wordsearch grid sized 8-12", 8 <= n <= 12, str(n))
+        check("wordsearch has <=6 words", 1 <= len(wl) <= 6, str(wl))
         def find(word):
             for dr, dc in [(0,1),(1,0),(1,1)]:
                 for r in range(n):

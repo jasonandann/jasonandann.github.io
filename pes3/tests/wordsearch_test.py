@@ -82,20 +82,20 @@ try:
                         if er < n and ec < n and all(grid[r + dr * k][c + dc * k] == word[k] for k in range(len(word))):
                             return {"word": word, "r": r, "c": c, "dr": dr, "dc": dc}
             return None
-        for attempt in range(30):
+        def load():  # open a fresh puzzle (each test needs an unfound word; boards have only 6)
+            global n, grid, todo, b00, pitch
             page.goto(URL); page.wait_for_selector(".mcard")
             page.locator(".mcard", has_text="Word Search").first.tap()
             page.wait_for_selector(".ws-grid .cell")
             info = read(); n, grid = info["n"], info["grid"]
             spots = [locate(n, grid, w) for w in info["words"]]
-            if all(spots) and any(s["dr"] and s["dc"] for s in spots) and len(spots) >= 5:
-                break
-        check("found a puzzle with a diagonal word and >= 5 words", all(spots) and any(s["dr"] and s["dc"] for s in spots) and len(spots) >= 5, str(spots))
+            todo = [x for x in spots if x]
+            b00 = page.locator(".cell[data-r='0'][data-c='0']").bounding_box()
+            pitch = page.locator(".cell[data-r='0'][data-c='1']").bounding_box()["x"] - b00["x"]
+            return spots
+        spots = load()
+        check("every word is findable in the grid", all(spots), str(spots))
         page.screenshot(path=f"{SHOTS}/wordsearch-touch.png")
-
-        b00 = page.locator(".cell[data-r='0'][data-c='0']").bounding_box()
-        b01 = page.locator(".cell[data-r='0'][data-c='1']").bounding_box()
-        pitch = b01["x"] - b00["x"]
         def pt(r, c):  # fractional cell coords -> page px (cell centres at integer r, c)
             return {"x": b00["x"] + b00["width"] / 2 + c * pitch, "y": b00["y"] + b00["height"] / 2 + r * pitch}
         def touch(kind, points):
@@ -122,12 +122,14 @@ try:
         def room(s, k):  # k letters past the end still inside the grid
             L = len(s["word"]) - 1 + k
             return s["r"] + s["dr"] * L < n and s["c"] + s["dc"] * L < n
-        todo = sorted(spots, key=lambda s: -(s["dr"] and s["dc"]))  # diagonal first
+        def peek(pred=lambda s: True):  # an unfound word matching pred, opening new puzzles until one has it
+            for attempt in range(30):
+                s = next((x for x in todo if pred(x)), None)
+                if s: return s
+                load()
+            raise RuntimeError("no puzzle had a matching word in 30 tries")
         def take(pred=lambda s: True):
-            for s in todo:
-                if pred(s):
-                    todo.remove(s); return s
-            return None
+            s = peek(pred); todo.remove(s); return s
 
         # 1. wobbly diagonal: drifts to 0.6 cell off the line, so the finger ends on a neighbouring letter
         s = take(lambda s: s["dr"] and s["dc"])
@@ -135,7 +137,7 @@ try:
         check("diagonal drag ending on a neighbouring letter (0.6 cell off-line) is accepted", found(s["word"]), s["word"])
 
         # 2. the lift drifts into the gap past the last letter (old code: gap -> treated as a tap, word lost)
-        s = take(lambda s: room(s, 1)) or take()
+        s = take(lambda s: room(s, 1))
         L = len(s["word"]) - 1
         drag(line(s, 0, L) + [(s["r"] + s["dr"] * (L + 0.5), s["c"] + s["dc"] * (L + 0.5))])
         check("lift drifting onto the gap after the last letter still counts", found(s["word"]), s["word"])
@@ -143,25 +145,19 @@ try:
 
         # 3. overshoot by one letter: accepted, only the word's letters are coloured
         s = take(lambda s: room(s, 1))
-        if s:
-            L = len(s["word"])
-            er, ec = s["r"] + s["dr"] * L, s["c"] + s["dc"] * L
-            before = is_found_cell(er, ec)
-            drag(line(s, 0, L))
-            check("overshoot by one letter is accepted", found(s["word"]), s["word"])
-            check("the extra letter is not coloured", is_found_cell(er, ec) == before)
-        else:
-            check("overshoot by one letter (no word with room; skipped)", True)
+        L = len(s["word"])
+        er, ec = s["r"] + s["dr"] * L, s["c"] + s["dc"] * L
+        before = is_found_cell(er, ec)
+        drag(line(s, 0, L))
+        check("overshoot by one letter is accepted", found(s["word"]), s["word"])
+        check("the extra letter is not coloured", is_found_cell(er, ec) == before)
 
         # 4. overshoot by two letters is a miss, and the checked letters fade (.miss)
-        s = next((x for x in todo if room(x, 2)), None)
-        if s:
-            drag(line(s, 0, len(s["word"]) + 1))
-            check("overshoot by two letters is not accepted", not found(s["word"]), s["word"])
-            check("a miss marks the checked letters", page.locator(".cell.miss").count() == len(s["word"]) + 2,
-                  str(page.locator(".cell.miss").count()))
-        else:
-            check("overshoot by two (no word with room; skipped)", True); check("miss marks (skipped)", True)
+        s = peek(lambda s: room(s, 2))
+        drag(line(s, 0, len(s["word"]) + 1))
+        check("overshoot by two letters is not accepted", not found(s["word"]), s["word"])
+        check("a miss marks the checked letters", page.locator(".cell.miss").count() == len(s["word"]) + 2,
+              str(page.locator(".cell.miss").count()))
 
         # 5. a stray tap doesn't swallow the next drag (old code: next pointerdown ended a tap-tap selection)
         s = take()
@@ -174,44 +170,41 @@ try:
 
         # 6. a second finger (resting palm) is ignored
         s = take()
-        if s:
-            L = len(s["word"]) - 1
-            path = line(s, 0, L)
-            touch("touchStart", [{**pt(*path[0]), "id": 1}])
-            for q in path[1:4]:
-                touch("touchMove", [{**pt(*q), "id": 1}])
-            palm = {**pt(n - 1, 0), "id": 2}
-            touch("touchStart", [{**pt(*path[3]), "id": 1}, palm])
-            for q in path[4:]:
-                touch("touchMove", [{**pt(*q), "id": 1}, palm])
-            touch("touchMove", [{**pt(*path[-1]), "id": 1}, {**pt(n - 2, 1), "id": 2}])  # palm shifts too
-            time.sleep(0.15)
-            touch("touchEnd", [{**pt(*path[-1]), "id": 1}])  # palm lifts first
-            touch("touchEnd", [])
-            time.sleep(0.25)
-            check("a second finger doesn't break the drag", found(s["word"]), s["word"])
+        L = len(s["word"]) - 1
+        path = line(s, 0, L)
+        touch("touchStart", [{**pt(*path[0]), "id": 1}])
+        for q in path[1:4]:
+            touch("touchMove", [{**pt(*q), "id": 1}])
+        palm = {**pt(n - 1, 0), "id": 2}
+        touch("touchStart", [{**pt(*path[3]), "id": 1}, palm])
+        for q in path[4:]:
+            touch("touchMove", [{**pt(*q), "id": 1}, palm])
+        touch("touchMove", [{**pt(*path[-1]), "id": 1}, {**pt(n - 2, 1), "id": 2}])  # palm shifts too
+        time.sleep(0.15)
+        touch("touchEnd", [{**pt(*path[-1]), "id": 1}])  # palm lifts first
+        touch("touchEnd", [])
+        time.sleep(0.25)
+        check("a second finger doesn't break the drag", found(s["word"]), s["word"])
 
         # 7. sliding back to the first letter cancels (no stray tap pending)
-        s = todo[0] if todo else spots[0]
+        s = peek()
         drag(line(s, 0, 2) + list(reversed(line(s, 0, 2))))
         check("drag out and back to the first letter selects nothing", sel_count() == 0, str(sel_count()))
 
         # 8. tap-tap still works
         s = take()
-        if s:
-            L = len(s["word"]) - 1
-            tap(s["r"], s["c"]); tap(s["r"] + s["dr"] * L, s["c"] + s["dc"] * L)
-            check("tap first + last letter still finds the word", found(s["word"]), s["word"])
+        L = len(s["word"]) - 1
+        tap(s["r"], s["c"]); tap(s["r"] + s["dr"] * L, s["c"] + s["dc"] * L)
+        check("tap first + last letter still finds the word", found(s["word"]), s["word"])
 
-        # 9. a mouse drag released outside the grid keeps the line on screen (pointer capture)
+        # 9. mouse drags still work (lifted a few px past the last letter)
         s = take()
-        if s:
-            L = len(s["word"]) - 1
-            a, z = pt(s["r"], s["c"]), pt(s["r"] + s["dr"] * L, s["c"] + s["dc"] * L)
-            page.mouse.move(a["x"], a["y"]); page.mouse.down(); page.mouse.move(z["x"], z["y"], steps=6)
-            page.mouse.move(z["x"] + 4, z["y"] + 4); page.mouse.up()
-            time.sleep(0.2)
-            check("mouse drag still finds a word", found(s["word"]), s["word"])
+        L = len(s["word"]) - 1
+        a, z = pt(s["r"], s["c"]), pt(s["r"] + s["dr"] * L, s["c"] + s["dc"] * L)
+        page.mouse.move(a["x"], a["y"]); page.mouse.down(); page.mouse.move(z["x"], z["y"], steps=6)
+        page.mouse.move(z["x"] + 4, z["y"] + 4); page.mouse.up()
+        time.sleep(0.2)
+        check("mouse drag still finds a word", found(s["word"]), s["word"])
 
         check("no console/page errors", not errors, "; ".join(errors[:3]))
         b.close()
