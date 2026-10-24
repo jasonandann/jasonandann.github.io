@@ -7,13 +7,26 @@ import { lookaheadMode, setLookaheadMode, getStats, clearStats, isFluent, fluent
 import { clearSkill } from './games/battle-bot.js';
 import { canHash, hasPin, passcodeOff, snapshot, turnOff } from './passcode.js';
 import { unlock, changePasscode, setPasscode, replaceRecoveryCode } from './parent-lock.js';
+import { gameOn, setGameOn } from './settings.js';
 
-export function openParent(entries) {
+// opts: {sections: SECTIONS from app.js (for the games on/off list), onClose() after the panel closes}.
+export function openParent(entries, opts = {}) {
   if (document.querySelector('.overlay')) return;
-  if (passcodeOff()) return showPanel(entries); // the grown-up chose no passcode
+  if (passcodeOff()) return showPanel(entries, opts); // the grown-up chose no passcode
   // No Web Crypto = plain http on a LAN address (the real site is https): stay shut rather than open unlocked.
   if (!canHash) return needsHttps();
-  unlock(() => showPanel(entries));
+  unlock(() => showPanel(entries, opts));
+}
+
+// Games on/off (issue #33): one checkbox per game, grouped by menu section. Saved at once.
+function gamesList(sections = []) {
+  return el('div', { class: 'game-toggles' }, sections.map((sec) =>
+    el('fieldset', { class: 'game-sect' },
+      el('legend', {}, sec.title),
+      sec.games.map((g) => {
+        const box = el('input', { type: 'checkbox', 'data-game': g.id, checked: gameOn(g), onchange: () => setGameOn(g.id, box.checked) });
+        return el('label', { class: 'pick game-toggle' }, box, `${g.icon} ${g.name}`, g.off ? el('span', { class: 'small' }, ' (new: off until you turn it on)') : null);
+      }))));
 }
 
 function needsHttps() {
@@ -23,12 +36,12 @@ function needsHttps() {
     el('div', { class: 'panel lock needs-https' },
       el('h2', {}, 'Grown-ups only'),
       el('p', {}, 'This panel needs a secure connection. Open the site with https:// (or, when testing on a computer, http://localhost).'),
-      el('div', { class: 'row' }, el('button', { class: 'btn primary', type: 'button', onclick: close }, 'Close'))));
+      el('div', { class: 'row' }, el('button', { class: 'btn primary', type: 'button', onclick: () => close() }, 'Close'))));
   document.addEventListener('keydown', onKey);
   document.body.append(overlay);
 }
 
-function showPanel(entries) {
+function showPanel(entries, opts = {}) {
   const p = getProgress();
   const rows = entries
     .map((e) => {
@@ -52,7 +65,7 @@ function showPanel(entries) {
     onclick: () => { setLookaheadMode(m); reopen(); },
   }, label);
   const bfRows = bfWords.filter((w) => bf.words[w]);
-  const reopen = () => { close(); showPanel(entries); }; // already unlocked: don't ask again
+  const reopen = () => { close(true); showPanel(entries, opts); }; // already unlocked: don't ask again
   const picker = (label, value, options, save) => el('label', { class: 'pick' }, label,
     el('select', { onchange: (e) => { save(Number(e.target.value)); reopen(); } },
       options.map(([v, text]) => el('option', { value: v, selected: v === value }, text))));
@@ -81,9 +94,11 @@ function showPanel(entries) {
   }, label);
 
   const onKey = (e) => { if (e.key === 'Escape') close(); };
-  function close() {
+  // quiet = reopening at once (a setting changed), so the menu isn't redrawn underneath.
+  function close(quiet) {
     overlay.remove();
     document.removeEventListener('keydown', onKey);
+    if (!quiet && opts.onClose) opts.onClose();
   }
   document.addEventListener('keydown', onKey);
 
@@ -120,6 +135,10 @@ function showPanel(entries) {
       el('div', { class: 'row' },
         el('button', { class: `btn${abcAllowed() ? '' : ' primary'}`, type: 'button', 'data-kb': 'qwerty', 'aria-pressed': String(!abcAllowed()), onclick: () => { setAbcAllowed(false); reopen(); } }, 'QWERTY only'),
         el('button', { class: `btn${abcAllowed() ? ' primary' : ''}`, type: 'button', 'data-kb': 'choose', 'aria-pressed': String(abcAllowed()), onclick: () => { setAbcAllowed(true); reopen(); } }, 'Let her choose ABC or QWERTY')),
+      el('h3', {}, 'Games'),
+      el('p', { class: 'small' }, 'Untick a game to hide it from the menu on this device (a section with no games left is hidden too, and a link to a hidden game opens the menu). '
+        + 'New games still being tested start off.'),
+      gamesList(opts.sections),
       el('h3', {}, 'Recent practice days'),
       days.length
         ? el('table', {}, el('tbody', {}, days.map(([d, v]) => el('tr', {}, el('td', {}, d), el('td', {}, `${v.c + v.m} rounds`)))))
@@ -129,8 +148,8 @@ function showPanel(entries) {
         el('p', { class: 'small' }, 'Asked every time this panel opens. Forgot it? Use “Forgot passcode?” and the recovery code. '
           + 'A new recovery code replaces the old one.'),
         el('div', { class: 'row' },
-          el('button', { class: 'btn', type: 'button', 'data-act': 'change-pin', onclick: () => { close(); changePasscode(() => showPanel(entries)); } }, 'Change passcode'),
-          el('button', { class: 'btn', type: 'button', 'data-act': 'new-code', onclick: () => { close(); replaceRecoveryCode(() => showPanel(entries)); } }, 'New recovery code'),
+          el('button', { class: 'btn', type: 'button', 'data-act': 'change-pin', onclick: () => { close(true); changePasscode(() => showPanel(entries, opts)); } }, 'Change passcode'),
+          el('button', { class: 'btn', type: 'button', 'data-act': 'new-code', onclick: () => { close(true); replaceRecoveryCode(() => showPanel(entries, opts)); } }, 'New recovery code'),
           el('button', { class: 'btn', type: 'button', 'data-act': 'pin-off', onclick: () => {
             if (confirm('Turn off the passcode? Anyone who finds this panel, including your child, can then change its settings.')) turnOff(snapshot());
             reopen();
@@ -138,7 +157,7 @@ function showPanel(entries) {
       ] : [
         el('p', { class: 'small' }, 'No passcode: anyone who finds this panel, including your child, can change its settings.'),
         canHash
-          ? el('div', { class: 'row' }, el('button', { class: 'btn', type: 'button', 'data-act': 'set-pin', onclick: () => { close(); setPasscode(() => showPanel(entries)); } }, 'Set a passcode'))
+          ? el('div', { class: 'row' }, el('button', { class: 'btn', type: 'button', 'data-act': 'set-pin', onclick: () => { close(true); setPasscode(() => showPanel(entries, opts)); } }, 'Set a passcode'))
           : el('p', { class: 'small' }, 'Setting one needs a secure connection (https).'),
       ],
       el('h3', {}, 'App updates'),
@@ -151,7 +170,7 @@ function showPanel(entries) {
         }),
       ),
       el('div', { class: 'row' },
-        el('button', { class: 'btn primary', type: 'button', onclick: close }, 'Close'),
+        el('button', { class: 'btn primary', type: 'button', onclick: () => close() }, 'Close'),
         el('button', {
           class: 'btn', type: 'button',
           onclick: () => {
