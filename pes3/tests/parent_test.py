@@ -239,8 +239,11 @@ try:
         n0 = len(cards())
         page.keyboard.type("parent"); page.wait_for_selector(".overlay .game-toggles")
         boxes = page.locator(".game-toggle input")
-        check("games list: one checkbox per game, grouped by section, all on by default",
-              boxes.count() == n0 and page.locator(".game-sect").count() == len(heads()) and all(boxes.nth(i).is_checked() for i in range(boxes.count())), f"{boxes.count()} vs {n0}")
+        src = Path(SITE, "js/app.js").read_text()
+        off = re.findall(r"id: '([^']*)'[^\n]*\boff: true", src)  # games that ship hidden (e.g. one being tested)
+        ticked = [boxes.nth(i).get_attribute("data-game") for i in range(boxes.count()) if boxes.nth(i).is_checked()]
+        check("games list: one checkbox per game, grouped by section, all on by default (except games that ship off)",
+              boxes.count() == n0 + len(off) and page.locator(".game-sect").count() == len(heads()) and len(ticked) == n0 and not set(off) & set(ticked), f"{boxes.count()} boxes, {n0} cards, off {off}")
         page.locator(".game-toggle input[data-game='simon']").uncheck()
         check("unticking saves at once, by game id", settings()["games"] == {"simon": False}, str(settings().get("games")))
         page.keyboard.press("Escape")
