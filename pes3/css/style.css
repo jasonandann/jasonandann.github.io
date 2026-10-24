@@ -1013,3 +1013,44 @@ button.rb-cell:active { background: #dcfce7; }
   .cv-tile.can.down .cv-crystal { animation: none; box-shadow: 0 0 0 4px #fde047; }
   .cv-big.gone svg { animation: none; opacity: .3; }
 }
+
+/* ---------- Monster Parade (js/games/parade.js; art in js/games/parade/art.js) ---------- */
+.pd-setup .opt-summary { margin: 2px 0 0; font-size: .9rem; opacity: .7; }
+.pd { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.pd-line { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.pd-spot { width: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 64px; border-radius: 12px; border: 2px dashed var(--soft); background: var(--card); }
+.pd-spot.done { border-style: solid; border-color: #fde68a; background: #fffbeb; }
+.pd-spot.now { border-color: var(--warm); }
+.pd-mini svg { width: 50px; height: auto; display: block; }
+.pd-empty { font-size: 1.3rem; opacity: .5; }
+.pd-name { font-size: .8rem; font-weight: 800; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-main { display: flex; gap: 16px; align-items: flex-start; justify-content: center; flex-wrap: wrap; width: 100%; }
+/* As big as fits: ~58% of an iPad's height, nearly full width on a phone (art.js VIEWBOX is 240 x 276). */
+.pd-stage { width: min(92vw, 50vh, 520px); aspect-ratio: 240 / 276; flex: none; border-radius: 18px; background: linear-gradient(#e0f2fe, #fef9c3); box-shadow: 0 2px 0 var(--soft); }
+.pd-stage svg { width: 100%; height: auto; display: block; }
+.pd-stage.pop { animation: pd-pop .5s; }
+@keyframes pd-pop { 0% { transform: scale(.94); } 60% { transform: scale(1.04); } 100% { transform: none; } }
+.pd-panel { flex: 1 1 340px; max-width: 560px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pd-panel .text-in { width: min(100%, 300px); text-align: center; }
+.pd-hint { margin: 0; opacity: .75; }
+.pd-choices { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: 100%; }
+.btn.pd-choice { flex: 1 1 0; max-width: 184px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px; min-width: 0; }
+.pd-preview { width: 100%; }
+.pd-preview svg { width: 100%; height: auto; display: block; }
+.pd-label { font-weight: 800; }
+.pd-parade { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.pd-parade h2 { margin: 0; }
+.pd-crowd { font-size: 1.6rem; letter-spacing: .1em; white-space: nowrap; overflow: hidden; max-width: 100%; }
+.pd-road { position: relative; width: 100%; overflow: hidden; padding: 8px 0 18px; border-radius: 18px; background: linear-gradient(#bae6fd 0 62%, #9ca3af 62% 100%); }
+.pd-row { display: flex; gap: 14px; width: max-content; align-items: flex-end; }
+.pd-road.still .pd-row { width: auto; flex-wrap: wrap; justify-content: center; }
+.pd-marcher { display: flex; flex-direction: column; align-items: center; }
+.pd-big svg { height: min(250px, 34vh); width: auto; display: block; }
+.pd-marcher .pd-name { font-size: 1rem; background: #fff; padding: 0 8px; border-radius: 999px; }
+@media (max-width: 560px) {
+  .btn.pd-choice { padding: 4px; }
+  .pd-big svg { height: 200px; }
+  .pd-spot { width: 52px; min-height: 52px; }
+  .pd-mini svg { width: 40px; }
+}
+@media (prefers-reduced-motion: reduce) { .pd-stage.pop { animation: none; } }
