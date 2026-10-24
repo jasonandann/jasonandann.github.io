@@ -58,12 +58,14 @@ export const TREASURE = [
   { name: 'Giant diamond', icon: '💎', stars: 3, count: 2 },
 ];
 
-// Kind Kid cards: one for each card you give a friend. Always good; they take effect at once.
-export const KIND = [
-  { name: 'Extra heart', effect: 'heart', count: 4 },
-  { name: 'Bonus card', effect: 'card', count: 6 },
-  { name: 'Gold star', effect: 'star', count: 5 },
-  { name: 'Treasure', effect: 'treasure', count: 5 },
+// Kind Badges (the board game's "Kind Kid" cards): one for each card you give a friend. Always good. You keep
+// them and use one on your own turn when you like (Jason, 2026-10-24); a Gold Star just counts at the end, and
+// unused hearts and treasure maps are cashed in when the game ends.
+export const BADGES = [
+  { name: 'Extra Heart', icon: '❤️', effect: 'heart', text: '+1 heart', count: 4 },
+  { name: 'Bonus Card', icon: '🃏', effect: 'card', text: 'a Power, Wisdom or Magic card: you choose', count: 6 },
+  { name: 'Gold Star', icon: '⭐', effect: 'star', text: '1 star at the end', count: 5 },
+  { name: 'Treasure Map', icon: '🗺️', effect: 'treasure', text: 'find a treasure', count: 5 },
 ];
 
 // Quests: done at the end of your turn if `need` holds (counts are totals for the game, hand = cards now).
@@ -75,7 +77,7 @@ export const QUESTS = [
   { name: 'Full Pockets', text: 'Hold 5 cards', need: { cards: 5 }, stars: 3 },
   { name: 'Brave Kid', text: 'Scare away 2 bad guys', need: { scared: 2 }, stars: 2 },
   { name: 'Monster Chaser', text: 'Scare away 3 bad guys', need: { scared: 3 }, stars: 3 },
-  { name: 'Good Friend', text: 'Get 2 Kind Kid cards', need: { kind: 2 }, stars: 2 },
+  { name: 'Good Friend', text: 'Get 2 Kind Badges', need: { kind: 2 }, stars: 2 },
   { name: 'Treasure Hunter', text: 'Find 3 treasures', need: { treasure: 3 }, stars: 2 },
   { name: 'Gem Finder', text: 'Get a gem', need: { gems: 1 }, stars: 2 },
   { name: 'Healthy Hero', text: 'Have 4 hearts', need: { hearts: 4 }, stars: 2 },

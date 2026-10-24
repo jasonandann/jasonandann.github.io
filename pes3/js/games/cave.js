@@ -1,7 +1,7 @@
 // Crystal Cave (working title; issue #61): a dungeon crawl inspired by the board game The Quest Kids
 // (mechanics only; names and art are our own). 2-4 heroes explore a cave of face-down tiles. Ability tiles
 // give cards, but each card is earned by answering a question: Power = math, Wisdom = spelling, Magic = either.
-// Bad guys are scared away by spending cards (friends can give cards and get a Kind Kid card; a "brave try"
+// Bad guys are scared away by spending cards (friends can give cards and earn a Kind Badge to use later; a "brave try"
 // answers harder questions for the missing ones). Gems are bought with cards. Stars win.
 // One person (with or without computer heroes) = one team against the cave; two or more people = most stars.
 // Rules live in cave/rules.js (plain JSON state, saved as it goes), computer heroes in cave/bot.js.
@@ -61,6 +61,7 @@ const saveOptions = (o) => writeJSON(OPTS_KEY, { seats: o.seats, bot: o.bot, len
 export function loadGame() {
   const s = readJSON(SAVE_KEY, null);
   if (!s || !s.st || s.st.v !== 1 || !R.LAYOUTS[s.st.layout] || !Array.isArray(s.st.players) || s.st.over) return null;
+  for (const p of s.st.players) if (!Array.isArray(p.badges)) p.badges = []; // saved before badges were kept
   return s;
 }
 
@@ -297,6 +298,8 @@ export function mount(root, entries, api) {
             R.KINDS.map((k) => el('span', { class: `cv-count c-${k}`, 'data-k': k, 'data-n': p.cards[k] }, html('cv-ic-w', cardSvg(k)), String(p.cards[k]))),
             st.coop ? null : el('span', { class: 'cv-stars', 'data-n': live(p) }, html('cv-ic-w', starSvg()), String(live(p))),
           ),
+          p.badges && p.badges.length ? el('div', { class: 'cv-badges', 'aria-label': 'Kind Badges' },
+            p.badges.map((b) => el('span', { class: 'cv-badge', 'data-effect': b.effect, title: `${b.name}: ${b.text}` }, `${b.icon} ${b.name}`))) : null,
           p.quest ? el('div', { class: 'cv-quest' }, `📜 ${p.quest.text} (+${p.quest.stars}⭐)`) : null,
         ));
     }));
@@ -339,6 +342,7 @@ export function mount(root, entries, api) {
     work(
       el('p', { class: 'prompt' }, open ? 'Tap a glowing tile to explore it, or a bad guy or gem to try it.' : 'Every tile is explored! Try a bad guy or a gem, or pass.'),
       st.final != null || !open ? plain('Pass ➜', () => finishTurn(i), 'cv-passturn') : null,
+      badgeBar(i, () => humanTurn(i)),
     );
   }
 
@@ -505,11 +509,14 @@ export function mount(root, entries, api) {
       if (!p.human) return sc.later(() => scared(i, t), ms(1000));
       return work(monsterCard(c), button('✨ Scare it away!', () => scared(i, t), 'cv-scare'));
     }
-    const helpers = B.helpAvailable(st, i, miss);
     if (!p.human) {
-      if (helpers) return askHelp(i, t, () => afterHelp(i, t));
+      const used = B.botBadges(st, i, c.needs);
+      if (used.length) { drawAll(); say(`${p.name} used ${used.map((u) => `${u.badge.icon} ${u.badge.name}`).join(' and ')}.`); }
+      if (R.canPay(p.cards, c.needs)) return sc.later(() => scared(i, t), ms(1000));
+      if (B.helpAvailable(st, i, R.shortfall(p.cards, c.needs))) return askHelp(i, t, () => afterHelp(i, t));
       return afterHelp(i, t);
     }
+    const helpers = B.helpAvailable(st, i, miss);
     work(monsterCard(c),
       el('p', { class: 'prompt' }, `You need ${missingText(miss)} more.`),
       el('div', { class: 'cv-choices' },
@@ -517,9 +524,40 @@ export function mount(root, entries, api) {
         braveButton(i, t, miss),
         plain('🏃 Back away (lose a heart)', () => backAway(i, t), 'cv-back'),
         revisit ? el('button', { class: 'btn cv-notnow', type: 'button', onclick: () => humanTurn(i) }, '↩ Not now') : null,
-      ));
+      ),
+      badgeBar(i, () => encounter(i, t, false, revisit), c.needs));
   }
   const missingText = (miss) => ['power', 'wisdom', 'magic', 'any'].filter((k) => miss[k]).map((k) => `${miss[k]} ${CARD[k].name}`).join(', ');
+  // Her Kind Badges she can use right now, as buttons; redo() redraws the screen she was on afterwards.
+  // A Bonus Card asks which card it becomes (the missing kind first when `needs` is given).
+  function badgeBar(i, redo, needs) {
+    const p = st.players[i];
+    const list = (p.badges || []).map((b, n) => ({ b, n })).filter(({ b }) => R.usable(p, b));
+    if (!list.length) return null;
+    const use = (n, kind) => {
+      const r = R.useBadge(st, i, n, kind);
+      if (!r) return;
+      drawAll();
+      say(r.badge.effect === 'heart' ? `${p.name} used ${r.badge.icon} ${r.badge.name}: +1 heart!`
+        : r.badge.effect === 'card' ? `${p.name} used ${r.badge.icon} ${r.badge.name}: +1 ${CARD[r.kind].name} card!`
+          : r.treasure ? `${p.name} used ${r.badge.icon} ${r.badge.name} and found ${r.treasure.icon} ${r.treasure.name}!` : 'The treasure bag is empty.');
+      redo();
+    };
+    const pickKind = (n) => {
+      const miss = needs ? R.shortfall(p.cards, needs) : null;
+      work(el('p', { class: 'prompt' }, 'Which card should your Bonus Card be?'),
+        el('div', { class: 'row cv-anypicks' }, R.KINDS.map((k) =>
+          el('button', { class: `btn cv-bonuspick${miss && miss[k] ? ' primary' : ''}`, type: 'button', 'data-k': k, onclick: once(() => use(n, k)) },
+            html('cv-ic-w', cardSvg(k)), ` ${CARD[k].name}`))),
+        plain('↩ Back', redo, 'cv-notnow'));
+    };
+    return el('div', { class: 'cv-badgebar' },
+      el('p', { class: 'label' }, '🏅 Your Kind Badges'),
+      el('div', { class: 'row' }, list.map(({ b, n }) =>
+        el('button', { class: 'btn cv-usebadge', type: 'button', 'data-effect': b.effect, title: b.text,
+          onclick: once(() => (b.effect === 'card' ? pickKind(n) : use(n))) }, `Use ${b.icon} ${b.name}`))));
+  }
+
   const braveButton = (i, t, miss) => plain(`💪 Brave try (${plural(miss.total, 'harder question')})`, () => brave(i, t, true), 'cv-brave');
 
   function afterHelp(i, t) {
@@ -539,7 +577,8 @@ export function mount(root, entries, api) {
     const go = () => work(monsterCard(c),
       el('p', { class: 'prompt' }, `Still ${missingText(miss)} short.`),
       el('div', { class: 'cv-choices' }, braveButton(i, t, miss),
-        plain('🏃 Back away (lose a heart)', () => backAway(i, t), 'cv-back')));
+        plain('🏃 Back away (lose a heart)', () => backAway(i, t), 'cv-back')),
+      badgeBar(i, () => afterHelp(i, t), c.needs));
     return humans() > 1 && holder !== i ? passTo(i, go, `Pass the device back to ${p.name}.`) : go();
   }
 
@@ -559,7 +598,7 @@ export function mount(root, entries, api) {
         const r = R.give(st, h, i, kind);
         gave = true;
         drawAll();
-        say(`${helper.name} gave ${st.players[i].name} a ${CARD[kind].name} card! ${kidLine(helper, r.kid)}`);
+        say(`${helper.name} gave ${st.players[i].name} a ${CARD[kind].name} card! ${badgeLine(helper, r.kid)}`);
       };
       if (!helper.human) {
         if (!B.willHelp(st, h, i)) { say(`${helper.name} keeps their cards this time.`); return sc.later(step, ms(900)); }
@@ -570,7 +609,7 @@ export function mount(root, entries, api) {
         holder = h;
         status(h, `${helper.name}, can you help?`);
         work(monsterCard(c),
-          el('p', { class: 'prompt' }, `Give ${st.players[i].name === 'You' ? 'your teammate' : st.players[i].name} a ${CARD[kind].name} card? You’ll get a Kind Kid card.`),
+          el('p', { class: 'prompt' }, `Give ${st.players[i].name === 'You' ? 'your teammate' : st.players[i].name} a ${CARD[kind].name} card? You’ll earn a Kind Badge to use later.`),
           el('div', { class: 'cv-choices' },
             button(`🎁 Give a ${CARD[kind].name} card`, () => { doGive(); sc.later(step, ms(1200)); work(); }, 'cv-give'),
             plain('Not this time', () => { say(`${helper.name} keeps their cards this time.`); work(); sc.later(step, ms(500)); }, 'cv-nogive')));
@@ -582,11 +621,7 @@ export function mount(root, entries, api) {
     work(monsterCard(c), el('p', { class: 'prompt cv-asking' }, 'Asking friends for help…'));
     step();
   }
-  const kidLine = (p, kid) => {
-    if (!kid) return '';
-    const what = { heart: 'an extra heart', card: kid.kind ? `a bonus ${CARD[kid.kind].name} card` : 'a bonus card', star: 'a gold star', treasure: kid.treasure ? `${kid.treasure.icon} ${kid.treasure.name}` : 'a treasure', none: 'a thank-you' }[kid.effect];
-    return `Kind Kid: ${p.name} gets ${what}.`;
-  };
+  const badgeLine = (p, b) => (b ? `${p.name} earns a Kind Badge: ${b.icon} ${b.name} (${b.text}).` : `${p.name} earns a Kind Badge.`);
 
   // Brave try: one harder question (a tier up) per missing card. All right = scared away; a miss = lose a heart.
   // Right answers keep their cards either way.
@@ -636,11 +671,12 @@ export function mount(root, entries, api) {
     const p = st.players[i], c = st.tiles[t].card;
     const card = el('div', { class: 'cv-card' }, html('cv-big', gemSvg(c.look.color, c.name)),
       el('div', { class: 'cv-card-text' }, el('strong', {}, c.name), el('span', {}, 'Costs '), cardIcons(c.needs), el('span', {}, ` · ${plural(c.stars, 'star')}`)));
+    if (!p.human && !R.canPay(p.cards, c.needs)) B.botBadges(st, i, c.needs);
     drawAll();
     if (!R.canPay(p.cards, c.needs)) {
       say(`${c.name} needs more cards. It waits here until someone has them.`);
       if (!p.human) return sc.later(() => finishTurn(i), ms(1400));
-      return work(card, button('OK ➜', () => finishTurn(i), 'cv-ok'));
+      return work(card, button('OK ➜', () => finishTurn(i), 'cv-ok'), badgeBar(i, () => tryGem(i, t, false, revisit), c.needs));
     }
     const take = () => {
       R.buy(st, i, t);
@@ -659,6 +695,8 @@ export function mount(root, entries, api) {
   /* ----- computer turn ----- */
   function botTurn(i) {
     const p = st.players[i];
+    const used = B.botBadges(st, i);
+    if (used.length) say(`${p.name} used ${used.map((u) => `${u.badge.icon} ${u.badge.name}`).join(' and ')}.`);
     const plan = B.chooseAction(st, i);
     if (plan.type === 'pass') { say(`${p.name} waits.`); return sc.later(() => finishTurn(i), ms(900)); }
     p.at = plan.tile;
@@ -701,7 +739,7 @@ export function mount(root, entries, api) {
         html('cv-mini', heroSvg(p.hero)),
         el('strong', {}, p.name),
         el('span', { class: 'cv-total' }, `${s.total} ⭐`),
-        el('small', {}, `bad guys ${s.monsters} · gems ${s.items} · treasure ${s.treasure} · quests ${s.quests} · kind ${s.kind} · hearts ${s.hearts}`));
+        el('small', {}, `bad guys ${s.monsters} · gems ${s.items} · treasure ${s.treasure} · quests ${s.quests} · badges ${s.kind} · hearts ${s.hearts}`));
     }));
     let title, line, party;
     if (st.coop) {

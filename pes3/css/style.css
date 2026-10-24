@@ -975,6 +975,10 @@ button.rb-cell:active { background: #dcfce7; }
 .cv-stats > span { display: inline-flex; align-items: center; gap: 2px; }
 .cv-ic-w svg { width: 20px; height: 20px; display: block; }
 .cv-quest { font-size: .85rem; opacity: .8; }
+.cv-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.cv-badge { font-size: .8rem; font-weight: 800; padding: 1px 8px; border-radius: 999px; background: #fef3c7; border: 1px solid #fcd34d; }
+.cv-badgebar { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; padding-top: 6px; border-top: 2px dashed var(--soft); }
+.cv-badgebar .btn { min-height: 48px; background: #fffbeb; border-color: #fcd34d; }
 .cv-panel { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; background: var(--card); border: 2px solid var(--soft); border-radius: var(--radius); }
 .cv-status { display: flex; align-items: center; gap: 8px; font-size: 1.25rem; font-weight: 800; }
 .cv-mini svg { width: 36px; height: 36px; display: block; }

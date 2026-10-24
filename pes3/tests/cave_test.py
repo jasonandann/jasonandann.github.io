@@ -149,8 +149,19 @@ try:
           const f = R.newGame({ players: P(2) }); f.tiles.forEach((t) => { t.state = 'done'; }); f.tiles[3].state = 'up';
           let n = 0; while (!f.over && n < 20) { R.endTurn(f); n++; } out.final = n;
           const g = R.newGame({ players: P(2) }); g.tiles.forEach((t) => { t.state = 'done'; }); R.endTurn(g); out.finalNone = g.over;
-          // a Kind Kid card always does something good
-          const k = R.newGame({ players: P(2) }); out.kids = Array.from({ length: 20 }, () => R.drawKind(k, 1).effect); out.kidCards = k.players[1].kindCards;
+          // Kind Badges are kept until used (nothing happens when one is earned)
+          const k = R.newGame({ players: P(2) }); const k1 = k.players[1]; const before = JSON.stringify([k1.hearts, k1.cards, k1.found.length]);
+          out.kids = Array.from({ length: 20 }, () => R.drawKind(k, 1).effect); out.kidCards = k1.kindCards;
+          out.kept = [k1.badges.length, JSON.stringify([k1.hearts, k1.cards, k1.found.length]) === before, R.drawKind(k, 1) === null, k1.kindCards];
+          const u = R.newGame({ players: P(2) }); const p1 = u.players[1];
+          p1.badges = [{ name: 'Extra Heart', effect: 'heart' }, { name: 'Bonus Card', effect: 'card' }, { name: 'Treasure Map', effect: 'treasure' }, { name: 'Gold Star', effect: 'star' }];
+          const s0 = R.score(p1).kind;
+          out.use = [R.useBadge(u, 1, 1, 'wisdom').kind, p1.cards.wisdom, !!R.useBadge(u, 1, 1).treasure, p1.found.length, R.useBadge(u, 1, 1), p1.hearts];
+          out.use.push(R.useBadge(u, 1, 0) && p1.hearts, p1.badges.map((b) => b.effect), s0);
+          p1.hearts = 5; p1.badges.push({ name: 'Extra Heart', effect: 'heart' }); out.full = [R.usable(p1, p1.badges[1]), R.useBadge(u, 1, 1)];
+          const c = R.newGame({ players: P(2) }); c.players[0].badges = [{ effect: 'heart' }, { effect: 'treasure' }, { effect: 'card' }, { effect: 'star' }];
+          const h0 = c.players[0].hearts; c.tiles.forEach((t) => { t.state = 'done'; }); R.endTurn(c);
+          out.cash = [c.over, c.players[0].hearts - h0, c.players[0].found.length, c.players[0].badges.map((b) => b.effect), R.score(c.players[0]).kind];
           out.goals = ['short', 'long'].map((l) => [1, 4].map((n) => R.newGame({ players: P(n, 1), layout: l }).goal[1]));
           return out; }""")
         check("boards: every square reachable from the way in (short, medium, long)", all(r[l]["reach"] for l in ["short", "medium", "long"]))
@@ -167,7 +178,12 @@ try:
         check("quests: done at end of turn -> stars + a new quest; not done -> nothing", r["quest"] == ["T", 2, 1] and r["quest2"] is None, str(r["quest"]))
         check("last turns: two more each once every tile is explored", r["final"] == 5, str(r["final"]))
         check("last turns: none if nothing is left to do", r["finalNone"])
-        check("Kind Kid cards: heart / card / star / treasure, counted", set(r["kids"]) <= {"heart", "card", "star", "treasure", "none"} and r["kidCards"] == 20)
+        check("Kind Badges: heart / card / star / treasure, counted", set(r["kids"]) <= {"heart", "card", "star", "treasure"} and r["kidCards"] == 20)
+        check("Kind Badges are kept, not used at once (20 in hand, nothing else changed); none left -> still counted", r["kept"] == [20, True, True, 21], str(r["kept"]))
+        check("using badges: Bonus Card -> the card she picks; Treasure Map -> a treasure; Gold Star can't be used, counts as a star; Extra Heart +1",
+              r["use"] == ["wisdom", 1, True, 1, None, 3, 4, ["star"], 1], str(r["use"]))
+        check("an Extra Heart can't be used with full hearts (5)", r["full"] == [False, None], str(r["full"]))
+        check("game end: unused hearts and treasure maps are cashed in; bonus cards aren't; gold stars count", r["cash"] == [True, 1, 1, ["card", "star"], 1], str(r["cash"]))
         check("team targets grow with the cave and the team", r["goals"][0][0] < r["goals"][0][1] and r["goals"][0][1] < r["goals"][1][1], str(r["goals"]))
 
         bots = js("""async () => { const R = await import('/js/games/cave/rules.js'); const B = await import('/js/games/cave/bot.js');
@@ -336,7 +352,8 @@ try:
         page.wait_for_selector(".cv-me", timeout=8000)
         check("help: then back to Mia", "Mia" in page.locator(".cv-me").inner_text())
         s = state()
-        check("help: Dad gave the card and got a Kind Kid card", s["players"][0]["cards"]["wisdom"] == 1 and s["players"][1]["kindCards"] == 1)
+        check("help: Dad gave the card and earned a Kind Badge", s["players"][0]["cards"]["wisdom"] == 1 and s["players"][1]["kindCards"] == 1 and len(s["players"][1]["badges"]) == 1)
+        check("help: Dad's badge shows on his row, named", page.locator(".cv-player[data-p='1'] .cv-badge").count() == 1 and s["players"][1]["badges"][0]["name"] in page.locator(".cv-player[data-p='1'] .cv-badge").inner_text())
         tap(".cv-me"); page.wait_for_selector(".cv-scare"); tap(".cv-scare")
         page.wait_for_selector(".cv-ok")
         s = state()
@@ -368,6 +385,22 @@ try:
         check("back away at 0 hearts: rests next turn, gets a heart back; the bad guy stays", s["players"][0]["skip"] and s["players"][0]["hearts"] == 1 and s["tiles"][js("window.__monster")]["state"] == "up")
         check("a waiting bad guy shows on the board with what it needs", page.locator(f".cv-tile[data-i='{js('window.__monster')}'] .cv-need").count() == 2)
         page.screenshot(path=f"{SHOTS}/cave_pvp.png")
+        # Dad uses a Bonus Card badge to cover the one card he is missing
+        tap(".cv-ok"); page.wait_for_selector(".cv-next"); tap(".cv-next"); page.wait_for_selector(".cv-tile.can")
+        mutate("""st.players.forEach((p) => { p.cards = { power: 0, wisdom: 0, magic: 0 }; });
+                  st.players[1].badges = [{ name: 'Bonus Card', icon: '🃏', effect: 'card', text: 'a card' }, { name: 'Gold Star', icon: '⭐', effect: 'star', text: '1 star' }];
+                  const i = [...document.querySelectorAll('.cv-tile.can.down')].map((e) => +e.dataset.i)[0];
+                  st.tiles[i].card = { kind: 'monster', color: st.tiles[i].color, name: 'Test Slime', needs: { power: 1 }, stars: 2, look: { shape: 'slime', color: '#000' }, id: 93 }; window.__monster = i;""")
+        tap(f".cv-tile[data-i='{js('window.__monster')}']")
+        page.wait_for_selector(".cv-usebadge")
+        check("badges: only usable ones get a Use button (Bonus Card, not Gold Star)", page.locator(".cv-usebadge").count() == 1 and page.locator(".cv-usebadge[data-effect='card']").count() == 1)
+        tap(".cv-usebadge"); page.wait_for_selector(".cv-bonuspick")
+        check("Bonus Card: the missing kind is suggested", "primary" in (page.locator(".cv-bonuspick[data-k='power']").get_attribute("class") or ""))
+        tap(".cv-bonuspick[data-k='power']"); page.wait_for_selector(".cv-scare")
+        s = state()
+        check("Bonus Card became a Power card; now he can scare it away", s["players"][1]["cards"]["power"] == 1 and [b["effect"] for b in s["players"][1]["badges"]] == ["star"])
+        tap(".cv-scare"); page.wait_for_selector(".cv-ok")
+        check("scared away with the badge's card", state()["tiles"][js("window.__monster")]["state"] == "done")
 
         home()
         check("no console errors", not errors, "; ".join(errors[:5]))

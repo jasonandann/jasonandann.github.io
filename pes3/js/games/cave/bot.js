@@ -2,7 +2,7 @@
 // their answers are right. Levels: 'right' (🌱 Just right: plays a little below her hidden skill, as in
 // Battle Buddies), 'normal' (⚔️ fixed chances by tier), 'nomercy' (🔥 No Mercy: plays to win when people compete).
 // In the cooperative game every computer hero is on her team: it plays sensibly and always helps.
-import { KINDS, shortfall, canPay, explorable, waiting, cardCount, canGive, TIER } from './rules.js';
+import { KINDS, shortfall, canPay, explorable, waiting, cardCount, canGive, TIER, useBadge } from './rules.js';
 import { botChance } from '../battle-bot.js';
 
 export const LEVELS = [
@@ -76,6 +76,21 @@ export function anyPicks(p, n, rnd = Math.random) {
     out.push(kind);
   }
   return out;
+}
+
+// Kind Badges: a computer hero uses Treasure Maps at once and an Extra Heart when below 3 hearts; with `needs`
+// (a bad guy or gem in front of it) Bonus Cards fill the gap. Returns what it used, for the message line.
+export function botBadges(st, i, needs) {
+  const p = st.players[i], used = [];
+  for (let n = (p.badges || []).length - 1; n >= 0; n--) {
+    const b = p.badges[n];
+    if (b.effect === 'treasure' || (b.effect === 'heart' && p.hearts < 3)) { used.push(useBadge(st, i, n)); continue; }
+    if (b.effect !== 'card' || !needs) continue;
+    const miss = shortfall(p.cards, needs);
+    if (!miss.total) continue;
+    used.push(useBadge(st, i, n, KINDS.find((k) => miss[k] > 0) || 'magic'));
+  }
+  return used.filter(Boolean);
 }
 
 // Can anyone but player i give a card toward `miss`?

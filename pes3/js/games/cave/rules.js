@@ -1,6 +1,6 @@
 // Crystal Cave rules (issue #61). No DOM: the game state is plain JSON (it is saved as it is), and every
 // function here works on it, so the tests can drive whole games without the screen.
-import { TILES, TREASURE, KIND, QUESTS, START } from './deck.js';
+import { TILES, TREASURE, BADGES, QUESTS, START } from './deck.js';
 
 export const KINDS = ['power', 'wisdom', 'magic']; // card kinds; power = math, wisdom = spelling, magic = either
 export const SUBJECT = { power: 'math', wisdom: 'spell', magic: 'either', treasure: 'either' };
@@ -94,13 +94,13 @@ export function newGame({ players, layout = 'short', bot = 'right', rnd = Math.r
     v: 1, layout, bot, coop: humans <= 1, turn: 0, final: null, over: false, turns: 0,
     tiles,
     bag: shuffle(expand(TREASURE), rnd),
-    kindDeck: shuffle(expand(KIND), rnd),
+    kindDeck: shuffle(expand(BADGES), rnd), // Kind Badges still to give out
     questDeck: shuffle(expand(QUESTS), rnd),
     players: players.map((p) => ({
       name: p.name, hero: p.hero, human: !!p.human, me: !!p.me, spell: p.spell || 'list', math: p.math || 't10',
       hearts: START.hearts, cards: { power: 0, wisdom: 0, magic: 0 }, skip: false, at: null,
       gain: { monsters: 0, items: 0, treasure: 0, quests: 0, kind: 0 },
-      scared: 0, gems: [], found: [], kindCards: 0, quest: null, done: [],
+      scared: 0, gems: [], found: [], kindCards: 0, badges: [], quest: null, done: [], // kindCards = Kind Badges earned
     })),
   };
   for (const p of st.players) { p.cards[heroOf(p.hero).start]++; p.quest = st.questDeck.pop() || null; }
@@ -175,7 +175,7 @@ export function helpOrder(st, i) {
   const n = st.players.length;
   return Array.from({ length: n - 1 }, (_, k) => (i - 1 - k + n * 2) % n);
 }
-// One card from helper h to player i; the helper takes a Kind Kid card. Returns {kind, kid}.
+// One card from helper h to player i; the helper earns a Kind Badge. Returns {kind, kid} (kid = the badge).
 export function give(st, h, i, kind) {
   const from = st.players[h], to = st.players[i];
   from.cards[kind]--;
@@ -191,18 +191,37 @@ export function drawTreasure(st, i) {
   p.gain.treasure += t.stars;
   return t;
 }
-// A Kind Kid card, used at once: a heart, a card of the kind you have fewest of, a star, or a treasure.
+// A Kind Badge for player i. Kept (shown on the player's row) until they use it; null when none are left
+// (the helper still counts it, for quests and the tie-break).
 export function drawKind(st, i) {
   const k = st.kindDeck.pop();
   const p = st.players[i];
   p.kindCards++;
-  if (!k) return { name: 'Kind Kid', effect: 'none' };
-  const out = { name: k.name, effect: k.effect };
-  if (k.effect === 'heart') p.hearts = Math.min(START.maxHearts, p.hearts + 1);
-  else if (k.effect === 'card') { const kind = KINDS.reduce((m, x) => (p.cards[x] < p.cards[m] ? x : m), 'power'); p.cards[kind]++; out.kind = kind; }
-  else if (k.effect === 'star') p.gain.kind += 1;
-  else if (k.effect === 'treasure') out.treasure = drawTreasure(st, i);
-  return out;
+  if (!k) return null;
+  const badge = { name: k.name, icon: k.icon, effect: k.effect, text: k.text };
+  (p.badges || (p.badges = [])).push(badge);
+  return badge;
+}
+// Can player i use badge b now? Gold Stars aren't used; an Extra Heart waits while hearts are full.
+export const usable = (p, b) => b.effect === 'card' || b.effect === 'treasure' || (b.effect === 'heart' && p.hearts < START.maxHearts);
+// Uses badge number n of player i. kind = the card a Bonus Card becomes. Returns what happened, or null.
+export function useBadge(st, i, n, kind) {
+  const p = st.players[i], b = (p.badges || [])[n];
+  if (!b || !usable(p, b)) return null;
+  p.badges.splice(n, 1);
+  if (b.effect === 'heart') { p.hearts++; return { badge: b }; }
+  if (b.effect === 'card') { const k = KINDS.includes(kind) ? kind : 'magic'; p.cards[k]++; return { badge: b, kind: k }; }
+  return { badge: b, treasure: drawTreasure(st, i) };
+}
+// When the game ends, unused Extra Hearts and Treasure Maps are cashed in (nothing she earned is wasted).
+// Bonus Cards are worth nothing at the end; Gold Stars count in score().
+export function cashIn(st) {
+  for (const p of st.players) {
+    for (const b of [...(p.badges || [])]) {
+      if (b.effect === 'heart') { p.hearts++; p.badges.splice(p.badges.indexOf(b), 1); }
+      else if (b.effect === 'treasure') { drawTreasure(st, st.players.indexOf(p)); p.badges.splice(p.badges.indexOf(b), 1); }
+    }
+  }
 }
 
 // Not scared away: lose a heart. With none left you rest next turn and get one heart back (board game rule).
@@ -250,14 +269,15 @@ export function checkQuest(st, i) {
 export function score(p) {
   const hearts = p.hearts * START.heartStars;
   const g = p.gain;
-  return { total: g.monsters + g.items + g.treasure + g.quests + g.kind + hearts, ...g, hearts };
+  const kind = g.kind + (p.badges || []).filter((b) => b.effect === 'star').length; // Gold Star badges
+  return { total: g.monsters + g.items + g.treasure + g.quests + kind + hearts, ...g, kind, hearts };
 }
 export const teamScore = (st) => st.players.reduce((n, p) => n + score(p).total, 0);
 export function medal(st) {
   const s = teamScore(st);
   return s >= st.goal[2] ? 'gold' : s >= st.goal[1] ? 'silver' : s >= st.goal[0] ? 'bronze' : null;
 }
-// Competitive: most stars, then most Kind Kid cards. Returns player indexes, best first.
+// Competitive: most stars, then most Kind Badges earned. Returns player indexes, best first.
 export function ranking(st) {
   return st.players.map((p, i) => i).sort((a, b) => {
     const pa = st.players[a], pb = st.players[b];
@@ -272,7 +292,7 @@ export function endTurn(st) {
   if (!down) {
     if (st.final == null) st.final = st.players.length * 2;
     else st.final--;
-    if (st.final <= 0 || !waiting(st).length) { st.over = true; return st; }
+    if (st.final <= 0 || !waiting(st).length) { st.over = true; cashIn(st); return st; }
   }
   st.turn = (st.turn + 1) % st.players.length;
   return st;
