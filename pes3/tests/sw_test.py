@@ -112,7 +112,9 @@ def stop():
 def expected_urls():
     import json
     rel = ["", "index.html", "manifest.webmanifest", "words.txt", "audio/manifest.json", "dict/words.txt", "css/style.css"]
-    rel += [str(p.relative_to(APP)) for p in sorted((APP / "js").rglob("*.js"))]
+    # js/net.js is only loaded by net-test.html (online-only spike), so the app never warms it.
+    # Drop this exclusion once a game imports it.
+    rel += [str(p.relative_to(APP)) for p in sorted((APP / "js").rglob("*.js")) if p.relative_to(APP).as_posix() != "js/net.js"]
     rel += [str(p.relative_to(APP)) for p in sorted((APP / "icons").glob("*.png"))]
     m = json.loads((APP / "audio" / "manifest.json").read_text())
     rel += [f"audio/{s}.m4a" for s in m.get("words", [])] + [f"audio/{s}.sentence.m4a" for s in m.get("sentences", {})]
