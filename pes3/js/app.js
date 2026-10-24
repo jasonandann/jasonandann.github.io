@@ -60,7 +60,7 @@ const SECTIONS = [
     { icon: '🧟', id: 'zombie', name: 'Zombie Trail', blurb: 'Race to the finish', needsWords: true, mod: zombie },
     { icon: '🐸', id: 'river', name: 'Lily Pad River', blurb: 'Hop on the right answer', mod: river },
     { icon: '🛡️', id: 'battle', name: 'Battle Buddies', blurb: 'Answer to send a sparkle', mod: battle },
-    { icon: '🥚', id: 'quest', name: 'Dragon Egg Quest', blurb: 'Take the egg home', mod: quest },
+    { icon: '🗺️', id: 'quest', name: 'Study Quest', blurb: 'Pick an adventure', mod: quest },
   ] },
   { title: '🧠 Brain Games', games: [
     { icon: '👁️', id: 'spot', name: 'Spot Match', blurb: 'Find the matching picture', mod: spotmatch },

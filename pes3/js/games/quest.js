@@ -1,102 +1,171 @@
-// Dragon Egg Quest: an Oregon Trail-style journey. Carry a dragon egg from Willow Village to Dragon Mountain
-// with Pip the pony: walk the trail, meet events, pick a way at the forks, shop with coins, answer questions
-// (spelling, math or both) to get past the troll, light the caves, climb the pass. Nothing is ever lost for
-// good: a missed answer costs at most a snack, running out of snacks means a stop to find food, and every
-// trip ends with the egg hatching. The story text lives in quest-story.js. The trip is saved as she goes.
-import { el, scope, speak, celebrate, textInput } from '../util.js';
+// Study Quest: Oregon Trail-style journeys. Pick a story (js/games/quests/), then walk its trail: meet events,
+// pick a way at the forks, shop, answer questions (spelling, math or both) at the stops, and reach the finale,
+// where she names what she found (or just collects it). Nothing is ever lost for good: a missed answer costs at
+// most one food, running out of food means a stop to find more, shops never refuse, and every trip ends well.
+// All story words live in the story files; this file is the engine. Each story's trip is saved as she goes.
+import { el, scope, speak, celebrate, textInput, addSpecialPlant } from '../util.js';
 import { LEVELS, savedLevel, saveLevel } from '../math.js';
 import { problems, ask } from '../challenge.js';
-import { START, PACK, FERRY, TRAIL, FORKS, STOPS, EVENTS, FORAGE, CALM, EGG, DRAGON_COLORS, DRAGON_NAMES } from './quest-story.js';
+import { STORIES } from './quests/index.js';
 
 const MODE_KEY = 'spelling-games.quest.mode';
-const SAVE_KEY = 'spelling-games.quest.save.v1';
-const DRAGONS_KEY = 'spelling-games.quest.dragons.v1';
-const MAX_DRAGONS = 24;
+const saveKey = (id) => `spelling-games.quest.${id}.save.v2`;
+const foundKey = (id) => `spelling-games.quest.${id}.found.v1`;
+const MAX_FOUND = 24;
 const EVENT_CHANCE = 0.55; // a trail step brings an event this often (else a calm step)
 const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const fill = (s, vars) => String(s).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m));
 
 const readJSON = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } };
 const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* ignore */ } };
-export const loadDragons = () => { const d = readJSON(DRAGONS_KEY, []); return Array.isArray(d) ? d : []; };
-function loadSave() {
-  const s = readJSON(SAVE_KEY, null);
-  return s && s.v === 1 && Number.isInteger(s.i) && s.i >= 0 && s.i < TRAIL.length ? s : null;
+const drop = (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
+export const loadFound = (id) => { const d = readJSON(foundKey(id), []); return Array.isArray(d) ? d : []; };
+export function loadSave(story) {
+  const s = readJSON(saveKey(story.id), null);
+  if (!s || s.v !== 2 || !Number.isInteger(s.i) || s.i < 0 || s.i >= story.trail.length) return null;
+  if (story.order === 'shuffle' && !(Array.isArray(s.order) && s.order.length === story.trail.length)) return null;
+  return s;
 }
-const dragonColor = (id) => DRAGON_COLORS.find((c) => c.id === id) || DRAGON_COLORS[0];
-const dragonFace = (color, cls = '') => el('span', { class: `qt-dragon ${cls}`, style: `filter: hue-rotate(${dragonColor(color).hue}deg)` }, '🐉');
 
-// A shop question for the math level: the coins it costs and the snacks it buys. Small numbers, real sums.
-export function storeProblem(level, coins, shop) {
+// The first version (Dragon Egg Quest only) kept its trip and dragons under other names: move them once.
+export function migrate() {
+  const old = readJSON('spelling-games.quest.save.v1', null);
+  if (old && old.v === 1 && readJSON(saveKey('dragon'), null) == null) {
+    writeJSON(saveKey('dragon'), { v: 2, i: old.i, leg: old.leg, atStop: old.atStop, ways: old.ways || {}, food: old.snacks, money: old.coins,
+      token: 0, kind: old.color, seen: old.seen || [], order: null });
+  }
+  drop('spelling-games.quest.save.v1');
+  const dragons = readJSON('spelling-games.quest.dragons.v1', null);
+  if (Array.isArray(dragons)) {
+    writeJSON(foundKey('dragon'), [...loadFound('dragon'), ...dragons.map((d) => ({ name: d.name, kind: d.color, date: d.date }))].slice(-MAX_FOUND));
+    drop('spelling-games.quest.dragons.v1');
+  }
+}
+
+const kindOf = (story, id) => (story.collect.kinds || []).find((k) => k.id === id) || (story.collect.kinds || [])[0] || { id: '', name: '' };
+// The thing she found, drawn as its emoji (tinted when the kind has a hue).
+function foundFace(story, kindId, cls = '') {
+  const k = kindOf(story, kindId);
+  return el('span', { class: `qt-found ${cls}`.trim(), style: k.hue ? `filter: hue-rotate(${k.hue}deg)` : null }, k.icon || story.collect.icon);
+}
+
+// A shop question for the math level, in the story's words: what it costs and how much food it buys.
+export function storeProblem(story, level, coins, shop) {
+  const m = story.money.name, f = story.food.name, pack = story.food.pack;
   if (level === 'add') {
     if (coins >= 12 && Math.random() < 0.5) {
       const p = rnd(5, Math.min(coins - 3, 40));
-      return { prompt: `A snack pack costs ${p} coins. You give ${shop} all ${coins} of your coins. How many coins do you get back?`, answer: coins - p, unit: 'coins', cost: p, snacks: PACK };
+      return { prompt: `${cap(pack)} costs ${p} ${m}. You give ${shop} all ${coins} of your ${m}. How many ${m} do you get back?`, answer: coins - p, unit: m, cost: p, food: story.food.packSize };
     }
+    const [x, y] = story.shop.items;
     const a = rnd(4, 19), b = rnd(4, 19);
-    return { prompt: `Apples cost ${a} coins. Bread costs ${b} coins. How many coins for both?`, answer: a + b, unit: 'coins', cost: a + b, snacks: PACK };
+    return { prompt: `${cap(x)} costs ${a} ${m}. ${cap(y)} costs ${b} ${m}. How many ${m} for both?`, answer: a + b, unit: m, cost: a + b, food: story.food.packSize };
   }
   if (level === 'div') {
     const pairs = [];
     for (let p = 2; p <= 10; p++) for (let n = 2; n <= 10; n++) if (p * n <= Math.max(coins, 12)) pairs.push([p, n]);
     const [p, n] = pick(pairs);
-    return { prompt: `Snacks cost ${p} coins each. How many snacks can you buy with ${p * n} coins?`, answer: n, unit: 'snacks', cost: p * n, snacks: n };
+    return { prompt: `${cap(f)} cost ${p} ${m} each. How many ${f} can you buy with ${p * n} ${m}?`, answer: n, unit: f, cost: p * n, food: n };
   }
   const p = rnd(2, level === 't5' ? 5 : 10), n = rnd(2, 5);
-  return { prompt: `You buy ${n} snacks. Each one costs ${p} coins. How many coins is that?`, answer: n * p, unit: 'coins', cost: n * p, snacks: n };
+  return { prompt: `You buy ${n} ${f}. Each one costs ${p} ${m}. How many ${m} is that?`, answer: n * p, unit: m, cost: n * p, food: n };
+}
+
+// Trail positions (after shuffling) -> trail entries. Time Machine-style stories shuffle all but the first and last.
+export function newOrder(story) {
+  const n = story.trail.length;
+  if (story.order !== 'shuffle') return null;
+  const mid = Array.from({ length: n - 2 }, (_, k) => k + 1);
+  for (let i = mid.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [mid[i], mid[j]] = [mid[j], mid[i]]; }
+  return [0, ...mid, n - 1];
 }
 
 export function mount(root, entries, api) {
+  migrate();
   const canSpell = entries.length > 0;
   const settings = { mode: canSpell ? (readJSON(MODE_KEY, 'both') || 'both') : 'math', level: savedLevel() };
   if (!['spelling', 'math', 'both'].includes(settings.mode)) settings.mode = 'both';
   let sc = scope();
-  let st = null; // the trip: {v, i, leg, atStop, ways, snacks, coins, color, seen}
+  let story = null;
+  let st = null; // the trip: {v:2, i, leg, atStop, ways, food, money, token, kind, seen, order}
   let next = null; // question maker
 
-  const save = () => { if (st) writeJSON(SAVE_KEY, st); };
-  const stopAt = (i) => { const t = TRAIL[i]; return t.fork ? (st.ways[t.fork] == null ? null : t.ways[st.ways[t.fork]]) : t; };
-  const stopDef = (i) => { const s = stopAt(i); return s && STOPS[s.stop]; };
+  const save = () => { if (st) writeJSON(saveKey(story.id), st); };
+  const entryAt = (i) => story.trail[st.order ? st.order[i] : i];
+  const stopAt = (i) => { const t = entryAt(i); return t.fork ? (st.ways[t.fork] == null ? null : t.ways[st.ways[t.fork]]) : t; };
+  const stopDef = (i) => { const s = stopAt(i); return s && story.stops[s.stop]; };
+  const tokens = () => story.trail.filter((t) => (t.fork ? t.ways.some((w) => story.stops[w.stop].prize) : story.stops[t.stop].prize)).length;
   const change = (d) => {
     if (!d) return '';
-    if (d.snacks) st.snacks = Math.max(0, st.snacks + d.snacks);
-    if (d.coins) st.coins = Math.max(0, st.coins + d.coins);
     const bits = [];
-    if (d.snacks) bits.push(`${d.snacks > 0 ? '+' : '−'}${Math.abs(d.snacks)} 🍎`);
-    if (d.coins) bits.push(`${d.coins > 0 ? '+' : '−'}${Math.abs(d.coins)} 🪙`);
+    for (const [key, res] of [['food', story.food], ['money', story.money], ['token', story.token]]) {
+      if (!d[key] || !res) continue;
+      st[key] = Math.max(0, (st[key] || 0) + d[key]);
+      bits.push(`${d[key] > 0 ? '+' : '−'}${Math.abs(d[key])} ${res.icon}`);
+    }
     return bits.join(' ');
   };
 
-  const seg = (label, key, opts, onPick) =>
+  const seg = (label, key, opts, onPick, redraw) =>
     el('div', { class: 'seg' },
       el('p', { class: 'label' }, label),
       el('div', { class: 'row' },
         opts.map(([val, text]) =>
           el('button', {
             class: 'btn' + (settings[key] === val ? ' primary' : ''), type: 'button', 'aria-pressed': String(settings[key] === val),
-            onclick: () => { settings[key] = val; onPick(val); setup(); },
+            onclick: () => { settings[key] = val; onPick(val); redraw(); },
           }, text),
         ),
       ),
     );
+  const questionSegs = (redraw) => [
+    canSpell ? seg('Questions', 'mode', [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']], (m) => writeJSON(MODE_KEY, m), redraw) : null,
+    settings.mode !== 'spelling' ? seg('Math', 'level', LEVELS.map((l) => [l.id, l.name]), saveLevel, redraw) : null,
+  ];
 
+  // ----- picking a story -----
   function setup() {
     sc.dispose();
     sc = scope();
-    const saved = loadSave();
-    const dragons = loadDragons();
     root.replaceChildren(
       el('div', { class: 'zt-setup qt-setup' },
-        el('h2', {}, '🥚 Dragon Egg Quest'),
-        el('p', { class: 'prompt' }, 'A dragon egg needs to get home to Dragon Mountain! Ride with Pip the pony, answer questions on the way, and keep your snacks and coins handy.'),
-        canSpell ? seg('Questions', 'mode', [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']], (m) => writeJSON(MODE_KEY, m)) : null,
-        settings.mode !== 'spelling' ? seg('Math', 'level', LEVELS.map((l) => [l.id, l.name]), saveLevel) : null,
-        dragons.length ? el('div', { class: 'seg' }, el('p', { class: 'label' }, 'Dragons you brought home'),
-          el('div', { class: 'qt-shelf' }, dragons.map((d) => el('span', { class: 'qt-pet' }, dragonFace(d.color), el('span', {}, d.name))))) : null,
+        el('h2', {}, '🗺️ Study Quest'),
+        el('p', { class: 'prompt' }, 'Pick an adventure! Answer questions along the way to help.'),
+        ...questionSegs(setup),
+        el('div', { class: 'qt-picks' }, STORIES.map((s) => {
+          const found = loadFound(s.id).length;
+          return el('button', { class: 'qt-pick', type: 'button', 'data-story': s.id, onclick: () => storyScreen(s) },
+            el('span', { class: 'qt-pick-icon' }, s.icon),
+            el('span', { class: 'qt-pick-name' }, s.name),
+            el('span', { class: 'qt-pick-blurb' }, s.tagline),
+            loadSave(s) ? el('span', { class: 'qt-badge' }, '▶ On the way') : found ? el('span', { class: 'qt-badge done' }, `${s.collect.icon} × ${found}`) : null,
+          );
+        })),
+      ),
+    );
+  }
+
+  function storyScreen(s) {
+    sc.dispose();
+    sc = scope();
+    story = s;
+    const saved = loadSave(s);
+    const found = loadFound(s.id);
+    const redraw = () => storyScreen(s);
+    root.replaceChildren(
+      el('div', { class: 'zt-setup qt-setup', 'data-story': s.id },
+        el('h2', {}, `${s.icon} ${s.name}`),
+        el('p', { class: 'prompt' }, s.blurb),
+        ...questionSegs(redraw),
+        found.length ? el('div', { class: 'seg' }, el('p', { class: 'label' }, s.collect.label),
+          el('div', { class: 'qt-shelf' }, found.map((d) => el('span', { class: 'qt-pet' }, foundFace(s, d.kind), el('span', {}, d.name))))) : null,
         el('div', { class: 'row' },
           saved ? el('button', { class: 'btn primary big qt-continue', type: 'button', onclick: () => begin(saved) }, '▶ Continue the quest') : null,
           el('button', { class: 'btn big qt-new' + (saved ? '' : ' primary'), type: 'button', onclick: () => begin(null) }, saved ? 'Start over' : 'Start the quest!'),
         ),
+        el('button', { class: 'btn qt-all', type: 'button', onclick: setup }, '‹ All quests'),
       ),
     );
   }
@@ -107,28 +176,31 @@ export function mount(root, entries, api) {
   const sceneEl = el('div', { class: 'qt-scene' });
 
   function drawMap() {
+    const hero = story.hero.icon;
     const kids = [];
-    TRAIL.forEach((t, i) => {
+    story.trail.forEach((_, i) => {
       if (i > 0) {
         const s = stopAt(i);
         const legs = s ? s.legs : 2;
         const walking = i === st.i + 1 && !st.atStop;
         kids.push(el('div', { class: 'qt-legs' }, Array.from({ length: legs }, (_, k) =>
-          el('span', { class: 'qt-dot' + (i <= st.i || (walking && k < st.leg) ? ' done' : '') }, walking && k === st.leg - 1 ? '🐴' : ''))));
+          el('span', { class: 'qt-dot' + (i <= st.i || (walking && k < st.leg) ? ' done' : '') }, walking && k === st.leg - 1 ? hero : ''))));
       }
-      const s = stopAt(i);
-      const def = s && STOPS[s.stop];
-      kids.push(el('div', { class: 'qt-stop' + (i < st.i || (i === st.i && !st.atStop) ? ' done' : '') + (i === st.i ? ' here' : ''), 'data-i': i, title: def ? def.name : '?' },
-        def ? def.icon : '❓', i === st.i && (st.atStop || st.leg === 0) ? el('span', { class: 'qt-pony' }, '🐴') : null));
+      const def = stopDef(i);
+      const known = def && (story.order !== 'shuffle' || i <= st.i); // shuffled stories keep the next stops a surprise
+      kids.push(el('div', { class: 'qt-stop' + (i < st.i || (i === st.i && !st.atStop) ? ' done' : '') + (i === st.i ? ' here' : ''), 'data-i': i, title: known ? def.name : '?' },
+        known ? def.icon : '❓', i === st.i && (st.atStop || st.leg === 0) ? el('span', { class: 'qt-pony' }, hero) : null));
     });
     mapEl.replaceChildren(...kids);
-    const frac = st.i / (TRAIL.length - 1);
-    const egg = EGG.filter(([f]) => frac >= f).at(-1)[1];
-    bagEl.replaceChildren(
-      el('span', { class: 'qt-have', 'data-snacks': st.snacks }, `🍎 ${st.snacks}`),
-      el('span', { class: 'qt-have', 'data-coins': st.coins }, `🪙 ${st.coins}`),
-      el('span', { class: 'qt-egg' + (frac >= 0.4 ? ' wiggle' : '') }, '🥚'), el('span', { class: 'qt-eggnote' }, egg),
-    );
+    const frac = st.i / (story.trail.length - 1);
+    const note = story.cargo.notes.filter(([f]) => frac >= f).at(-1)[1];
+    bagEl.replaceChildren(...[
+      el('span', { class: 'qt-have', 'data-food': st.food }, `${story.food.icon} ${st.food}`),
+      el('span', { class: 'qt-have', 'data-money': st.money }, `${story.money.icon} ${st.money}`),
+      story.token ? el('span', { class: 'qt-have', 'data-token': st.token }, `${story.token.icon} ${st.token}/${tokens()}`) : null,
+      el('span', { class: 'qt-egg' + (story.cargo.wiggle != null && frac >= story.cargo.wiggle ? ' wiggle' : '') }, story.cargo.icon),
+      el('span', { class: 'qt-eggnote' }, note),
+    ].filter(Boolean));
   }
 
   // One scene: art, title, story lines (🔊 reads them aloud), then whatever comes next.
@@ -147,28 +219,34 @@ export function mount(root, entries, api) {
   }
   const go = (label, fn, cls = '') => el('button', { class: `btn primary big ${cls}`.trim(), type: 'button', onclick: fn }, label);
   const actBox = () => sceneEl.querySelector('.qt-act');
-  // A question inside the current scene. framing = what it does ("light a glowing mushroom").
+  // A question inside the current scene. act = what it does ("light a glowing mushroom"). Stories with
+  // `blanks` show a spelling word's list sentence with the word missing (a torn page) when it has one.
   function question(act, done, problem) {
     const p = problem || next();
-    const prompt = p.prompt || (act ? `${p.kind === 'spell' ? 'Spell the word' : 'Solve it'} to ${act}.` : null);
+    let prompt = p.prompt || (act ? `${p.kind === 'spell' ? 'Spell the word' : 'Solve it'} to ${act}.` : null);
+    if (story.blanks && p.kind === 'spell' && p.entry.sentence) {
+      const safe = p.entry.word.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&');
+      const re = new RegExp('\\b' + safe + '\\b', 'i');
+      if (re.test(p.entry.sentence)) prompt = `A word is missing: “${p.entry.sentence.replace(re, '_____')}” Spell it to ${act || 'fix the page'}.`;
+    }
     actBox().replaceChildren(ask({ problem: p, entries, later: sc.later, onLeave: sc.onLeave, prompt, done }));
   }
 
   function begin(saved) {
     next = problems(entries, settings.mode, settings.level);
-    st = saved || { v: 1, i: 0, leg: 0, atStop: true, ways: {}, snacks: START.snacks, coins: START.coins, color: pick(DRAGON_COLORS).id, seen: [] };
-    root.replaceChildren(el('div', { class: 'qt' }, mapEl, bagEl, sceneEl));
-    if (!saved) return arrive();
-    if (st.atStop) return arrive();
-    const def = stopDef(st.i);
-    scene({ icon: '🐴', title: 'Back on the trail', lines: [`You are on your way from ${def.name}. Pip is happy to see you!`], body: [go('Keep going ➜', walk)] });
+    const kinds = story.collect.kinds || [];
+    st = saved || { v: 2, i: 0, leg: 0, atStop: true, ways: {}, food: story.food.start, money: story.money.start, token: 0,
+      kind: kinds.length ? pick(kinds).id : '', seen: [], order: newOrder(story) };
+    root.replaceChildren(el('div', { class: 'qt', 'data-story': story.id }, mapEl, bagEl, sceneEl));
+    if (!saved || st.atStop) return arrive();
+    scene({ icon: story.hero.icon, title: story.backTitle, lines: [fill(story.back, { from: stopDef(st.i).name })], body: [go('Keep going ➜', walk)] });
   }
 
-  // Walk on: pick a way at a fork, take a trail step, or arrive at the next stop.
+  // Walk on: pick a way at a fork, take a step, or arrive at the next stop.
   function walk() {
     const n = st.i + 1;
-    if (n >= TRAIL.length) return;
-    const t = TRAIL[n];
+    if (n >= story.trail.length) return;
+    const t = entryAt(n);
     if (t.fork && st.ways[t.fork] == null) return fork(t);
     if (st.leg < stopAt(n).legs) return step();
     st.i = n;
@@ -177,26 +255,26 @@ export function mount(root, entries, api) {
   }
 
   function fork(t) {
-    const f = FORKS[t.fork];
+    const f = story.forks[t.fork];
     scene({ icon: f.icon, title: f.name, lines: f.text, body: f.ways.map((w, k) =>
       el('button', { class: 'btn big qt-way', type: 'button', 'data-way': k, onclick: () => { st.ways[t.fork] = k; save(); walk(); } }, w)) });
   }
 
-  // One step along the trail: eat a snack, then maybe something happens.
+  // One step on the way: eat one food, then maybe something happens.
   function step() {
     st.leg++;
-    st.snacks = Math.max(0, st.snacks - 1);
+    st.food = Math.max(0, st.food - 1);
     let ev = null;
-    if (st.snacks === 0) ev = FORAGE;
+    if (st.food === 0) ev = story.forage;
     else if (Math.random() < EVENT_CHANCE) {
-      let pool = EVENTS.filter((e) => !st.seen.includes(e.id));
-      if (!pool.length) { st.seen = []; pool = EVENTS; }
+      let pool = story.events.filter((e) => !st.seen.includes(e.id));
+      if (!pool.length) { st.seen = []; pool = story.events; }
       ev = pick(pool);
       st.seen.push(ev.id);
     }
     save();
-    if (!ev) return scene({ icon: '🐴', title: 'On the trail', lines: [pick(CALM)], body: [go('Keep going ➜', walk)] });
-    scene({ icon: ev.icon, title: 'On the trail', lines: [ev.text], body: ev.act ? [] : [go('Keep going ➜', walk)] });
+    if (!ev) return scene({ icon: story.hero.icon, title: story.onTheWay, lines: [pick(story.calm)], body: [go('Keep going ➜', walk)] });
+    scene({ icon: ev.icon, title: story.onTheWay, lines: [ev.text], body: ev.act ? [] : [go('Keep going ➜', walk)] });
     if (ev.act) question(ev.act, ({ ok }) => outcome(ev.icon, ok ? ev.good : ev.meh, walk));
   }
 
@@ -211,14 +289,20 @@ export function mount(root, entries, api) {
     save();
     const def = stopDef(st.i);
     const head = { icon: def.icon, title: def.name, lines: def.text };
-    if (def.type === 'store') return scene({ ...head, body: [go('🛒 Buy snacks', () => shop(def)), el('button', { class: 'btn big', type: 'button', onclick: leave }, 'No thanks')] });
+    if (def.type === 'store') return scene({ ...head, body: [go(story.shop.button, () => shop(def)), el('button', { class: 'btn big', type: 'button', onclick: leave }, 'No thanks')] });
     if (def.type === 'questions') return scene({ ...head, body: [go('Let’s go! ➜', () => questions(def, 0))] });
-    if (def.type === 'river') return river(head);
+    if (def.type === 'crossing') return scene({ ...head, body: def.ways.map((w) =>
+      el('button', { class: 'btn big qt-way', type: 'button', 'data-way': w.id, disabled: w.cost ? st.money < w.cost : null, onclick: () => cross(w, 0, true) }, w.label)) });
     if (def.type === 'rest') return scene({ ...head, body: [go('Keep going ➜', () => { change(def.gift); leave(); })] });
-    if (def.type === 'finale') return scene({ ...head, icon: el('span', { class: 'qt-egg big wiggle' }, '🥚'), body: [go('🥚 Hatch!', hatch)] });
+    if (def.type === 'finale') {
+      const f = story.finale;
+      return scene({ ...head, icon: el('span', { class: 'qt-egg big' + (story.cargo.wiggle != null ? ' wiggle' : '') }, story.cargo.icon), body: [go(f.button, reveal, 'qt-finale')] });
+    }
   }
-  // Done with this stop: on to the trail.
+  // Done with this stop (its prize, if any, is given here, so a stop replayed after a reload pays once): on to the trail.
   function leave() {
+    const def = stopDef(st.i);
+    if (def.prize) change(def.prize);
     st.atStop = false;
     save();
     walk();
@@ -226,17 +310,17 @@ export function mount(root, entries, api) {
 
   function shop(def) {
     const mathQ = settings.mode === 'math' || !canSpell || (settings.mode === 'both' && Math.random() < 0.5);
-    const sp = mathQ ? storeProblem(settings.level, st.coins, def.shop) : null;
+    const sp = mathQ ? storeProblem(story, settings.level, st.money, def.shop) : null;
     const p = sp ? { kind: 'math', prompt: sp.prompt, answer: sp.answer, unit: sp.unit, text: '' } : next('spell');
     const cost = sp ? sp.cost : 5;
-    const snacks = sp ? sp.snacks : PACK;
-    scene({ icon: '🛒', title: def.name, lines: [sp ? `${def.shop} adds it up with you.` : `${def.shop} is writing a shopping list. Help her spell it!`] });
+    const food = sp ? sp.food : story.food.packSize;
+    const m = story.money.name;
+    scene({ icon: '🛒', title: def.name, lines: [sp ? `${def.shop} adds it up with you.` : (def.spell || `${def.shop} is writing a list. Help spell it!`)] });
     question(null, ({ ok }) => {
-      const pay = Math.min(cost, st.coins);
-      const short = pay < cost;
+      const pay = Math.min(cost, st.money);
       const text = (ok ? 'Right! ' : `${def.shop} helps you count it out. `)
-        + (short ? `You only have ${st.coins} coins. “That’s plenty for a hero on a quest!” says ${def.shop}.` : `You pay ${cost} coins.`);
-      outcome('🛍️', { text, snacks, coins: -pay }, leave);
+        + (pay < cost ? `You only have ${st.money} ${m}. “That’s plenty for a hero on a quest!” says ${def.shop}.` : `You pay ${cost} ${m}.`);
+      outcome('🛍️', { text, food, money: -pay }, leave);
     }, p);
   }
 
@@ -249,56 +333,55 @@ export function mount(root, entries, api) {
     });
   }
 
-  function river(head) {
-    const ways = [
-      el('button', { class: 'btn big qt-way', type: 'button', 'data-way': 'wade', onclick: () => {
-        scene({ icon: '🦶', title: 'Wading across', lines: ['The water is cold! Step carefully.'] });
-        question('wade across', ({ ok }) => outcome('🌊', ok ? { text: 'You wade across. Pip shakes off the water!' } : { text: 'Splash! Some snacks got wet.', snacks: -1 }, leave));
-      } }, '🦶 Wade across (1 question)'),
-      el('button', { class: 'btn big qt-way', type: 'button', 'data-way': 'raft', onclick: () => raft(0) }, '🪵 Build a raft (2 questions)'),
-      el('button', { class: 'btn big qt-way', type: 'button', 'data-way': 'ferry', disabled: st.coins < FERRY, onclick: () =>
-        outcome('⛴️', { text: 'Captain Otter rows you across. “Hold on to that egg!”', coins: -FERRY }, leave) }, `⛴️ Take the ferry (${FERRY} 🪙)`),
-    ];
-    scene({ ...head, body: ways });
-  }
-  function raft(k) {
-    scene({ icon: '🪵', title: 'Building a raft', lines: [k ? 'One more log!' : 'Tie the logs together.'] });
-    question('tie a log on', () => {
-      if (k === 0) return outcome('🪵', { text: 'One log tied on!' }, () => raft(1), 'Next ➜');
-      outcome('🛶', { text: 'The raft floats you safely across!' }, leave);
+  // A crossing: each way is free (cost, no questions) or takes `count` questions; `meh` (if any) when one was missed.
+  function cross(w, k, allOk) {
+    if (!w.count) return outcome(w.icon, { ...w.good, money: (w.good.money || 0) - (w.cost || 0) }, leave);
+    scene({ icon: w.icon, title: w.title, lines: k ? [w.again] : w.lines });
+    question(w.act, ({ ok }) => {
+      const all = allOk && ok;
+      if (k + 1 < w.count) return outcome(w.icon, { text: w.step }, () => cross(w, k + 1, all), 'Next ➜');
+      outcome(w.icon, all || !w.meh ? w.good : w.meh, leave);
     });
   }
 
-  function hatch() {
-    const color = dragonColor(st.color);
-    const name = textInput({ max: 12, placeholder: pick(DRAGON_NAMES), label: 'Dragon name', capitalize: 'words' });
+  function reveal() {
+    const f = story.finale;
+    const kind = kindOf(story, st.kind);
+    const vars = { kind: kind.name };
+    const name = f.ask ? textInput({ max: 14, placeholder: pick(f.ask.names), label: f.ask.label, capitalize: 'words' }) : null;
     const keep = () => {
-      const n = name.value.trim() || name.placeholder;
-      const list = loadDragons();
-      list.push({ name: n, color: color.id, date: new Date().toLocaleDateString('en-CA') });
-      writeJSON(DRAGONS_KEY, list.slice(-MAX_DRAGONS));
-      try { localStorage.removeItem(SAVE_KEY); } catch { /* ignore */ }
+      const n = name ? name.value.trim() || name.placeholder : fill(story.collect.itemName, vars);
+      const list = loadFound(story.id);
+      list.push({ name: n, kind: kind.id, date: new Date().toLocaleDateString('en-CA') });
+      writeJSON(foundKey(story.id), list.slice(-MAX_FOUND));
+      if (story.collect.garden) addSpecialPlant({ icon: kind.icon || story.collect.icon, name: n });
+      drop(saveKey(story.id));
       st = null;
-      home(n, color);
+      end(n, kind);
     };
-    scene({ icon: dragonFace(color.id, 'hatched'), title: 'A baby dragon!', lines: [
-      `It’s a little ${color.name} dragon! It sneezes a tiny puff of smoke and snuggles up to you.`, 'What will you name it?',
-    ], body: [name, el('div', { class: 'row' }, go('That’s its name!', keep, 'qt-name'))] });
-    name.addEventListener('keydown', (e) => { if (e.key === 'Enter') keep(); });
-    try { name.focus(); } catch { /* ignore */ }
+    scene({ icon: foundFace(story, kind.id, 'hatched'), title: fill(f.title, vars), lines: f.lines.map((l) => fill(l, vars)),
+      body: name ? [name, el('div', { class: 'row' }, go(f.keep, keep, 'qt-name'))] : [go(f.keep, keep, 'qt-name')] });
+    if (name) {
+      name.addEventListener('keydown', (e) => { if (e.key === 'Enter') keep(); });
+      try { name.focus(); } catch { /* ignore */ }
+    }
     celebrate(root);
   }
 
-  function home(n, color) {
+  function end(n, kind) {
     sc.dispose();
     sc = scope();
+    const f = story.finale;
+    const vars = { name: n, kind: kind.name };
+    const s = story;
     root.replaceChildren(
       el('div', { class: 'finish qt-end' },
-        el('div', { class: 'big-emoji' }, dragonFace(color.id), '🏡'),
-        el('h2', {}, `${n} is home!`),
-        el('p', { class: 'prompt' }, `The dragon family cheers! They give you and Pip a ride home on their backs. ${n} will visit you soon.`),
+        el('div', { class: 'big-emoji' }, foundFace(s, kind.id), f.endIcon),
+        el('h2', {}, fill(f.endTitle, vars)),
+        el('p', { class: 'prompt' }, fill(f.endText, vars)),
         el('div', { class: 'row' },
-          el('button', { class: 'btn primary big', type: 'button', onclick: setup }, 'Another quest'),
+          el('button', { class: 'btn primary big', type: 'button', onclick: () => storyScreen(s) }, 'Go again'),
+          el('button', { class: 'btn big', type: 'button', onclick: setup }, 'Another quest'),
           el('button', { class: 'btn big', type: 'button', onclick: api.home }, 'Home'),
         ),
       ),

@@ -1,4 +1,5 @@
-"""Tests for Dragon Egg Quest: shop sums, a whole trip to the finale, forks, river, snacks, saving, dragons.
+"""Tests for Study Quest: every story's data, shop sums, a whole trip through every story, forks, crossings,
+food, saving, the shuffled Time Machine, Lost Library's torn pages, Seed Ark's garden plant, the old-save move.
 
 Run from the repo root:   python3 tests/quest_test.py
 Needs: pip install playwright && playwright install chromium
@@ -14,8 +15,9 @@ SHOTS = os.path.join(tempfile.gettempdir(), "spelling-shots")
 os.makedirs(SHOTS, exist_ok=True)
 FIXTURE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "words.txt")
 LIST = [l.split("|")[0].strip() for l in open(FIXTURE) if l.strip() and not l.startswith("#")]
-SAVE = "spelling-games.quest.save.v1"
-DRAGONS = "spelling-games.quest.dragons.v1"
+STORY_IDS = ["dragon", "island", "library", "lantern", "seeds", "pony", "time", "space"]
+SAVE = lambda s: f"spelling-games.quest.{s}.save.v2"
+FOUND = lambda s: f"spelling-games.quest.{s}.found.v1"
 
 INIT = """
 window.__heard = [];
@@ -38,8 +40,8 @@ def word_problem(prompt):
     n = [int(x) for x in re.findall(r"\d+", prompt)]
     if "get back" in prompt: return n[1] - n[0]
     if "for both" in prompt: return n[0] + n[1]
-    if "How many snacks can you buy" in prompt: return n[1] // n[0]
-    if "How many coins is that" in prompt: return n[0] * n[1]
+    if "can you buy" in prompt: return n[1] // n[0]
+    if "is that" in prompt: return n[0] * n[1]
     raise ValueError(prompt)
 
 server = subprocess.Popen([sys.executable, "-m", "http.server", str(PORT), "--directory", SITE],
@@ -59,18 +61,21 @@ try:
 
         def tap(sel, **kw): page.locator(sel, **kw).first.tap()
         def home(): tap("#back")
-        def save(): return page.evaluate(f"JSON.parse(localStorage.getItem('{SAVE}'))")
-        def gp(): return page.evaluate("JSON.parse(localStorage.getItem('spelling-games.garden.v1')||'{\"pts\":0}').pts")
-        def bag(): return page.evaluate("({ snacks: +document.querySelector('[data-snacks]').dataset.snacks, coins: +document.querySelector('[data-coins]').dataset.coins })")
+        def save(s): return page.evaluate(f"JSON.parse(localStorage.getItem('{SAVE(s)}'))")
+        def found(s): return page.evaluate(f"JSON.parse(localStorage.getItem('{FOUND(s)}') || '[]')")
+        def bag(): return page.evaluate("({ food: +document.querySelector('[data-food]').dataset.food, money: +document.querySelector('[data-money]').dataset.money, token: document.querySelector('[data-token]') ? document.querySelector('[data-token]').textContent : null })")
         def type_answer(s):
             for ch in s: tap(f".ch-q .key:text-is('{ch}')")
             tap(".ch-q button:has-text('Check')")
+        prompts = []
         def answer(right=True):
             """Answer the open question (right, or missed twice then OK). Returns the kind."""
             big = page.locator(".ch-q .bigword")
+            prompt = page.locator(".ch-q .prompt").inner_text() if page.locator(".ch-q .prompt").count() else ""
+            prompts.append(prompt)
             if big.count():
                 t = big.inner_text()
-                val = evalmath(t) if "=" in t else word_problem(page.locator(".ch-q .prompt").inner_text())
+                val = evalmath(t) if "=" in t else word_problem(prompt)
                 if right: type_answer(str(val))
                 else:
                     for _ in range(2): type_answer(str(val + 1))
@@ -86,140 +91,221 @@ try:
                 kind = "spell"
             page.wait_for_selector(".ch-q", state="detached", timeout=5000)
             return kind
-        def opener():
-            page.locator(".mcard", has_text="Dragon Egg Quest").first.tap()
-            page.wait_for_selector(".qt-setup")
+        def picker():
+            page.locator(".mcard", has_text="Study Quest").first.tap()
+            page.wait_for_selector(".qt-picks")
+        def open_story(s):
+            picker()
+            tap(f".qt-pick[data-story='{s}']")
+            page.wait_for_selector(f".qt-setup[data-story='{s}']")
+        def play(s, way=0, miss_every=4, guard_max=160):
+            """Tap through a whole trip from wherever it is to the finale button. Returns info."""
+            info = {"titles": set(), "questions": 0, "food_ok": True, "orders": None}
+            guard = 0
+            while guard < guard_max:
+                guard += 1
+                if page.locator(".ch-q").count():
+                    info["questions"] += 1
+                    answer(right=(guard % miss_every != 0))
+                    continue
+                if page.locator(".qt-finale").count(): break
+                ways = page.locator(".qt-way:not([disabled])")
+                if ways.count():
+                    info["titles"].add(page.locator(".qt-title").inner_text())
+                    ways.nth(min(way, ways.count() - 1)).tap()
+                    continue
+                st = save(s)
+                if st and st["food"] < 0: info["food_ok"] = False
+                page.locator(".qt-act button.primary").first.tap()
+            info["done"] = page.locator(".qt-finale").count() == 1
+            info["guard"] = guard
+            return info
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
-        check("menu: Dragon Egg Quest is in the Adventures section", page.locator(".sect", has_text="Adventures").locator(".mcard", has_text="Dragon Egg Quest").count() == 1)
+        check("menu: Study Quest is in the Adventures section (no Dragon Egg Quest card)", page.locator(".sect", has_text="Adventures").locator(".mcard", has_text="Study Quest").count() == 1 and page.locator(".mcard", has_text="Dragon Egg Quest").count() == 0)
 
-        # ---- shop sums match their stories, and never need more coins than she could have
-        shop = page.evaluate("""async () => { const m = await import('/js/games/quest.js'); const out = [];
-          for (const lv of ['add', 't5', 't10', 'div']) for (const coins of [0, 4, 10, 25, 60]) for (let i = 0; i < 40; i++) out.push({ lv, coins, ...m.storeProblem(lv, coins, 'Mr. Pepper') });
+        # ---- every story's data is complete and follows the kid rules
+        bad = page.evaluate("async () => { const m = await import('/js/games/quests/index.js'); return { ids: m.STORIES.map(s => s.id), bad: m.STORIES.flatMap(m.checkStory) }; }")
+        check("8 stories, in picker order", bad["ids"] == STORY_IDS, str(bad["ids"]))
+        check("every story passes checkStory (stops, forks, crossings, events, finale, misses cost ≤ 1 food)", not bad["bad"], "; ".join(bad["bad"][:6]))
+
+        # ---- shop sums use each story's words and match their stories
+        shop = page.evaluate("""async () => { const m = await import('/js/games/quest.js'); const q = await import('/js/games/quests/index.js'); const out = [];
+          for (const s of q.STORIES) for (const lv of ['add', 't5', 't10', 'div']) for (const coins of [0, 4, 10, 25, 60]) for (let i = 0; i < 12; i++)
+            out.push({ story: s.id, money: s.money.name, lv, coins, ...m.storeProblem(s, lv, coins, 'the shopkeeper') });
           return out; }""")
-        bad = [s for s in shop if word_problem(s["prompt"]) != s["answer"] or s["answer"] < 0 or s["snacks"] < 1]
-        check("shop word problems: the answer matches the story (800 problems)", not bad, str(bad[:2]))
-        check("shop: 'get back' change never goes below zero, divisions are exact", all(s["answer"] >= 0 for s in shop) and all(re.findall(r"\d+", s["prompt"]) and int(re.findall(r"\d+", s["prompt"])[1]) % int(re.findall(r"\d+", s["prompt"])[0]) == 0 for s in shop if s["lv"] == "div"))
+        wrong = [s for s in shop if word_problem(s["prompt"]) != s["answer"] or s["answer"] < 0 or s["food"] < 1]
+        check(f"shop word problems: answer matches the story ({len(shop)} problems, 8 stories)", not wrong, str(wrong[:2]))
+        check("shop word problems use each story's money (shells, stars, crystals…)", all(s["money"] in s["prompt"] for s in shop), str([s for s in shop if s["money"] not in s["prompt"]][:1]))
 
-        # ---- setup
-        opener()
-        check("setup: Spelling / Math / Both and math levels", all(page.locator(f".qt-setup button:has-text('{t}')").count() == 1 for t in ["Spelling", "Math", "Both", "Times tables 2–5"]))
-        check("setup: no saved trip -> just 'Start the quest!'", page.locator(".qt-continue").count() == 0 and "Start the quest" in page.locator(".qt-new").inner_text())
-        page.screenshot(path=f"{SHOTS}/quest_setup.png")
+        # ---- the picker
+        picker()
+        check("picker: one card per story", page.locator(".qt-pick").count() == 8)
+        page.screenshot(path=f"{SHOTS}/quest_picker.png", full_page=True)
         tap(".qt-setup button:has-text('Math')"); tap(".qt-setup button:has-text('Times tables 2–5')")
+        tap(".qt-pick[data-story='dragon']")
+        check("story screen: name, blurb, Start, ‹ All quests", "Dragon Egg Quest" in page.locator(".qt-setup h2").inner_text() and page.locator(".qt-new").count() == 1 and page.locator(".qt-all").count() == 1)
+        tap(".qt-all")
+        check("‹ All quests goes back to the picker", page.locator(".qt-picks").count() == 1)
+        home()
+
+        # ---- Dragon Egg Quest in detail (math, Times tables 2–5)
+        open_story("dragon")
         tap(".qt-new")
-        check("village: story + map + bag (6 snacks, 10 coins)", "Willow Village" in page.locator(".qt-scene").inner_text() and page.locator(".qt-stop").count() == 8 and bag() == {"snacks": 6, "coins": 10}, str(bag()))
-        check("map: forks are ❓ until chosen", page.locator(".qt-stop", has_text="❓").count() == 2)
-        n0 = len(page.evaluate("window.__heard"))
-        tap(".qt-read")
+        check("dragon village: story + 8-stop map + bag (6 🍎, 10 🪙)", "Willow Village" in page.locator(".qt-scene").inner_text() and page.locator(".qt-stop").count() == 8 and bag()["food"] == 6 and bag()["money"] == 10, str(bag()))
+        check("dragon map: forks are ❓ until chosen", page.locator(".qt-stop", has_text="❓").count() == 2)
+        n0 = len(page.evaluate("window.__heard")); tap(".qt-read")
         check("🔊 Read to me speaks the story", len(page.evaluate("window.__heard")) == n0 + 1 and "dragon egg" in page.evaluate("window.__heard")[-1].lower())
-        page.screenshot(path=f"{SHOTS}/quest_village.png")
         tap(".qt-act button:has-text('Buy snacks')")
-        check("shop (math): a word problem; the sum itself is hidden", page.locator(".ch-q .bigword").inner_text().startswith("?") and "coins" in page.locator(".ch-q .prompt").inner_text())
         prompt = page.locator(".ch-q .prompt").inner_text()
-        cost = int(re.findall(r"\d+", prompt)[0]) * int(re.findall(r"\d+", prompt)[1])
-        got = int(re.findall(r"\d+", prompt)[0])
-        g0 = gp()
+        check("shop (math): a word problem in coins; the sum itself is hidden", page.locator(".ch-q .bigword").inner_text().startswith("?") and "coins" in prompt)
+        n = [int(x) for x in re.findall(r"\d+", prompt)]
         answer(True)
-        bg = bag()
-        check("shop: snacks bought, coins paid (never below zero)", bg["snacks"] == 6 + got and bg["coins"] == max(0, 10 - cost), f"{prompt} -> {bg}")
-        check("garden point for the shop question", gp() == g0 + 1)
-        page.screenshot(path=f"{SHOTS}/quest_shop_done.png")
-
-        # ---- walk the whole trail, picking the short way at fork 1 and the long way at fork 2, ferry if possible
-        seen, kinds, guard, misses = set(), [], 0, 0
-        while guard < 120:
-            guard += 1
-            if page.locator(".ch-q").count():
-                kinds.append(answer(right=(guard % 4 != 0)))  # miss now and then: never a dead end
-                continue
-            if page.locator(".qt-way[data-way='ferry']").count():
-                seen.add("river")
-                page.locator(".qt-way[data-way='raft']").first.tap()
-                continue
-            ways = page.locator(".qt-way")
-            if ways.count():
-                title = page.locator(".qt-title").inner_text()
-                seen.add(title)
-                ways.nth(0 if "fork" in title.lower() else 1).tap()
-                continue
-            if page.locator(".qt-act button:has-text('Hatch')").count(): break
-            st = save()
-            if st and st["snacks"] < 0: misses += 1
-            page.locator(".qt-act button.primary").first.tap()
-        check("trail: reached Dragon Mountain", page.locator(".qt-act button:has-text('Hatch')").count() == 1, f"after {guard} taps")
-        check("trail: both forks and the river came up", "A fork in the road" in seen and "Almost there!" in seen and "river" in seen, str(seen))
-        st = save()
-        check("trail: the fork choices are remembered (bridge, then tower)", st["ways"] == {"fork1": 0, "fork2": 1}, str(st["ways"]))
-        check("trail: snacks never go below zero", misses == 0 and st["snacks"] >= 0)
-        check("trail: a dozen-plus questions on the way", len(kinds) >= 12, str(len(kinds)))
-        check("map: every stop before the mountain is done", page.locator(".qt-stop.done").count() == 7, str(page.locator(".qt-stop.done").count()))
-        page.screenshot(path=f"{SHOTS}/quest_mountain.png")
-
-        # ---- the egg hatches; name the dragon
-        tap(".qt-act button:has-text('Hatch')")
-        check("hatch: a baby dragon and a name box (device keyboard)", page.locator(".qt-dragon.hatched").count() == 1 and page.locator(".qt-act input.text-in").count() == 1)
-        page.screenshot(path=f"{SHOTS}/quest_hatch.png")
+        check("shop: food bought, coins paid (never below zero)", bag()["food"] == 6 + n[0] and bag()["money"] == max(0, 10 - n[0] * n[1]), f"{prompt} -> {bag()}")
+        info = play("dragon", way=1)
+        check("dragon: reached the finale", info["done"], f"after {info['guard']} taps")
+        check("dragon: both forks and the river came up", {"A fork in the road", "Almost there!", "Rushing River"} <= info["titles"], str(info["titles"]))
+        check("dragon: food never below zero; a dozen-plus questions", info["food_ok"] and info["questions"] >= 12, str(info["questions"]))
+        check("dragon map: every stop before the mountain is done", page.locator(".qt-stop.done").count() == 7)
+        tap(".qt-finale")
+        check("hatch: a baby dragon and a name box (device keyboard)", page.locator(".qt-found.hatched").count() == 1 and page.locator(".qt-act input.text-in").count() == 1)
         page.locator(".qt-act input.text-in").fill("Sparky")
         tap(".qt-name")
         check("end: 'Sparky is home!'", "Sparky is home!" in page.locator(".qt-end").inner_text())
-        dr = page.evaluate(f"JSON.parse(localStorage.getItem('{DRAGONS}'))")
-        check("dragon saved with its colour; the trip save is cleared", len(dr) == 1 and dr[0]["name"] == "Sparky" and dr[0]["color"] and save() is None, str(dr))
-        tap(".qt-end button:has-text('Another quest')")
-        check("setup shows the dragons she brought home", "Sparky" in page.locator(".qt-shelf").inner_text())
+        check("dragon saved with its kind; the trip save is cleared", found("dragon")[-1]["name"] == "Sparky" and found("dragon")[-1]["kind"] and save("dragon") is None, str(found("dragon")))
+        tap(".qt-end button:has-text('Go again')")
+        check("story screen shows the dragons she brought home", "Sparky" in page.locator(".qt-shelf").inner_text())
+        tap(".qt-all")
+        check("picker card shows the collection count", "× 1" in page.locator(".qt-pick[data-story='dragon']").inner_text())
         home()
 
-        # ---- save and continue; a blank name gets a suggested one
-        opener()
+        # ---- every other story, start to finish (spelling + math), with its own finale
+        for s in STORY_IDS[1:]:
+            open_story(s)
+            tap(".qt-setup button:has-text('Both')")
+            tap(".qt-new")
+            tap(".qt-act button.primary")  # shop: buy
+            if page.locator(".ch-q").count(): answer(True)
+            info = play(s, way=(0 if s != "space" else 1))
+            check(f"{s}: reached the finale (food ≥ 0, {info['questions']} questions)", info["done"] and info["food_ok"] and info["questions"] >= 8, f"{info['guard']} taps, {info['questions']} q")
+            if s == "library": check("library: all 5 pages found by the end", bag()["token"] == "📄 5/5", str(bag()))
+            if s == "time": check("time: all 6 gears found by the end", bag()["token"] == "⚙️ 6/6", str(bag()))
+            if s == "seeds": check("seeds: all 4 seeds gathered", bag()["token"] == "🌰 4/4", str(bag()))
+            tap(".qt-finale")
+            if page.locator(".qt-act input.text-in").count():
+                page.locator(".qt-act input.text-in").fill("")  # blank = the suggested name
+            tap(".qt-name")
+            f = found(s)
+            check(f"{s}: end screen, saved in its collection, trip cleared", page.locator(".qt-end").count() == 1 and len(f) == 1 and f[0]["name"] and save(s) is None, str(f))
+            if s == "seeds":
+                page.screenshot(path=f"{SHOTS}/quest_seeds_end.png")
+                home()
+                page.locator(".mcard", has_text="My Garden").first.tap()
+                check("seeds: the special plant shows in My Garden", page.locator(".gd-special .gd-rare", has_text=f[0]["name"]).count() == 1)
+                page.screenshot(path=f"{SHOTS}/garden_special.png")
+            home()
+        check("no story ever asked a question it couldn't frame", all(p is not None for p in prompts))
+
+        # ---- Time Machine: middle stops shuffled each trip, first and last fixed, upcoming stops hidden
+        orders = page.evaluate("async () => { const m = await import('/js/games/quest.js'); const q = await import('/js/games/quests/index.js'); const t = q.STORIES.find(s => s.id === 'time'); return Array.from({length: 30}, () => m.newOrder(t)); }")
+        check("time: first and last stops fixed, the rest shuffled", all(o[0] == 0 and o[-1] == 7 and sorted(o) == list(range(8)) for o in orders) and len({tuple(o) for o in orders}) > 5)
+        open_story("time"); tap(".qt-new")
+        check("time map: the next stops are a surprise (❓)", page.locator(".qt-stop", has_text="❓").count() == 7)
+        home()
+
+        # ---- Lost Library: a spelling word with a list sentence becomes a torn page
+        ctx2 = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True, service_workers="block")
+        ctx2.add_init_script(INIT)
+        ctx2.route(URL + "words.txt", lambda r: r.fulfill(body="# Torn pages\nwhale | The whale swam past the boat.\nlight | Turn on the light please.\n", content_type="text/plain"))
+        ctx2.route("**/audio/manifest.json", lambda r: r.fulfill(status=404))
+        p2 = ctx2.new_page()
+        p2.goto(URL); p2.wait_for_selector(".mcard")
+        p2.locator(".mcard", has_text="Study Quest").first.tap()
+        p2.locator(".qt-setup button:has-text('Spelling')").first.tap()
+        p2.locator(".qt-pick[data-story='library']").first.tap()
+        p2.locator(".qt-new").first.tap()
+        p2.locator(".qt-act button.primary").first.tap()
+        pr = p2.locator(".ch-q .prompt").inner_text()
+        check("library: spelling shows the list sentence with the word missing", "A word is missing" in pr and "_____" in pr and "whale" not in pr.lower().split("“")[1] and "light" not in pr.lower().split("“")[1], pr)
+        p2.screenshot(path=f"{SHOTS}/quest_library_blank.png")
+        ctx2.close()
+
+        # ---- save and continue; the picker shows a trip on the way
+        open_story("island")
         tap(".qt-setup button:has-text('Spelling')")
         tap(".qt-new")
-        tap(".qt-act button:has-text('No thanks')")  # leave the village: first trail step
-        # spelling questions speak the word inside the tap that showed them
-        while page.locator(".ch-q").count() == 0 and page.locator(".qt-title", has_text="Whispering Woods").count() == 0:
+        tap(".qt-act button:has-text('No thanks')")
+        while page.locator(".ch-q").count() == 0 and page.locator(".qt-title", has_text="Coral Reef").count() == 0:
             page.locator(".qt-act button.primary").first.tap()
-        before = save()
+        before = save("island")
         home()
-        opener()
-        check("setup: a saved trip offers 'Continue the quest' + 'Start over'", page.locator(".qt-continue").count() == 1 and "Start over" in page.locator(".qt-new").inner_text())
+        picker()
+        check("picker: a saved trip shows '▶ On the way'", "On the way" in page.locator(".qt-pick[data-story='island']").inner_text())
+        tap(".qt-pick[data-story='island']")
+        check("story screen: 'Continue the quest' + 'Start over'", page.locator(".qt-continue").count() == 1 and "Start over" in page.locator(".qt-new").inner_text())
         tap(".qt-continue")
-        check("continue: same snacks, coins and place", bag() == {"snacks": before["snacks"], "coins": before["coins"]} and save()["i"] == before["i"], f"{before} vs {bag()}")
-        check("continue: 'Back on the trail' or the stop she was at", page.locator(".qt-title", has_text="Back on the trail").count() == 1 or page.locator(".qt-title", has_text="Whispering Woods").count() == 1)
+        check("continue: same food, money and place", bag()["food"] == before["food"] and bag()["money"] == before["money"] and save("island")["i"] == before["i"], f"{before} vs {bag()}")
+        check("continue: the story's own words ('Back at sea' or the stop)", page.locator(".qt-title", has_text="Back at sea").count() == 1 or page.locator(".qt-title", has_text="Coral Reef").count() == 1)
         home()
 
-        # ---- out of snacks: a stop to find food (never a dead end)
-        page.evaluate(f"localStorage.setItem('{SAVE}', JSON.stringify({{ v: 1, i: 1, leg: 0, atStop: false, ways: {{}}, snacks: 1, coins: 0, color: 'blue', seen: [] }}))")
-        opener()
-        tap(".qt-continue")
+        # ---- out of food: a stop to find more (never a dead end), in the story's words
+        page.evaluate(f"localStorage.setItem('{SAVE('space')}', JSON.stringify({{ v: 2, i: 1, leg: 0, atStop: false, ways: {{}}, food: 1, money: 0, token: 0, kind: '', seen: [], order: null }}))")
+        open_story("space"); tap(".qt-continue")
         n0 = len(page.evaluate("window.__heard"))
         tap(".qt-act button:has-text('Keep going')")
-        check("out of snacks: forage scene with a question", "Out of snacks" in page.locator(".qt-scene").inner_text() and page.locator(".ch-q").count() == 1)
+        check("out of fuel: a forage scene with a question", "Out of fuel cells" in page.locator(".qt-scene").inner_text() and page.locator(".ch-q").count() == 1)
         check("spelling question spoken inside the Keep going tap", len(page.evaluate("window.__heard")) > n0)
         answer(False)
-        check("forage, not right this time: still finds food (+2)", bag()["snacks"] == 2, str(bag()))
+        check("forage, not right this time: still finds food (+2)", bag()["food"] == 2, str(bag()))
         home()
 
-        # ---- river: ferry needs coins
-        page.evaluate(f"localStorage.setItem('{SAVE}', JSON.stringify({{ v: 1, i: 2, leg: 0, atStop: true, ways: {{}}, snacks: 5, coins: 2, color: 'gold', seen: [] }}))")
-        opener(); tap(".qt-continue")
-        check("river: three ways; ferry greyed with too few coins", page.locator(".qt-way").count() == 3 and page.locator(".qt-way[data-way='ferry']").is_disabled())
-        page.screenshot(path=f"{SHOTS}/quest_river.png")
+        # ---- crossings: paid ways need enough money
+        page.evaluate(f"localStorage.setItem('{SAVE('dragon')}', JSON.stringify({{ v: 2, i: 2, leg: 0, atStop: true, ways: {{}}, food: 5, money: 2, token: 0, kind: 'gold', seen: [], order: null }}))")
+        open_story("dragon"); tap(".qt-continue")
+        check("river: three ways; the ferry is greyed with too few coins", page.locator(".qt-way").count() == 3 and page.locator(".qt-way[data-way='ferry']").is_disabled())
         home()
-        page.evaluate(f"localStorage.setItem('{SAVE}', JSON.stringify({{ v: 1, i: 2, leg: 0, atStop: true, ways: {{}}, snacks: 5, coins: 9, color: 'gold', seen: [] }}))")
-        opener(); tap(".qt-continue"); tap(".qt-way[data-way='ferry']")
-        check("river: the ferry costs 4 coins", bag()["coins"] == 5, str(bag()))
+        page.evaluate(f"localStorage.setItem('{SAVE('dragon')}', JSON.stringify({{ v: 2, i: 2, leg: 0, atStop: true, ways: {{}}, food: 5, money: 9, token: 0, kind: 'gold', seen: [], order: null }}))")
+        open_story("dragon"); tap(".qt-continue"); tap(".qt-way[data-way='ferry']")
+        check("river: the ferry costs 4 coins", bag()["money"] == 5, str(bag()))
         home()
 
-        # ---- a broken save is ignored
-        page.evaluate(f"localStorage.setItem('{SAVE}', '{{\"v\":1,\"i\":99}}')")
-        opener()
+        # ---- prizes are given once, even if she leaves mid-stop and comes back
+        page.evaluate(f"localStorage.setItem('{SAVE('library')}', JSON.stringify({{ v: 2, i: 2, leg: 0, atStop: true, ways: {{}}, food: 5, money: 9, token: 1, kind: 'red', seen: [], order: null }}))")
+        open_story("library"); tap(".qt-continue")
+        home(); open_story("library"); tap(".qt-continue")
+        tap(".qt-act button:has-text('No thanks')")
+        check("library bakery: its page is given once, on leaving", save("library")["token"] == 2, str(save("library")))
+        home()
+
+        # ---- broken saves are ignored
+        page.evaluate(f"localStorage.setItem('{SAVE('dragon')}', '{{\"v\":2,\"i\":99}}')")
+        page.evaluate(f"localStorage.setItem('{SAVE('time')}', '{{\"v\":2,\"i\":1,\"order\":[0,1]}}')")
+        open_story("dragon")
         check("bad save: no Continue button", page.locator(".qt-continue").count() == 0)
+        tap(".qt-all"); tap(".qt-pick[data-story='time']")
+        check("bad shuffled save (wrong order length): no Continue button", page.locator(".qt-continue").count() == 0)
+        home()
+
+        # ---- the first version's save and dragons move over once
+        page.evaluate("""() => { localStorage.removeItem('spelling-games.quest.dragon.save.v2'); localStorage.removeItem('spelling-games.quest.dragon.found.v1');
+          localStorage.setItem('spelling-games.quest.save.v1', JSON.stringify({ v: 1, i: 3, leg: 1, atStop: false, ways: { fork1: 1 }, snacks: 4, coins: 7, color: 'blue', seen: ['fox'] }));
+          localStorage.setItem('spelling-games.quest.dragons.v1', JSON.stringify([{ name: 'Ember', color: 'pink', date: '2026-10-24' }])); }""")
+        open_story("dragon")
+        mig = page.evaluate("({ old: localStorage.getItem('spelling-games.quest.save.v1'), oldD: localStorage.getItem('spelling-games.quest.dragons.v1') })")
+        check("old save moved: Continue offered, same place / food / money / fork", page.locator(".qt-continue").count() == 1 and save("dragon")["i"] == 3 and save("dragon")["food"] == 4 and save("dragon")["money"] == 7 and save("dragon")["ways"] == {"fork1": 1} and save("dragon")["kind"] == "blue", str(save("dragon")))
+        check("old dragons moved (Ember, pink); old keys removed", found("dragon") == [{"name": "Ember", "kind": "pink", "date": "2026-10-24"}] and mig["old"] is None and mig["oldD"] is None, str(found("dragon")))
+        tap(".qt-continue")
+        check("moved trip continues 'Back on the trail'", page.locator(".qt-title", has_text="Back on the trail").count() == 1)
         home()
 
         # ---- phone layout
         page.set_viewport_size({"width": 390, "height": 760})
-        opener(); tap(".qt-new")
-        w = page.evaluate("document.documentElement.scrollWidth")
-        check("phone: no sideways scroll", w <= 390, str(w))
+        picker()
+        w1 = page.evaluate("document.documentElement.scrollWidth")
+        page.screenshot(path=f"{SHOTS}/quest_picker_phone.png", full_page=True)
+        tap(".qt-pick[data-story='pony']"); tap(".qt-new")
+        w2 = page.evaluate("document.documentElement.scrollWidth")
+        check("phone: no sideways scroll (picker, 8-stop map)", w1 <= 390 and w2 <= 390, f"{w1}, {w2}")
         page.screenshot(path=f"{SHOTS}/quest_phone.png", full_page=True)
         home()
 

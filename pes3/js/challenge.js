@@ -1,4 +1,4 @@
-// One question with an answer box, shared by Battle Buddies and Dragon Egg Quest.
+// One question with an answer box, shared by Battle Buddies and Study Quest.
 // Spelling: hear the word, type it on the on-screen keyboard. Math: type the number on a number pad.
 // Build it inside a tap: a spelling question speaks its word straight away (iOS only allows that in a tap).
 import { el, chooseWords, hearBar, speakSentence, cheer, retry, logRound, award, keyboard, listenKeys, extraChars, opKind } from './util.js';

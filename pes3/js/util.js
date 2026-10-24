@@ -99,6 +99,14 @@ export function gardenPoints() {
 export function award(n = 1) {
   try { localStorage.setItem(GARDEN_KEY, JSON.stringify({ pts: gardenPoints() + n })); } catch { /* ignore */ }
 }
+// Special plants: rare seeds she carried home in Study Quest's Seed Ark. Shown above the garden; also never removed.
+const SPECIAL_KEY = 'spelling-games.garden.special.v1';
+export function specialPlants() {
+  try { const v = JSON.parse(localStorage.getItem(SPECIAL_KEY)); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+export function addSpecialPlant({ icon, name }) {
+  try { localStorage.setItem(SPECIAL_KEY, JSON.stringify([...specialPlants(), { icon, name }].slice(-30))); } catch { /* ignore */ }
+}
 
 // Quietly favour words she has needed help with. Never shown to her.
 export function chooseWords(entries, n) {
