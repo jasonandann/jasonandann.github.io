@@ -145,9 +145,13 @@ export function monsterSvg(m, { side = false, walk = false, mv = false, blink = 
 
 /* ---------- extras (wings, tails, fur): all drawn behind the body, so they peek out around its fixed outline ---------- */
 // left wing + its mirror. Moving: the wing flaps a little at the shoulder (the mirror copy flaps the mirror way).
-const wingPair = (one, mv) => {
+// Side view (facing right): the near wing (on the back side, left) tilts back; the far wing is narrower, as it is
+// further away.
+const wingPair = (one, mv, side) => {
   const w = moved(one, swing(82, 120, 0, 6, 1.4), mv);
-  return w + `<g transform="translate(240 0) scale(-1 1)">${w}</g>`;
+  const far = `<g transform="translate(240 0) scale(-1 1)">${w}</g>`;
+  if (!side) return w + far;
+  return `<g transform="rotate(-14 82 120)">${w}</g><g transform="translate(158 0) scale(0.7 1) translate(-158 0)">${far}</g>`;
 };
 function furFringe(fill) { // a zigzag copy of the body outline, a little bigger, behind it
   const pts = [];
@@ -158,9 +162,9 @@ function furFringe(fill) { // a zigzag copy of the body outline, a little bigger
   return `<polygon points="${pts.join(' ')}" fill="${fill}" ${S}/>`;
 }
 const EXTRA = {
-  batwings: (fill, mv) => wingPair(`<path d="M80 110 L48 70 L44 92 L32 90 L36 112 L27 120 L48 128 L80 140 Z" fill="#6d28d9" ${S}/><path d="M78 116 L48 74 M78 124 L38 104 M78 132 L34 120" stroke="${INK}" stroke-width="2" opacity=".5"/>`, mv),
-  fairywings: (fill, mv) => wingPair(`<path d="M82 112 Q40 64 32 96 Q28 120 82 126 Z" fill="#bae6fd" fill-opacity=".85" ${S}/><path d="M82 130 Q40 136 46 160 Q56 172 84 142 Z" fill="#fbcfe8" fill-opacity=".85" ${S}/>`, mv),
-  birdwings: (fill, mv) => wingPair(`<path d="M82 108 Q50 92 28 104 Q40 108 30 118 Q44 120 36 130 Q52 130 46 140 Q66 140 82 138 Z" fill="#fde68a" ${S}/><path d="M78 116 Q56 112 42 116 M78 126 Q60 124 48 130" fill="none" stroke="#d97706" stroke-width="2.5"/>`, mv),
+  batwings: (fill, mv, side) => wingPair(`<path d="M80 110 L48 70 L44 92 L32 90 L36 112 L27 120 L48 128 L80 140 Z" fill="#6d28d9" ${S}/><path d="M78 116 L48 74 M78 124 L38 104 M78 132 L34 120" stroke="${INK}" stroke-width="2" opacity=".5"/>`, mv, side),
+  fairywings: (fill, mv, side) => wingPair(`<path d="M82 112 Q40 64 32 96 Q28 120 82 126 Z" fill="#bae6fd" fill-opacity=".85" ${S}/><path d="M82 130 Q40 136 46 160 Q56 172 84 142 Z" fill="#fbcfe8" fill-opacity=".85" ${S}/>`, mv, side),
+  birdwings: (fill, mv, side) => wingPair(`<path d="M82 108 Q50 92 28 104 Q40 108 30 118 Q44 120 36 130 Q52 130 46 140 Q66 140 82 138 Z" fill="#fde68a" ${S}/><path d="M78 116 Q56 112 42 116 M78 126 Q60 124 48 130" fill="none" stroke="#d97706" stroke-width="2.5"/>`, mv, side),
   dragontail: (fill, mv) => moved(`<path d="M90 184 Q50 196 40 170 Q34 150 52 140" fill="none" stroke="${INK}" stroke-width="15" stroke-linecap="round"/><path d="M90 184 Q50 196 40 170 Q34 150 52 140" fill="none" stroke="#22c55e" stroke-width="9" stroke-linecap="round"/>`
     + `<path d="M46 146 L58 124 L64 146 Z" fill="#22c55e" ${S}/><path d="M42 170 L28 164 L40 158 Z M60 190 L54 202 L68 194 Z" fill="#facc15" ${S} stroke-width="2"/>`, swing(90, 184, 0, 7, 1.6), mv),
   fluffytail: (fill, mv) => moved(`<g fill="#fff" ${S} stroke-width="2.5"><circle cx="66" cy="178" r="13"/><circle cx="56" cy="170" r="10"/><circle cx="58" cy="186" r="9"/><circle cx="70" cy="166" r="8"/></g>`, swing(78, 178, 0, 10, 0.6), mv),
@@ -169,8 +173,11 @@ const EXTRA = {
 
 /* ---------- outfits (fixed anchors: head top y 62, eyes y 96, neck y 126) ---------- */
 const OUTFIT_BACK = {
-  cape: `<path d="M82 126 Q60 170 66 206 L174 206 Q180 170 158 126 Z" fill="#dc2626" ${S}/>`,
+  cape: `<path d="M82 126 Q52 170 50 208 Q120 214 190 208 Q188 170 158 126 Z" fill="#dc2626" ${S}/>`,
 };
+// In side view the cape streams out behind (to the left), in the wind of the parade.
+const CAPE_SIDE = (mv) => moved(`<path d="M96 126 Q64 132 34 160 Q22 178 30 200 Q44 190 52 200 Q60 188 72 198 L150 200 Q152 160 150 126 Z" fill="#dc2626" ${S}/>`,
+  swing(110, 126, 0, 4, 1.2), mv);
 const OUTFIT = {
   tophat: `<ellipse cx="120" cy="66" rx="34" ry="7" fill="${INK}"/><rect x="100" y="24" width="40" height="42" rx="3" fill="${INK}"/><rect x="100" y="54" width="40" height="7" fill="#dc2626"/>`,
   crown: `<path d="M88 70 L90 32 L106 50 L120 24 L134 50 L150 32 L152 70 Z" fill="#facc15" ${S}/><circle cx="90" cy="30" r="4" fill="#facc15" ${S}/><circle cx="120" cy="22" r="4" fill="#facc15" ${S}/><circle cx="150" cy="30" r="4" fill="#facc15" ${S}/><circle cx="120" cy="58" r="5" fill="#ef4444" ${S}/><circle cx="102" cy="61" r="4" fill="#3b82f6"/><circle cx="138" cy="61" r="4" fill="#22c55e"/>`,
@@ -182,6 +189,7 @@ const OUTFIT = {
       + `<circle cx="116" cy="40" r="2.5" fill="#fff"/><circle cx="116.5" cy="40.5" r="1.3" fill="${INK}"/><circle cx="124" cy="40" r="2.5" fill="#fff"/><circle cx="124.5" cy="40.5" r="1.3" fill="${INK}"/>`
       + `<path d="M116 45 L124 45 L120 51 Z" fill="#facc15" stroke="${INK}" stroke-width="1.5"/><path d="M122 49 Q126 56 121 58" fill="none" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round"/>`;
   })(),
+  scarf_side: `<path d="M80 124 Q120 140 160 124 L162 136 Q120 152 78 136 Z" fill="#ef4444" ${S}/><path d="M86 130 Q66 128 44 140 L46 152 Q66 142 88 142 Z" fill="#ef4444" ${S}/><path d="M92 132 V142 M106 135 V146 M122 136 V147 M138 134 V145 M152 131 V140 M60 136 V146" stroke="#fff" stroke-width="3"/>`,
   scarf: `<path d="M80 124 Q120 140 160 124 L162 136 Q120 152 78 136 Z" fill="#ef4444" ${S}/><path d="M140 136 L146 170 L132 170 L130 140 Z" fill="#ef4444" ${S}/><path d="M86 128 V138 M100 132 V143 M116 134 V146 M132 133 V145 M148 130 V140" stroke="#fff" stroke-width="3"/>`,
   sash: `<path d="M82 110 L92 104 L162 176 L152 184 Z" fill="#fde047" ${S}/><path d="M118 140 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1 Z" fill="#dc2626"/>`,
   shades: `<path class="shades" d="M82 88 H158 V98 Q158 110 146 110 H132 Q124 110 122 100 H118 Q116 110 108 110 H94 Q82 110 82 98 Z" fill="${INK}"/><path d="M90 92 L100 92" stroke="#fff" stroke-width="3" opacity=".6"/>`,
@@ -340,6 +348,7 @@ function rope(x1, y1, x2, y2, mv) {
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${INK}" stroke-width="2">${mv ? `<animate attributeName="y2" values="${y2};${y2 - 8};${y2}" dur="2.6s" repeatCount="indefinite"/>` : ''}</line>`;
 }
 
+const HATS = new Set(['tophat', 'crown', 'party', 'turkey']);
 export const MONSTER_SCALE = 1.2;
 export const VIEWBOX = '0 -50 240 290'; // tall enough for the tallest hat on the highest ride
 // True if this ride shows the monster side-on (it then faces right, the way the parade goes).
@@ -349,18 +358,26 @@ export const sideOn = (ride) => !!(RIDES[ride] && RIDES[ride].side);
 // off for still pictures (choices, the line-up) and when the device asks for reduced motion.
 // opts.blink = the eyes blink now and then (on by default when moving; the game also turns it on for the big
 // monster she is dressing, unless reduced motion).
-export function scene(monster, items = {}, { moving = false, blink = moving } = {}) {
+export function scene(monster, items = {}, { moving = false, blink = moving, side: sideView } = {}) {
   const ride = RIDES[items.ride] || null;
   const mv = !!moving;
   const lift = ride ? ride.lift : 0;
   const k = MONSTER_SCALE * (ride && ride.scale ? ride.scale : 1);
-  const side = !!(ride && ride.side);
+  const side = sideView != null ? !!sideView : !!(ride && ride.side); // opts.side forces the view (review sheets)
   const shine = ride && ride.shine ? '<ellipse cx="84" cy="116" rx="6" ry="15" transform="rotate(12 84 116)" fill="#fff" opacity=".55"/>' : '';
   let outfit = OUTFIT[items.outfit] || '';
-  if (side && items.outfit === 'shades') outfit = `<g transform="translate(143 0) scale(0.78 1) translate(-120 0)">${outfit}</g>`;
-  const extra = EXTRA[items.extra] ? EXTRA[items.extra](fillOf(monster), mv) : '';
-  const body = extra + (OUTFIT_BACK[items.outfit] || '') + (PROP_BACK[items.prop] ? PROP_BACK[items.prop](mv) : '') + monsterSvg(monster, { side, walk: ride && ride.walk, mv, blink }) + shine
-    + outfit + (PROP[items.prop] ? PROP[items.prop](mv) : '');
+  let outfitBack = OUTFIT_BACK[items.outfit] || '';
+  let prop = PROP[items.prop] ? PROP[items.prop](mv) : '';
+  if (side) { // facing right: things on the face and head follow the turned face; capes and scarf ends stream back
+    if (items.outfit === 'shades') outfit = `<g transform="translate(143 0) scale(0.78 1) translate(-120 0)">${outfit}</g>`;
+    if (HATS.has(items.outfit) || items.outfit === 'cape') outfit = `<g transform="translate(8 0)">${outfit}</g>`;
+    if (items.outfit === 'scarf') outfit = OUTFIT.scarf_side;
+    if (items.outfit === 'cape') outfitBack = CAPE_SIDE(mv);
+    if (items.prop === 'drum') prop = `<g transform="translate(9 0)">${prop}</g>`;
+  }
+  const extra = EXTRA[items.extra] ? EXTRA[items.extra](fillOf(monster), mv, side) : '';
+  const body = extra + outfitBack + (PROP_BACK[items.prop] ? PROP_BACK[items.prop](mv) : '') + monsterSvg(monster, { side, walk: ride && ride.walk, mv, blink }) + shine
+    + outfit + prop;
   const dx = ride && ride.shift ? ride.shift : 0;
   let me = `<g transform="translate(${120 + dx} ${200 - lift}) scale(${k}) translate(-120 -200)">${body}</g>`;
   if (ride && ride.bob && mv) me = `<g>${me}<animateTransform attributeName="transform" type="translate" values="0 0;0 -8;0 0" dur="2.6s" repeatCount="indefinite"/></g>`;

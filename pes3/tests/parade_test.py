@@ -234,7 +234,7 @@ try:
         ctx2.close()
 
         # ---- nothing is cut off at the picture's edges, even mid-animation (pixels, so outlines count too):
-        # every ride x prop, with wide wings + the tallest hat and with a tail + top hat, at 6 moments.
+        # every ride x prop, with wide wings + the tallest hat and with a tail + the cape, at 6 moments.
         import base64
         EDGE = """async (b64) => { const img = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob());
           const c = new OffscreenCanvas(img.width, img.height), g = c.getContext('2d'); g.drawImage(img, 0, 0);
@@ -249,7 +249,7 @@ try:
         cut = []
         for r in rides:
             for pr in props:
-                for ex, out in [("batwings", "party"), ("dragontail", "tophat")]:
+                for ex, out in [("batwings", "party"), ("dragontail", "cape")]:  # widest wings + tallest hat; the cape streams furthest back
                     p3.evaluate("""(a) => { h.innerHTML = A.scene({ color: 'green', eyes: 2, top: 'antennae', mouth: 'smile', pattern: 'none' },
                         { ride: a[0], prop: a[1], extra: a[2], outfit: a[3] }, { moving: true });
                       const s = h.firstChild; s.style.cssText = 'width:240px;height:290px;display:block'; s.pauseAnimations(); }""", [r, pr, ex, out])
