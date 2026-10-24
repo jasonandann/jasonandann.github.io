@@ -22,6 +22,11 @@ export function dictionaryReady() {
   return words !== null && words.size > 0;
 }
 
+// Every word, once loaded (empty before). Crystal Cave's Grown-up spelling words come from here.
+export function dictionaryWords() {
+  return words ? [...words] : [];
+}
+
 export function inDictionary(word) {
   return !!words && word.length >= MIN_LEN && words.has(word);
 }

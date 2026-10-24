@@ -60,7 +60,7 @@ try:
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.3)
         titles = page.evaluate("[...document.querySelectorAll('.sect h2')].map(h => h.textContent)")
-        check("menu: 💻 Coding sits between Math and Fun", titles.index("💻 Coding") == titles.index("➗ Math") + 1 and titles.index("🎲 Fun") == titles.index("💻 Coding") + 1, str(titles))
+        check("menu: 💻 Coding sits between Math and Adventures", titles.index("💻 Coding") == titles.index("➗ Math") + 1 and titles.index("🏰 Adventures") == titles.index("💻 Coding") + 1, str(titles))
         check("menu: Robot Course card in Coding", page.locator(".sect", has_text="Coding").locator(".mcard", has_text="Robot Course").count() == 1)
 
         # ---------- engine unit checks (js/code/engine.js) ----------

@@ -34,12 +34,14 @@ export function numpad(onKey, onBack) {
   return kb;
 }
 
-// ask({problem, entries, later, onLeave, done, prompt?, second?, okText?}) -> element.
+// ask({problem, entries, later, onLeave, done, prompt?, second?, okText?, record?}) -> element.
 // problem.prompt (optional) replaces the default line above the question (a word problem's story; the
 // sum itself is then hidden and the box shows "? <problem.unit>").
 // done({ok, firstTry}) runs once: ~0.9 s after a right answer, or from the OK tap after the answer is shown.
 // Logs like the other games: logRound for a spelling word (which also awards a garden point), award() for math.
-export function ask({ problem, entries = [], later, onLeave, done, prompt, second = true, okText = 'OK ➜' }) {
+// record: 'all' (that logging), 'garden' (a garden point only: a word that isn't from her list), 'none' (someone
+// else is answering, e.g. a pass-and-play player in Crystal Cave).
+export function ask({ problem, entries = [], later, onLeave, done, prompt, second = true, okText = 'OK ➜', record = 'all' }) {
   const isMath = problem.kind === 'math';
   const answer = isMath ? String(problem.answer) : problem.entry.word;
   const extras = isMath ? DIGITS : extraChars(entries);
@@ -48,6 +50,10 @@ export function ask({ problem, entries = [], later, onLeave, done, prompt, secon
   let finished = false;
   let called = false;
   const finishOnce = (r) => { if (!called) { called = true; done(r); } };
+  const log = (firstTry) => {
+    if (record === 'none') return;
+    if (isMath || record === 'garden') award(); else logRound(answer, firstTry);
+  };
 
   const shown = el('div', { class: 'typed' });
   const note = el('div', { class: 'msg', 'aria-live': 'polite' });
@@ -70,7 +76,7 @@ export function ask({ problem, entries = [], later, onLeave, done, prompt, secon
     if (finished || !typed) return;
     if (typed === answer) {
       stop();
-      if (isMath) award(); else logRound(answer, misses === 0);
+      log(misses === 0);
       shown.classList.add('good');
       note.textContent = cheer(isMath ? opKind(problem.text) : 'spell');
       later(() => finishOnce({ ok: true, firstTry: misses === 0 }), 900);
@@ -81,7 +87,7 @@ export function ask({ problem, entries = [], later, onLeave, done, prompt, secon
     draw();
     if (second && misses === 1) { note.textContent = retry(); return; }
     stop();
-    if (isMath) award(); else logRound(answer, false);
+    log(false);
     note.textContent = isMath ? `The answer is ${answer}.` : `It's spelled ${answer}.`;
     box.append(el('button', { class: 'btn primary big', type: 'button', onclick: () => finishOnce({ ok: false, firstTry: false }) }, okText));
   }

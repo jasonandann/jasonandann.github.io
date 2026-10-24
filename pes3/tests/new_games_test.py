@@ -72,7 +72,13 @@ try:
 
         # ---- menu sections
         heads = page.locator(".sect h2").all_inner_texts()
-        check("menu has 5 sections", len(heads) == 5, str(heads))
+        check("menu has 6 sections", len(heads) == 6, str(heads))
+        check("menu: Adventures then Brain Games, before Rewards",
+              heads[heads.index("🏰 Adventures") + 1] == "🧠 Brain Games" and heads[heads.index("🧠 Brain Games") + 1] == "🌱 Rewards", str(heads))
+        check("menu: Spot Match and Simon Says are in Brain Games",
+              page.locator(".sect", has_text="Brain Games").locator(".mcard").count() == 2
+              and page.locator(".sect", has_text="Brain Games").locator(".mcard", has_text="Spot Match").count() == 1
+              and page.locator(".sect", has_text="Brain Games").locator(".mcard", has_text="Simon Says").count() == 1)
         check("menu has 28 cards", page.locator(".mcard").count() == 28)
         for name in ["Spell Catcher", "Word Volcano", "Wordal", "Number Bubbles", "Number Cascade", "Times Table Explorer",
                      "Number Maze", "Number Mountain", "Puzzle Pieces", "Lily Pad River", "Spot Match", "Simon Says", "My Garden"]:

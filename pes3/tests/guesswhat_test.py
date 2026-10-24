@@ -8,7 +8,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 SITE = str(Path(__file__).resolve().parent.parent)
-PORT = 8781
+PORT = 8782
 URL = f"http://localhost:{PORT}/"
 SHOTS = os.path.join(tempfile.gettempdir(), "spelling-shots")
 os.makedirs(SHOTS, exist_ok=True)

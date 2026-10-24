@@ -1,5 +1,5 @@
 """Deep links: index.html#<id> shows a Tap-to-start card for that game; the hash follows the screen."""
-import os, re, subprocess, sys, tempfile, time
+import json, os, re, subprocess, sys, tempfile, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -24,6 +24,10 @@ def check(name, cond, detail=""):
 # The ids live in app.js; read them from there so a new game is covered automatically.
 src = Path(SITE, "js/app.js").read_text()
 IDS = re.findall(r"id: '([^']*)', name: '([^']*)'", src)
+# Games that ship off (issue #33: `off: true`, hidden until a grown-up turns them on) are turned on here,
+# so every id is covered; hiding itself is tested in parent_test (and cave_test).
+OFF = re.findall(r"id: '([^']*)'[^\n]*\boff: true", src)
+SHOW_ALL = f"localStorage.setItem('spelling-games.parent.v1', JSON.stringify({{ games: {json.dumps({i: True for i in OFF})} }}));"
 
 server = subprocess.Popen([sys.executable, "-m", "http.server", str(PORT), "--directory", SITE],
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -33,7 +37,7 @@ try:
     with sync_playwright() as p:
         b = p.chromium.launch()
         ctx = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True, service_workers="block")
-        ctx.add_init_script(FAKE_TTS)
+        ctx.add_init_script(FAKE_TTS + SHOW_ALL)
         ctx.route(URL + "words.txt", lambda r: r.fulfill(path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "words.txt")))
         page = ctx.new_page()
         page.on("console", lambda m: errors.append(f"console.{m.type}: {m.text}") if m.type == "error" else None)
