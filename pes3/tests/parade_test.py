@@ -249,14 +249,26 @@ try:
         cut = []
         for r in rides:
             for pr in props:
-                for ex, out in [("batwings", "party"), ("dragontail", "cape")]:  # widest wings + tallest hat; the cape streams furthest back
-                    p3.evaluate("""(a) => { h.innerHTML = A.scene({ color: 'green', eyes: 2, top: 'antennae', mouth: 'smile', pattern: 'none' },
+                # widest wings + tallest hat; the cape streams furthest back; the turkey's fan on horns; fur + top hat on ears
+                for ex, out, tp in [("batwings", "party", "antennae"), ("dragontail", "cape", "antennae"), ("fairywings", "turkey", "horns"), ("fur", "tophat", "ears")]:
+                    p3.evaluate("""(a) => { h.innerHTML = A.scene({ color: 'green', eyes: 2, top: a[4], mouth: 'smile', pattern: 'stripes' },
                         { ride: a[0], prop: a[1], extra: a[2], outfit: a[3] }, { moving: true });
-                      const s = h.firstChild; s.style.cssText = 'width:240px;height:290px;display:block'; s.pauseAnimations(); }""", [r, pr, ex, out])
+                      const s = h.firstChild; s.style.cssText = 'width:240px;height:290px;display:block'; s.pauseAnimations(); }""", [r, pr, ex, out, tp])
                     for t in (0, 0.4, 0.8, 1.2, 1.6, 2.0):
                         p3.evaluate(f"h.firstChild.setCurrentTime({t})")
-                        if p3.evaluate(EDGE, base64.b64encode(p3.screenshot()).decode()) < 235: cut.append(f"{r}/{pr}/{ex}/{out}@{t}s"); break
-        check(f"art: nothing touches the picture's edges while moving ({len(rides) * len(props) * 2} combinations x 6 moments)", not cut, ", ".join(cut[:5]))
+                        if p3.evaluate(EDGE, base64.b64encode(p3.screenshot()).decode()) < 235: cut.append(f"{r}/{pr}/{ex}/{out}/{tp}@{t}s"); break
+        check(f"art: nothing touches the picture's edges while moving ({len(rides) * len(props) * 4} combinations x 6 moments)", not cut, ", ".join(cut[:5]))
+        # a top hat holds antennae (front and side); every side view draws without errors
+        tucked = p3.evaluate("""() => { const m = (top) => ({ color: 'green', eyes: 2, top, mouth: 'smile', pattern: 'none' });
+          return [false, true].every(side => A.scene(m('antennae'), { outfit: 'tophat' }, { side }) === A.scene(m('none'), { outfit: 'tophat' }, { side })); }""")
+        check("art: antennae are tucked inside the top hat, front and side", tucked)
+        sides = p3.evaluate("""() => { const bad = [];
+          for (const top of A.TOPS) for (const pattern of A.PATTERNS) for (const o of [null, ...A.ITEMS.outfit.map(i => i.id)]) {
+            const svg = A.scene({ color: 'blue', eyes: 2, top, mouth: 'smile', pattern }, o ? { outfit: o } : {}, { side: true });
+            if (!/^<svg[^>]*>[\\s\\S]*<\\/svg>$/.test(svg) || /undefined|NaN|null/.test(svg)) bad.push(`${top}/${pattern}/${o}`); }
+          return bad; }""")
+        check("art: every top x pattern x outfit draws side-on (no undefined/NaN)", not sides, ", ".join(sides[:5]))
+
         ctx3.close()
 
         check("no console/page errors", not errors, "; ".join(errors[:3]))

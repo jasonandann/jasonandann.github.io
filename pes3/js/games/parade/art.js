@@ -42,7 +42,6 @@ export const ITEMS = {
     { id: 'turkey', name: 'turkey hat' },
     { id: 'cape', name: 'cape' },
     { id: 'scarf', name: 'scarf' },
-    { id: 'sash', name: 'sash' },
     { id: 'shades', name: 'sunglasses' },
   ],
   prop: [
@@ -76,6 +75,20 @@ const fillOf = (m) => (COLORS.find((c) => c.id === m.color) || COLORS[0]).fill;
 /* ---------- the monster (fixed shape) ---------- */
 const BODY = 'M120 62 C 84 62 70 92 70 124 C 70 168 84 196 120 196 C 156 196 170 168 170 124 C 170 92 156 62 120 62 Z';
 
+// Side view (head turned to face right): the near feature (left) moves in a little; the far one moves in too, is
+// smaller (further away) and partly hidden behind the head (tops are drawn before the body).
+// The far horn sits close behind the near one (FAR_HORN_DX to the right of where it was), as on a turned head.
+export const FAR_HORN_DX = -20;
+function topSide(m, fill) {
+  switch (m.top) {
+    case 'horns': return `<g transform="translate(${FAR_HORN_DX} 0)"><path d="M146 72 L154 48 L138 66 Z" fill="#fef3c7" ${S}/></g><path d="M92 74 L84 44 L106 66 Z" fill="#fef3c7" ${S}/>`;
+    case 'antennae': return `<path d="M136 64 Q142 48 148 40" fill="none" ${S}/><circle cx="148" cy="38" r="5.5" fill="${fill}" ${S}/>`
+      + `<path d="M108 64 Q100 46 94 36" fill="none" ${S}/><circle cx="94" cy="34" r="7" fill="${fill}" ${S}/>`;
+    case 'ears': return `<ellipse cx="156" cy="76" rx="8" ry="14" transform="rotate(20 156 76)" fill="${fill}" ${S}/><ellipse cx="88" cy="76" rx="11" ry="18" transform="rotate(-22 88 76)" fill="${fill}" ${S}/>`;
+    case 'tuft': return `<path d="M118 66 Q122 44 130 58 Q136 40 142 66" fill="${fill}" ${S}/>`;
+    default: return '';
+  }
+}
 function top(m, fill) {
   switch (m.top) {
     case 'horns': return `<path d="M88 76 L78 46 L100 68 Z" fill="#fef3c7" ${S}/><path d="M152 76 L162 46 L140 68 Z" fill="#fef3c7" ${S}/>`;
@@ -105,6 +118,30 @@ function mouth(m) {
     default: return `<path d="M104 114 Q120 130 136 114" fill="none" ${S}/>`;
   }
 }
+// Side view: the tummy turns with the body: it moves toward the front, gets narrower and slants (forward at the
+// top, Jason's pick 'O', 2026-10-24), stopping short of the front edge so there is body colour in front of it for
+// the far arm to come out of. The drum is centred on it and slants the same way. Spots move with it; stripes wrap
+// all the way round the body, so they stay.
+export const BELLY_SIDE_X = 136;
+export const BELLY_SIDE = { rx: 20, ry: 27, skew: -14 };
+let clipN = 0; // each picture needs its own clip id (many pictures share one page)
+function patternSide(m) {
+  if (m.pattern === 'belly') {
+    const { rx, ry, skew } = BELLY_SIDE, x = BELLY_SIDE_X;
+    return `<ellipse cx="${x}" cy="160" rx="${rx}" ry="${ry}" transform="translate(${x} 160) skewX(${skew}) translate(${-x} -160)" fill="#fff" opacity=".4"/>`;
+  }
+  // Spots: moved, narrowed and slanted exactly like the tummy.
+  if (m.pattern === 'spots') return `<g transform="translate(${BELLY_SIDE_X} 160) skewX(${BELLY_SIDE.skew}) scale(0.62 1) translate(-120 -160)">${pattern(m)}</g>`;
+  // Stripes wrap round the body, so they still reach both edges: each stripe's low point moves toward the front
+  // with the same slant, and the stripes are trimmed to the body's outline.
+  if (m.pattern === 'stripes') {
+    const id = `pdstripes${++clipN}`, x = BELLY_SIDE_X;
+    const band = (y, dip) => `<path d="M40 ${y} Q${x} ${y + dip} 200 ${y}"/>`;
+    return `<clipPath id="${id}"><path d="${BODY}"/></clipPath><g clip-path="url(#${id})"><g transform="translate(${x} 160) skewX(${BELLY_SIDE.skew}) translate(${-x} -160)"`
+      + ` fill="none" stroke="${INK}" stroke-width="3" opacity=".25">${band(136, 20)}${band(158, 20)}${band(180, 16)}</g></g>`;
+  }
+  return pattern(m);
+}
 function pattern(m) {
   switch (m.pattern) {
     case 'spots': return '<g fill="#fff" opacity=".35"><circle cx="92" cy="150" r="7"/><circle cx="146" cy="158" r="9"/><circle cx="128" cy="180" r="6"/><circle cx="104" cy="176" r="5"/></g>';
@@ -113,7 +150,11 @@ function pattern(m) {
     default: return '';
   }
 }
-function arms(fill) {
+// Side view: the near arm (left) comes in across the front of the body; the far arm (right, which holds the
+// props) only turns a little, its hand staying about where it was.
+const ARMS_SIDE = ['M80 128 Q76 146 94 148', 'M164 132 Q180 132 178 143'];
+function arms(fill, side) {
+  if (side) return ARMS_SIDE.map((d) => `<path d="${d}" fill="none" stroke="${INK}" stroke-width="11" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${fill}" stroke-width="6" stroke-linecap="round"/>`).join('');
   return `<path d="M74 132 Q60 136 64 146" fill="none" stroke="${INK}" stroke-width="11" stroke-linecap="round"/>`
     + `<path d="M74 132 Q60 136 64 146" fill="none" stroke="${fill}" stroke-width="6" stroke-linecap="round"/>`
     + `<path d="M166 132 Q180 136 176 146" fill="none" stroke="${INK}" stroke-width="11" stroke-linecap="round"/>`
@@ -139,7 +180,7 @@ export function monsterSvg(m, { side = false, walk = false, mv = false, blink = 
   const ft = side && walk && mv
     ? [102, 138].map((x, i) => `<g><ellipse cx="${x}" cy="198" rx="15" ry="8" fill="${fill}" ${S}/>${step(i)}</g>`).join('')
     : feet(fill);
-  return ft + shiftTo(130, 1, top(m, fill)) + `<path d="${BODY}" fill="${fill}" ${S}/>` + shiftTo(128, 0.85, pattern(m)) + arms(fill)
+  return ft + (side ? topSide(m, fill) : top(m, fill)) + `<path d="${BODY}" fill="${fill}" ${S}/>` + (side ? patternSide(m) : pattern(m)) + arms(fill, side)
     + blinking(eyes(m, side), blink) + shiftTo(148, 0.7, mouth(m));
 }
 
@@ -178,17 +219,32 @@ const OUTFIT_BACK = {
 // Side-view drawings for things that have a front (Jason, 2026-10-24): a crown seen from the side (narrower, within
 // the head, its round band curving, the big red jewel moved toward the front, a small one at the back) and a
 // turkey in profile facing the way the parade goes (tail fan back to the left, one eye, beak forward).
+// Side-view turkey's neck bend and head position.
+export const TURKEY_SIDE = { nx: 136, ny: 44, hx: 147, hy: 40, beak: 'hook' }; // beak: level | down | hook
+// Side-view top hat: centred over the head (cx), brim half-width rx and thickness ry, crown width w, tilt (deg).
+export const TOPHAT_SIDE = { cx: 120, rx: 28, ry: 6, w: 36, tilt: 0 };
+const tophatSide = ({ cx, rx, ry, w, tilt }) => `<g transform="rotate(${tilt} ${cx} 66)"><ellipse cx="${cx}" cy="66" rx="${rx}" ry="${ry}" fill="${INK}"/>`
+  + `<rect x="${cx - w / 2}" y="24" width="${w}" height="42" rx="3" fill="${INK}"/><rect x="${cx - w / 2}" y="54" width="${w}" height="7" fill="#dc2626"/></g>`;
 const OUTFIT_SIDE = {
+  tophat: tophatSide(TOPHAT_SIDE),
   crown: `<path d="M96 70 L97 44 L107 56 L117 34 L129 54 L143 38 L148 68 Q122 76 96 70 Z" fill="#facc15" ${S}/>`
     + `<path d="M97 66 Q122 72 148 64" fill="none" stroke="#a16207" stroke-width="2"/>`
     + `<circle cx="97" cy="42" r="3" fill="#facc15" ${S} stroke-width="2"/><circle cx="117" cy="32" r="3.5" fill="#facc15" ${S} stroke-width="2"/><circle cx="143" cy="36" r="4" fill="#facc15" ${S}/>`
     + `<circle cx="132" cy="61" r="5" fill="#ef4444" ${S}/><circle cx="108" cy="63" r="3" fill="#3b82f6"/>`,
+  // The turkey looks where the monster looks: straight ahead (right) and level, pupil forward, beak level.
   turkey: (() => {
     const cols = ['#dc2626', '#f97316', '#facc15', '#a16207', '#f97316'];
     const fan = cols.map((c, i) => `<ellipse cx="104" cy="34" rx="7" ry="22" transform="rotate(${-78 + i * 18} 108 58)" fill="${c}" ${S}/>`).join('');
-    return fan + `<ellipse cx="120" cy="62" rx="22" ry="12" fill="#92400e" ${S}/><path d="M132 58 Q138 46 140 40" fill="none" stroke="${INK}" stroke-width="10" stroke-linecap="round"/><path d="M132 58 Q138 46 140 40" fill="none" stroke="#b45309" stroke-width="6" stroke-linecap="round"/>`
-      + `<circle cx="141" cy="37" r="8" fill="#b45309" ${S}/><circle cx="144" cy="35" r="2.6" fill="#fff"/><circle cx="144.8" cy="35.4" r="1.4" fill="${INK}"/>`
-      + `<path d="M148 36 L157 39 L148 42 Z" fill="#facc15" stroke="${INK}" stroke-width="1.5"/><path d="M149 42 Q151 48 147 51" fill="none" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round"/>`
+    const { nx, ny, hx, hy, beak } = TURKEY_SIDE; // neck bend / head position / beak shape
+    return fan + `<ellipse cx="120" cy="62" rx="22" ry="12" fill="#92400e" ${S}/>`
+      + `<path d="M132 58 Q${nx} ${ny} ${hx - 2} ${hy + 3}" fill="none" stroke="${INK}" stroke-width="10" stroke-linecap="round"/><path d="M132 58 Q${nx} ${ny} ${hx - 2} ${hy + 3}" fill="none" stroke="#b45309" stroke-width="6" stroke-linecap="round"/>`
+      + `<circle cx="${hx}" cy="${hy}" r="8" fill="#b45309" ${S}/><circle cx="${hx + 3}" cy="${hy - 1}" r="2.8" fill="#fff"/><circle cx="${hx + 4.4}" cy="${hy - 0.6}" r="1.5" fill="${INK}"/>`
+      + ({ // the beak sits at the front of the head, below the eye; the wattle hangs from its base
+        level: `<path d="M${hx + 7} ${hy} L${hx + 13} ${hy + 1.5} L${hx + 7} ${hy + 3.5} Z"`,
+        down: `<path d="M${hx + 6.5} ${hy} L${hx + 12} ${hy + 4} L${hx + 5.5} ${hy + 4} Z"`,
+        hook: `<path d="M${hx + 6.5} ${hy - 0.5} Q${hx + 13} ${hy} ${hx + 11} ${hy + 5} Q${hx + 8} ${hy + 3.5} ${hx + 5.5} ${hy + 4} Z"`,
+      })[beak] + ` fill="#facc15" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>`
+      + `<path d="M${hx + 6} ${hy + 4} Q${hx + 8} ${hy + 10} ${hx + 4} ${hy + 13}" fill="none" stroke="#dc2626" stroke-width="3.5" stroke-linecap="round"/>`
       + `<path d="M114 60 Q120 54 128 60" fill="none" stroke="#a16207" stroke-width="2"/>`;
   })(),
 };
@@ -208,7 +264,6 @@ const OUTFIT = {
   })(),
   scarf_side: `<path d="M80 124 Q120 140 160 124 L162 136 Q120 152 78 136 Z" fill="#ef4444" ${S}/><path d="M86 130 Q66 128 44 140 L46 152 Q66 142 88 142 Z" fill="#ef4444" ${S}/><path d="M92 132 V142 M106 135 V146 M122 136 V147 M138 134 V145 M152 131 V140 M60 136 V146" stroke="#fff" stroke-width="3"/>`,
   scarf: `<path d="M80 124 Q120 140 160 124 L162 136 Q120 152 78 136 Z" fill="#ef4444" ${S}/><path d="M140 136 L146 170 L132 170 L130 140 Z" fill="#ef4444" ${S}/><path d="M86 128 V138 M100 132 V143 M116 134 V146 M132 133 V145 M148 130 V140" stroke="#fff" stroke-width="3"/>`,
-  sash: `<path d="M82 110 L92 104 L162 176 L152 184 Z" fill="#fde047" ${S}/><path d="M118 140 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1 Z" fill="#dc2626"/>`,
   shades: `<path class="shades" d="M82 88 H158 V98 Q158 110 146 110 H132 Q124 110 122 100 H118 Q116 110 108 110 H94 Q82 110 82 98 Z" fill="${INK}"/><path d="M90 92 L100 92" stroke="#fff" stroke-width="3" opacity=".6"/>`,
   cape: `<path d="M80 128 L94 136 L108 134 Z M160 128 L146 136 L132 134 Z" fill="#dc2626" ${S} stroke-width="2"/><path d="M86 130 Q120 142 154 130" fill="none" stroke="#dc2626" stroke-width="5" stroke-linecap="round"/><circle cx="120" cy="138" r="5" fill="#facc15" ${S}/>`, // collar at the shoulders, below the mouth
 };
@@ -259,11 +314,27 @@ const PROP_BACK = {
 };
 // A drumstick stroke: up, then down onto the drum (dir 1 = the left hand's stick, -1 = the mirrored right one).
 const stroke = (x, y, dir, begin) => `<animateTransform attributeName="transform" type="rotate" values="${-10 * dir} ${x} ${y};${8 * dir} ${x} ${y};${-10 * dir} ${x} ${y}" keyTimes="0;.35;1" dur="0.6s" begin="${begin}s" repeatCount="indefinite"/>`;
+// How far the drum turns in side view (Jason picks from a proof sheet).
+export const DRUM_SIDE = { sx: 0.6, deg: 0, apex: 0.5, skew: -14 }; // apex: where the V's point is across the drum (0.5 = middle)
 const PROP = {
-  pompoms: (mv) => moved(pom(64, 146, '#ec4899'), swing(66, 146, 0, 14, 0.5), mv) + moved(pom(176, 146, '#facc15'), swing(174, 146, 0.25, 14, 0.5), mv),
-  drum: (mv) => `<rect x="94" y="150" width="52" height="34" rx="4" fill="#ef4444" ${S}/><ellipse cx="120" cy="150" rx="26" ry="7" fill="#f8fafc" ${S}/><path d="M96 158 L120 180 L144 158" fill="none" stroke="#facc15" stroke-width="3"/>`
-    + moved(`<path d="M66 146 L104 138" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="104" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, stroke(66, 146, 1, 0), mv)
-    + moved(`<path d="M174 146 L136 138" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="136" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, stroke(174, 146, -1, 0.3), mv),
+  // (side = facing right: the near hand is at (94,148), the far one at (178,143))
+  pompoms: (mv, side) => {
+    const [lx, ly] = side ? [94, 150] : [64, 146];
+    return moved(pom(lx, ly, '#ec4899'), swing(lx + 2, ly, 0, 14, 0.5), mv) + moved(pom(176, 146, '#facc15'), swing(174, 146, 0.25, 14, 0.5), mv);
+  },
+  drum: (mv, side) => {
+    // Side view: the drum turns with the body: it moves toward the front (dx), looks narrower (sx, foreshortened)
+    // and tilts (deg). The stick tips follow the drum; the stick ends stay in the hands.
+    const { sx, deg, apex, skew = 0 } = side ? DRUM_SIDE : { sx: 1, deg: 0, apex: 0.5, skew: 0 };
+    const dx = side ? BELLY_SIDE_X - 120 : 0;
+    const ox = 120, oy = 167, r = (deg * Math.PI) / 180, k = Math.tan((skew * Math.PI) / 180);
+    const tp = (x, y) => { const v = y - oy, u = (x - ox) * sx + v * k; return [ox + dx + u * Math.cos(r) - v * Math.sin(r), oy + u * Math.sin(r) + v * Math.cos(r)].map((n) => +n.toFixed(1)); };
+    const [lx, ly] = side ? [94, 148] : [66, 146], [rx, ry] = side ? [178, 143] : [174, 146];
+    const [l2x, l2y] = tp(104, 138), [r2x, r2y] = tp(136, 138);
+    return `<g transform="translate(${ox + dx} ${oy}) rotate(${deg}) skewX(${skew}) scale(${sx} 1) translate(${-ox} ${-oy})"><rect x="94" y="150" width="52" height="34" rx="4" fill="#ef4444" ${S}/><ellipse cx="120" cy="150" rx="26" ry="7" fill="#f8fafc" ${S}/><path d="M96 158 L${96 + 48 * apex} 180 L144 158" fill="none" stroke="#facc15" stroke-width="3"/></g>`
+      + moved(`<path d="M${lx} ${ly} L${l2x} ${l2y}" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="${l2x}" cy="${l2y}" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, stroke(lx, ly, 1, 0), mv)
+      + moved(`<path d="M${rx} ${ry} L${r2x} ${r2y}" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="${r2x}" cy="${r2y}" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, stroke(rx, ry, -1, 0.3), mv);
+  },
   trumpet: (mv) => `<path d="M176 144 L200 132" stroke="#eab308" stroke-width="7" stroke-linecap="round"/><path d="M196 126 L212 116 L214 144 L198 138 Z" fill="#facc15" ${S}/><rect x="182" y="130" width="5" height="10" fill="#a16207"/><rect x="189" y="126" width="5" height="10" fill="#a16207"/>`
     + (mv ? note(0) + note(0.8) : ''),
 };
@@ -384,15 +455,16 @@ export function scene(monster, items = {}, { moving = false, blink = moving, sid
   const shine = ride && ride.shine ? '<ellipse cx="84" cy="116" rx="6" ry="15" transform="rotate(12 84 116)" fill="#fff" opacity=".55"/>' : '';
   let outfit = OUTFIT[items.outfit] || '';
   let outfitBack = OUTFIT_BACK[items.outfit] || '';
-  let prop = PROP[items.prop] ? PROP[items.prop](mv) : '';
+  let prop = PROP[items.prop] ? PROP[items.prop](mv, side) : '';
   if (side) { // facing right: things on the face and head follow the turned face; capes and scarf ends stream back
     if (items.outfit === 'shades') outfit = `<g transform="translate(143 0) scale(0.78 1) translate(-120 0)">${outfit}</g>`;
     if (OUTFIT_SIDE[items.outfit]) outfit = OUTFIT_SIDE[items.outfit];
     else if (HATS.has(items.outfit) || items.outfit === 'cape') outfit = `<g transform="translate(8 0)">${outfit}</g>`;
     if (items.outfit === 'scarf') outfit = OUTFIT.scarf_side;
     if (items.outfit === 'cape') outfitBack = CAPE_SIDE(mv);
-    if (items.prop === 'drum') prop = `<g transform="translate(9 0)">${prop}</g>`;
   }
+  // A top hat is wide enough to hold antennae: they are tucked inside it, front and side (Jason, 2026-10-24).
+  if (items.outfit === 'tophat' && monster.top === 'antennae') monster = { ...monster, top: 'none' };
   const extra = EXTRA[items.extra] ? EXTRA[items.extra](fillOf(monster), mv, side) : '';
   const body = extra + outfitBack + (PROP_BACK[items.prop] ? PROP_BACK[items.prop](mv) : '') + monsterSvg(monster, { side, walk: ride && ride.walk, mv, blink }) + shine
     + outfit + prop;
