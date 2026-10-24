@@ -84,7 +84,7 @@ try:
             if name is None: tap(".pd-skip")
             else:
                 page.locator(".pd-panel .text-in").fill(name); tap(".pd-named")
-            for _ in range(3): one_slot()
+            for _ in range(4): one_slot()  # extra, outfit, prop, ride
             page.wait_for_selector(".pd-next", timeout=5000)
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.3)
@@ -98,7 +98,7 @@ try:
             if (!s.includes('<svg') || s === bare) bad.push(slot + ':' + it.id); }
           return { bad, slots: a.SLOTS, n: a.SLOTS.map((s) => a.ITEMS[s].length) }; }""")
         check("art: every outfit, prop and ride draws something on the monster", not arts["bad"], ", ".join(arts["bad"]))
-        check("art: three slots with at least 3 items each", len(arts["slots"]) == 3 and min(arts["n"]) >= 3, str(arts))
+        check("art: four slots (extra, outfit, prop, ride) with at least 3 items each", arts["slots"] == ["extra", "outfit", "prop", "ride"] and min(arts["n"]) >= 3, str(arts))
 
         # ---- start screen + options
         open_parade()
@@ -127,25 +127,25 @@ try:
         check("strip: 3 places, none ready yet", page.locator(".pd-spot").count() == 3 and page.locator(".pd-spot.done").count() == 0)
         page.locator(".pd-panel .text-in").fill("Gloopy"); tap(".pd-named")
         check("name typed is used", state()["current"]["name"] == "Gloopy" and "Gloopy" in page.locator(".pd-need").inner_text())
-        check("needs something to wear first", state()["slot"] == "outfit")
+        check("needs something extra first (wings, tail or fur)", state()["slot"] == "extra")
         tap(".pd-go")
         check("a math question with a number pad", page.locator(".ch-q .bigword").count() == 1 and page.locator(".ch-q .numpad").count() == 1)
         page.screenshot(path=f"{SHOTS}/parade_question.png")
         answer_wrong()
         page.wait_for_selector(".pd-go", timeout=5000)
         check("not right: gentle 'try another', no item, same slot", "try another" in page.locator(".pd-panel .msg").inner_text()
-              and state()["current"]["items"] == {} and state()["slot"] == "outfit", page.locator(".pd-panel .msg").inner_text())
+              and state()["current"]["items"] == {} and state()["slot"] == "extra", page.locator(".pd-panel .msg").inner_text())
         tap(".pd-go"); answer_right()
         page.wait_for_selector(".pd-choice", timeout=5000)
         ids = page.evaluate("[...document.querySelectorAll('.pd-choice')].map(b => b.dataset.id)")
         check("right: 3 different choices, each showing the monster wearing it", len(ids) == 3 and len(set(ids)) == 3 and page.locator(".pd-choice svg").count() == 3)
         page.screenshot(path=f"{SHOTS}/parade_choices.png")
         tap(".pd-choice >> nth=1")
-        check("the picked item goes on the monster", state()["current"]["items"].get("outfit") == ids[1] and state()["slot"] == "prop")
-        one_slot(); one_slot()
+        check("the picked item goes on the monster", state()["current"]["items"].get("extra") == ids[1] and state()["slot"] == "outfit")
+        one_slot(); one_slot(); one_slot()
         page.wait_for_selector(".pd-next", timeout=5000)
         st = state()
-        check("monster 1 ready: outfit + prop + ride, in the strip", len(st["ready"]) == 1 and set(st["ready"][0]["items"]) == {"outfit", "prop", "ride"}
+        check("monster 1 ready: extra + outfit + prop + ride, in the strip", len(st["ready"]) == 1 and set(st["ready"][0]["items"]) == {"extra", "outfit", "prop", "ride"}
               and page.locator(".pd-spot.done").count() == 1 and "Gloopy" in page.locator(".pd-line").inner_text())
         page.screenshot(path=f"{SHOTS}/parade_strip.png")
         tap(".pd-next")
@@ -171,7 +171,7 @@ try:
         names = page.locator(".pd-marcher .pd-name").all_inner_texts()
         check("finale: the first monster ready leads (rightmost)", names[-1] == "Gloopy", str(names))
         page.screenshot(path=f"{SHOTS}/parade_finale.png")
-        check("garden points for her answers (10 questions answered)", gp() - g0 == 10, f"{g0} -> {gp()}")
+        check("garden points for her answers (13 = 3 monsters x 4 + the missed one)", gp() - g0 == 13, f"{g0} -> {gp()}")
         tap(".pd-again")
         check("New parade starts over", page.locator(".pd-spot.done").count() == 0 and page.locator(".pd-panel .text-in").count() == 1)
         home()
@@ -219,7 +219,7 @@ try:
         # finish quickly through the page's own flow
         for _ in range(3):
             p2.locator(".pd-skip").first.click()
-            for _ in range(3):
+            for _ in range(4):
                 p2.locator(".pd-go").first.click()
                 t = p2.locator(".ch-q .bigword").inner_text()
                 for ch in str(evalmath(t)): p2.locator(f".ch-q .key:text-is('{ch}')").first.click()

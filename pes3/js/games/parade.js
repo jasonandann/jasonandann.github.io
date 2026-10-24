@@ -1,5 +1,5 @@
-// Monster Parade (issue #67): help monsters get ready for a big parade. Each monster needs something to wear,
-// something to hold and a way to ride; every right answer lets her pick the next one from three choices (each
+// Monster Parade (issue #67): help monsters get ready for a big parade. Each monster needs something extra
+// (wings, a tail, fur), something to wear, something to hold and a way to ride; every right answer lets her pick the next one from three choices (each
 // shown on the monster). A miss just means another question. When all the monsters are ready, the parade rolls by.
 // All the drawing lives in parade/art.js; this file is the flow. One player (Jason, 2026-10-24).
 import { el, scope, celebrate, textInput } from '../util.js';
@@ -71,7 +71,7 @@ export function mount(root, entries, api) {
     root.replaceChildren(
       el('div', { class: 'zt-setup pd-setup' },
         el('h2', {}, '🎈 Monster Parade'),
-        el('p', { class: 'prompt' }, 'The monsters are getting ready for the big parade! Answer questions to help them pick something to wear, something to hold and a way to ride.'),
+        el('p', { class: 'prompt' }, 'The monsters are getting ready for the big parade! Answer questions to help them pick something extra, something to wear, something to hold and a way to ride.'),
         optionsButton({ summary: summary(), onOpen: openMore }),
         el('button', { class: 'btn primary big pd-start', type: 'button', onclick: start }, 'Start!'),
       ),
@@ -83,7 +83,7 @@ export function mount(root, entries, api) {
     sc = scope();
     const next = problems(entries, settings.mode, settings.level);
     const ready = []; // [{monster, items, name}]
-    const used = { outfit: new Set(), prop: new Set(), ride: new Set() };
+    const used = Object.fromEntries(SLOTS.map((k) => [k, new Set()])); // items already used in this parade, per slot
     let cur = null; // {monster, items, name}
     let slotIx = 0;
 

@@ -157,11 +157,11 @@ Oregon Trail-style journeys. Pick one of eight stories; each has a trail map, fo
 
 ### Monster Parade
 
-Monsters are getting ready for a big parade (issue #67). Each monster (simple cartoon SVGs, all the same size; colour, eyes, top, mouth and pattern vary) needs **something to wear** (hat, crown, cape, scarf, sash, sunglasses…), **something to hold** (pom-poms, flag, baton, drum…) and **a way to ride** (float, open-top bus, fire truck, marching band, giant balloon…). Before each, a ▶ Next question tap; a right answer (second chance included) lets her pick one of 3 choices, each shown on the monster; items not used yet in this parade come first. Not right this time: "Let's try another question!" and nothing is lost. She can name each monster (or Skip for a fun name). Ready monsters fill a strip at the top; after the last one the parade rolls across the screen (a still row with reduced motion).
+Monsters are getting ready for a big parade (issue #67). Each monster (simple cartoon SVGs, all the same size; colour, eyes, top, mouth and pattern vary) needs **something extra** (bat, fairy or bird wings, a dragon or fluffy tail, fuzzy fur), **something to wear** (hat, crown, cape, scarf, sash, sunglasses…), **something to hold** (pom-poms, flag, baton, drum…) and **a way to ride** (float, open-top bus, fire truck, marching band, giant balloon…). Before each, a ▶ Next question tap; a right answer (second chance included) lets her pick one of 3 choices, each shown on the monster; items not used yet in this parade come first. Not right this time: "Let's try another question!" and nothing is lost. She can name each monster (or Skip for a fun name). Ready monsters fill a strip at the top; after the last one the parade rolls across the screen from left to right: wheels turn, the float's lights blink, the band and balloon handlers march, the giant balloon bobs (a still row with reduced motion). The marching band, giant balloon and unicycle show the monster side-on, facing the way it goes.
 
 - One player. **⚙️ Options**: questions Spelling / Math / **Both**, math level (shared), monsters per parade 3–**4**–7, second chance **On**. Defaults in bold; kept in `spelling-games.parade.options`.
 - Garden: one point per answered question (via the shared question box); spelling words count in the hidden progress.
-- All drawing is in `js/games/parade/art.js` (the art is a first draft under review). Saving parades as pictures is a later idea (issue #70).
+- All drawing is in `js/games/parade/art.js` (style approved by Jason; individual items still being tuned). Saving parades as pictures is a later idea (issue #70).
 
 ### Crystal Cave
 
