@@ -243,6 +243,18 @@ python3 tools/serve.py          # serves the whole repository; open http://local
 7. **Kill switch (optional):** `cp tools/sw-off.js sw.js`, reload twice: DevTools shows no service worker and no `pes3-` cache. Then `git checkout sw.js` to restore the real one (don't commit the kill switch by accident).
 8. **Clean up:** grown-ups panel > Reset offline copy, or DevTools > Application > Clear site data. `localhost` has its own storage, separate from the real site, so this doesn't touch her data on jasonandann.net.
 
+## Two-device link test (spike, not a game yet)
+
+`net-test.html` (not in the menu; open `https://<your site>/pes3/net-test.html`) checks whether two iPads on **different networks** can play together with no server of our own: device A taps **Invite** and texts the link; device B opens it, taps **Join** and texts back the reply link; A taps the reply (or pastes it) and the two connect directly (WebRTC data channel, encrypted). Then there's a tiny chat and a round-trip time. The code is in `js/net.js`, ready for Battle Buddies if the test works.
+
+- Only public STUN servers are used (Google's and Cloudflare's), just so each device can learn its public address; they never see the messages. There is **no TURN relay**, so some networks (often cellular) are expected to fail. That is one of the things to find out.
+- The link holds the connection details in the part after `#`, which browsers don't send to the web server. Treat it like an invitation: it contains your public IP address.
+- A has to keep the test page open until the reply comes back, and the reply should come within a minute or two (how long a link stays good depends on the routers; the report records the link's age when the reply arrived). The same goes for B: send the reply right after tapping Join.
+- If A opened the page from the Home Screen, tapping the reply link in Messages opens Safari instead, which can't reach the waiting page; it then shows a code to copy and paste back. Testing this is another goal.
+- **Copy report** puts the log on the clipboard: which kinds of addresses were found, which path was used (`host` = same network, `srflx` = through the routers, `relay` = would need TURN), how old the link was, and whether it failed.
+
+Worth trying: both on home Wi-Fi in different houses; one on cellular; A from the Home Screen app. Add `?stun=none` to the address to test same-network only.
+
 ## Test locally
 
 `fetch()` does not work from `file://`, so serve the folder (`python3 tools/serve.py` from `pes3/` also works and is needed for the offline copy to pick up edits, see above):
@@ -252,7 +264,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/parent_test.py`, `python3 tests/battle_test.py`, `python3 tests/quest_test.py`, `python3 tests/wordsearch_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/parent_test.py`, `python3 tests/battle_test.py`, `python3 tests/quest_test.py`, `python3 tests/wordsearch_test.py`, `python3 tests/net_test.py` (two-device link test, two browsers on one machine), `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 

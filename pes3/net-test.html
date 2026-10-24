@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Two-device link test</title>
+  <link rel="icon" type="image/png" href="../images/pes-logo.png">
+  <!-- Grown-ups' test page for js/net.js (not in the games menu): can two devices on different networks connect
+       with only a texted link and a texted reply? It records what the spike needs to learn; see README. -->
+  <style>
+    :root { color-scheme: light dark; --bg: #f8fafc; --fg: #0f172a; --card: #fff; --line: #cbd5e1; --accent: #4f46e5; --ok: #15803d; --bad: #b91c1c; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0f172a; --fg: #e2e8f0; --card: #1e293b; --line: #334155; --accent: #818cf8; --ok: #4ade80; --bad: #f87171; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; font: 17px/1.45 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); }
+    main { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 1.3rem; margin: 0 0 .5rem; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin: 12px 0; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--fg); font: inherit; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    textarea, input { width: 100%; font: 16px ui-monospace, monospace; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+    textarea { min-height: 70px; word-break: break-all; }
+    #status { font-weight: 600; }
+    #status.ok { color: var(--ok); } #status.bad { color: var(--bad); }
+    #log { white-space: pre-wrap; font: 13px/1.4 ui-monospace, monospace; max-height: 40vh; overflow: auto; margin: 0; }
+    #chat p { margin: 4px 0; }
+    .muted { opacity: .7; font-size: .9rem; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Two-device link test</h1>
+  <p id="status">Starting…</p>
+
+  <section class="card" id="start" hidden>
+    <p>Device A taps <b>Invite</b> and texts the link. Device B opens it and texts back the reply. Keep this page open while you wait.</p>
+    <button class="primary" id="invite" type="button">Invite</button>
+  </section>
+
+  <section class="card" id="share" hidden>
+    <p id="shareText"></p>
+    <textarea id="link" readonly></textarea>
+    <div class="row"><button class="primary" id="send" type="button">Share…</button><button id="copy" type="button">Copy</button><span class="muted" id="age"></span></div>
+  </section>
+
+  <section class="card" id="paste" hidden>
+    <p>Got the reply? Tap it in Messages, or copy it and paste it here.</p>
+    <textarea id="reply" placeholder="Paste the reply link or code"></textarea>
+    <div class="row"><button class="primary" id="connect" type="button">Connect</button></div>
+  </section>
+
+  <section class="card" id="join" hidden>
+    <p>You've been invited to a test connection.</p>
+    <button class="primary" id="joinBtn" type="button">Join</button>
+  </section>
+
+  <section class="card" id="handoff" hidden><p id="handoffText"></p></section>
+
+  <section class="card" id="live" hidden>
+    <div id="chat"></div>
+    <div class="row"><input id="msg" placeholder="Say something" maxlength="200"><button class="primary" id="say" type="button">Send</button></div>
+  </section>
+
+  <section class="card">
+    <div class="row"><b>Report</b><button id="copyReport" type="button">Copy report</button></div>
+    <pre id="log"></pre>
+  </section>
+</main>
+<script type="module">
+  import { STUN, host, join, accept, linkFor, fromHash, listenForReply, deliverReply, selectedPair } from './js/net.js';
+
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const stun = params.get('stun') === 'none' ? [] : params.get('stun') ? params.get('stun').split(',') : STUN;
+  const t0 = performance.now();
+  const ms = () => Math.round(performance.now() - t0);
+  const report = { role: null, events: [] };
+  const hooks = { report, received: [] }; // tests read window.__net
+  window.__net = hooks;
+
+  function log(line) {
+    report.events.push(`${(ms() / 1000).toFixed(1)}s ${line}`);
+    $('log').textContent = header() + '\n' + report.events.join('\n');
+  }
+  function header() {
+    const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    return [`role: ${report.role || '-'}`, `display: ${standalone ? 'home-screen app' : 'browser tab'}`,
+      `stun: ${stun.length ? stun.join(' ') : 'none'}`, `ua: ${navigator.userAgent}`].join('\n');
+  }
+  function status(text, kind = '') { $('status').textContent = text; $('status').className = kind; hooks.status = text; }
+  function show(...ids) { for (const s of document.querySelectorAll('main > section.card[id]')) s.hidden = !ids.includes(s.id); }
+  const onEvent = (kind, v) => log(`${kind}: ${v}`);
+
+  async function share(url, text) {
+    if (navigator.share) {
+      try { await navigator.share({ text, url }); log('shared via share sheet'); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    copy(url);
+  }
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); log('copied to clipboard'); }
+    catch { $('link').select(); log('clipboard blocked: select and copy by hand'); }
+  }
+  $('copyReport').onclick = () => copy($('log').textContent);
+
+  let wake = null;
+  async function keepAwake() {
+    try { wake = await navigator.wakeLock.request('screen'); log('screen wake lock on'); }
+    catch (e) { log(`wake lock unavailable (${e.name || e})`); }
+  }
+
+  /* ---------- connected: chat + round-trip time ---------- */
+  function live(peer) {
+    const { channel, pc } = peer;
+    let pings = [];
+    channel.onopen = async () => {
+      status('Connected ✔', 'ok'); hooks.connected = true; show('live');
+      log(`data channel open (${report.role}, ${ms()} ms after page load)`);
+      const pair = await selectedPair(pc);
+      hooks.pair = pair;
+      log(pair ? `path: local ${pair.local} -> remote ${pair.remote} over ${pair.protocol}` : 'path: (no stats)');
+      const timer = setInterval(() => { if (channel.readyState === 'open') channel.send(JSON.stringify({ t: 'ping', at: performance.now() })); else clearInterval(timer); }, 2000);
+    };
+    channel.onclose = () => { status('Disconnected', 'bad'); log('data channel closed'); };
+    channel.onmessage = (e) => {
+      let m; try { m = JSON.parse(e.data); } catch { return; }
+      if (m.t === 'ping') channel.send(JSON.stringify({ t: 'pong', at: m.at }));
+      else if (m.t === 'pong') {
+        pings.push(performance.now() - m.at);
+        if (pings.length === 5) { const s = [...pings].sort((a, b) => a - b); log(`round trip median of 5: ${Math.round(s[2])} ms`); hooks.rtt = s[2]; }
+      } else if (m.t === 'say' && typeof m.text === 'string') {
+        hooks.received.push(m.text.slice(0, 200));
+        $('chat').append(Object.assign(document.createElement('p'), { textContent: 'Them: ' + m.text.slice(0, 200) }));
+      }
+    };
+    pc.addEventListener('connectionstatechange', () => {
+      if (pc.connectionState === 'failed') {
+        status('Could not connect', 'bad');
+        log('FAILED: no direct path. Likely symmetric NAT (e.g. cellular) on one side; this would need a TURN relay.');
+      }
+    });
+    const say = () => {
+      const text = $('msg').value.trim();
+      if (!text || channel.readyState !== 'open') return;
+      channel.send(JSON.stringify({ t: 'say', text }));
+      $('chat').append(Object.assign(document.createElement('p'), { textContent: 'Me: ' + text }));
+      $('msg').value = '';
+    };
+    $('say').onclick = say;
+    $('msg').onkeydown = (e) => { if (e.key === 'Enter') say(); };
+  }
+
+  /* ---------- A: host ---------- */
+  async function startHost() {
+    report.role = 'host (A)';
+    keepAwake();
+    status('Finding this device’s network addresses…');
+    let peer;
+    try { peer = await host({ stun, onEvent }); }
+    catch (e) { status('Could not start: ' + e.message, 'bad'); log('error: ' + e.message); return; }
+    log(`gathering ended (${peer.info.gatherEnd}) after ${peer.info.gatherMs} ms; candidates ${JSON.stringify(peer.info.candidates)}`);
+    if (stun.length && !peer.info.candidates.srflx) log('no public (srflx) address: STUN unreachable, only same-network play will work');
+    const url = linkFor('offer', peer.code);
+    hooks.link = url; hooks.offerCode = peer.code;
+    log(`invite link: ${url.length} characters`);
+    $('link').value = url;
+    $('shareText').textContent = 'Text this link to the other device:';
+    $('send').onclick = () => share(url, 'Tap to join my game:');
+    $('copy').onclick = () => copy(url);
+    show('share', 'paste');
+    status('Waiting for the reply…');
+    const made = performance.now();
+    const ageTimer = setInterval(() => { $('age').textContent = `link age ${Math.round((performance.now() - made) / 1000)} s`; }, 1000);
+    live(peer);
+    let done = false;
+    const apply = async (code, how) => {
+      if (done) return;
+      try {
+        await accept(peer, code);
+        done = true; clearInterval(ageTimer); stop();
+        log(`reply applied (${how}) when the link was ${Math.round((performance.now() - made) / 1000)} s old`);
+        status('Connecting…');
+      } catch (e) { status(e.message, 'bad'); log('reply rejected: ' + e.message); }
+    };
+    const stop = listenForReply(peer.id, (code) => apply(code, 'reply link, handed over from another tab'));
+    $('connect').onclick = () => apply($('reply').value, 'pasted');
+    hooks.paste = (code) => apply(code, 'pasted');
+  }
+
+  /* ---------- B: guest ---------- */
+  async function startGuest(offerCode) {
+    report.role = 'guest (B)';
+    show('join');
+    status('Invitation received');
+    $('joinBtn').onclick = async () => {
+      keepAwake();
+      status('Finding this device’s network addresses…');
+      let peer;
+      try { peer = await join(offerCode, { stun, onEvent }); }
+      catch (e) { status('Could not join: ' + e.message, 'bad'); log('error: ' + e.message); return; }
+      log(`gathering ended (${peer.info.gatherEnd}) after ${peer.info.gatherMs} ms; candidates ${JSON.stringify(peer.info.candidates)}`);
+      const url = linkFor('answer', peer.code);
+      hooks.link = url; hooks.answerCode = peer.code;
+      log(`reply link: ${url.length} characters`);
+      $('link').value = url;
+      $('shareText').textContent = 'Now text this reply back:';
+      $('send').onclick = () => share(url, 'Tap to finish connecting:');
+      $('copy').onclick = () => copy(url);
+      show('share');
+      status('Send the reply, then wait here…');
+      live(peer);
+    };
+  }
+
+  /* ---------- reply link opened on device A (a new tab) ---------- */
+  async function startHandoff(answerCode) {
+    report.role = 'reply tab on A';
+    show('handoff');
+    status('Passing the reply to the waiting page…');
+    const ok = await deliverReply(answerCode);
+    hooks.delivered = ok;
+    log(ok ? 'handed to the waiting tab' : 'no waiting tab answered (different app/browser, or it was closed)');
+    if (ok) {
+      status('Done ✔ Go back to the test page you started from.', 'ok');
+      $('handoffText').textContent = 'The reply reached the page that is waiting. Switch back to it; you can close this one.';
+    } else {
+      status('Copy this reply into the waiting page', 'bad');
+      $('handoffText').textContent = 'This browser couldn’t reach the waiting page (on iPad that happens if it was opened from the Home Screen). Copy the code below, switch back, and paste it.';
+      $('link').value = answerCode;
+      $('shareText').textContent = 'Reply code:';
+      $('send').onclick = () => copy(answerCode);
+      $('send').textContent = 'Copy code';
+      $('copy').hidden = true;
+      show('handoff', 'share');
+    }
+  }
+
+  const fromLink = fromHash();
+  history.replaceState(null, '', location.pathname + location.search); // a reload must not reuse the code
+  if (!window.RTCPeerConnection) { status('This browser has no WebRTC', 'bad'); log('no RTCPeerConnection'); }
+  else if (fromLink && fromLink.kind === 'offer') startGuest(fromLink.code);
+  else if (fromLink && fromLink.kind === 'answer') startHandoff(fromLink.code);
+  else { show('start'); status('Ready'); $('invite').onclick = startHost; }
+  log('page loaded');
+</script>
+</body>
+</html>
