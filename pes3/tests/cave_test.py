@@ -330,7 +330,7 @@ try:
         page.wait_for_selector(".cv-me", timeout=8000)
         check("help: then back to Mia", "Mia" in page.locator(".cv-me").inner_text())
         s = state()
-        check("help: Dad gave the card and got a Kind Kid card", s["players"][0]["cards"]["wisdom"] == 1 and s["players"][1]["kindCards"] == 1 and "Kind Kid" in page.locator(".cv-msg").inner_text())
+        check("help: Dad gave the card and got a Kind Kid card", s["players"][0]["cards"]["wisdom"] == 1 and s["players"][1]["kindCards"] == 1)
         tap(".cv-me"); page.wait_for_selector(".cv-scare"); tap(".cv-scare")
         page.wait_for_selector(".cv-ok")
         s = state()

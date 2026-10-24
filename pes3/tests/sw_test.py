@@ -256,6 +256,15 @@ try:
         check("old cache generation removed after the swap", len(c["names"]) == 1 and c["live"] != gen0, str(c["names"]))
 
         # ---- list pushed during a game: the game is never reset; the update waits for Home
+        # The reload above runs a full check on launch (which may swap and reload again). Wait until a check after the
+        # latest load finds nothing new: otherwise a check still running can pick up the next deploy itself and leave
+        # the mid-game check nothing to find (a race that more files to compare made likely).
+        settled, t0 = False, time.time()
+        while not settled and time.time() - t0 < 30:
+            try: settled = page.evaluate("async () => { const s = await (await import('./js/offline.js')).offlineStatus(); return !!(s && s.last && s.last.at > performance.timeOrigin && s.last.result === 'same'); }")
+            except Exception: pass  # the page reloaded under us
+            if not settled: time.sleep(0.2)
+        page.wait_for_selector(".mcard")
         page.locator(".mcard", has_text="Word Jumble").first.tap()
         page.wait_for_selector(".tray .tile")
         mark()
