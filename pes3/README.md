@@ -24,7 +24,7 @@ friend
 
 ## Games
 
-Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
+Home screen sections: **Spelling**, **Math**, **Coding**, **Adventures** (games that ask spelling, math or both), **Brain Games** (no spelling or math), **Rewards**.
 
 **Spelling** (use `words.txt`; each finished word is recorded in the hidden progress)
 
@@ -42,11 +42,13 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
 | Look, Cover, Write, Check | Studies the word, hides it, writes it from memory, compares |
 | See the Words | Study list; tap a word to hear it |
 
-**Math** (grade-3 style; each game starts with a level choice that is remembered: add/subtract within 100, times tables 2-5, 2-10, or times and division). Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Fun) can also do math. Not recorded in the hidden progress.
+**Math** (grade-3 style; each game starts with a level choice that is remembered: add/subtract within 100, times tables 2-5, 2-10, or times and division). Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Adventures) can also do math. Not recorded in the hidden progress.
 
 **Coding**: Robot Course, Turtle Draw and Code Studio (below). All three share one engine in `js/code/`.
 
-**Fun**: Zombie Trail (below), Battle Buddies and Study Quest (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
+**Adventures**: Zombie Trail (below), Battle Buddies and Study Quest (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games).
+
+**Brain Games**: Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 
 **Rewards**: My Garden. Every finished question in any game (right first time or not) is one point; every 4 points grows a flower, and butterflies and bees arrive later. It only grows, never shrinks, and shows no numbers. Stored in `localStorage` (`spelling-games.garden.v1`); the parent panel's "Erase history" does not touch it.
 
@@ -54,7 +56,7 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
 
 Add `#<name>` to the address, e.g. `https://jasonandann.net/pes3/#robot`. The page shows that game's card with a **▶ Tap to start** button: the tap is needed because an iPad only lets a page speak inside a tap. While a game is open the address bar shows its link (so you can copy it); **‹ Home** clears it. An unknown name just shows the menu. Names are not case-sensitive. The names live in `SECTIONS` in `js/app.js` (`id`).
 
-| Spelling | | Math | | Coding / Fun / Rewards | |
+| Spelling | | Math | | Coding / Adventures / Brain Games / Rewards | |
 |---|---|---|---|---|---|
 | See the Words | `#words` | Number Bubbles | `#bubbles` | Robot Course | `#robot` |
 | Word Jumble | `#jumble` | Number Cascade | `#cascade` | Zombie Trail | `#zombie` |

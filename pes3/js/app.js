@@ -55,11 +55,14 @@ const SECTIONS = [
     { icon: '🐢', id: 'turtle', name: 'Turtle Draw', blurb: 'Code a turtle to draw', mod: turtle },
     { icon: '🎨', id: 'studio', name: 'Code Studio', blurb: 'Make sprites move and talk', mod: studio },
   ] },
-  { title: '🎲 Fun', games: [
+  // Adventures: games that ask spelling, math or both. Brain Games: no spelling or math questions.
+  { title: '🏰 Adventures', games: [
     { icon: '🧟', id: 'zombie', name: 'Zombie Trail', blurb: 'Race to the finish', needsWords: true, mod: zombie },
     { icon: '🐸', id: 'river', name: 'Lily Pad River', blurb: 'Hop on the right answer', mod: river },
     { icon: '🛡️', id: 'battle', name: 'Battle Buddies', blurb: 'Answer to send a sparkle', mod: battle },
     { icon: '🗺️', id: 'quest', name: 'Study Quest', blurb: 'Pick an adventure', mod: quest },
+  ] },
+  { title: '🧠 Brain Games', games: [
     { icon: '👁️', id: 'spot', name: 'Spot Match', blurb: 'Find the matching picture', mod: spotmatch },
     { icon: '🎵', id: 'simon', name: 'Simon Says', blurb: 'Copy the pattern', mod: simon },
   ] },
