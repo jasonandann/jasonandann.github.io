@@ -268,7 +268,9 @@ try:
         check("team game: reached the end", page.locator(".cv-finish").count() == 1, f"after {guard} steps; seen {sorted(seen)}")
         s = state()
         check("team game: every tile was explored", all(t["state"] != "down" for t in s["tiles"]))
-        check("team game: she answered questions; garden grew by one per question", mine_q > 3 and gp() - g0 == mine_q, f"{mine_q} questions, garden +{gp() - g0}")
+        # how many questions she gets depends on the random board and on who opens which tile (3 seen on a short board),
+        # so only require some; the point is one garden point per question
+        check("team game: she answered questions; garden grew by one per question", mine_q >= 1 and gp() - g0 == mine_q, f"{mine_q} questions, garden +{gp() - g0}")
         check("team game: her list words were logged in the hidden progress", len(progress_words()) >= w0, str(progress_words()))
         check("team game: end shows team stars and both heroes", page.locator(".cv-result").count() == 2 and "stars together" in page.locator(".cv-finish").inner_text())
         check("team game: the saved game is cleared at the end", js("localStorage.getItem('spelling-games.cave.save.v1')") is None)
