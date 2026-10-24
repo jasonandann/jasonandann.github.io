@@ -62,8 +62,8 @@ try:
             page.wait_for_selector(".lp-pad")
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
-        check("menu: Lily Pad River is in the Fun section",
-              page.locator(".sect", has_text="Fun").locator(".mcard", has_text="Lily Pad River").count() == 1)
+        check("menu: Lily Pad River is in the Adventures section",
+              page.locator(".sect", has_text="Adventures").locator(".mcard", has_text="Lily Pad River").count() == 1)
         check("menu: old Number River is gone (replaced by Lily Pad River)", page.locator(".mcard", has_text="Number River").count() == 0)
 
         # ---- setup
