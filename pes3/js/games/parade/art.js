@@ -144,7 +144,11 @@ export function monsterSvg(m, { side = false, walk = false, mv = false, blink = 
 }
 
 /* ---------- extras (wings, tails, fur): all drawn behind the body, so they peek out around its fixed outline ---------- */
-const wingPair = (one) => one + `<g transform="translate(240 0) scale(-1 1)">${one}</g>`; // left wing + its mirror
+// left wing + its mirror. Moving: the wing flaps a little at the shoulder (the mirror copy flaps the mirror way).
+const wingPair = (one, mv) => {
+  const w = moved(one, swing(82, 120, 0, 6, 1.4), mv);
+  return w + `<g transform="translate(240 0) scale(-1 1)">${w}</g>`;
+};
 function furFringe(fill) { // a zigzag copy of the body outline, a little bigger, behind it
   const pts = [];
   for (let i = 0; i < 44; i++) {
@@ -154,12 +158,12 @@ function furFringe(fill) { // a zigzag copy of the body outline, a little bigger
   return `<polygon points="${pts.join(' ')}" fill="${fill}" ${S}/>`;
 }
 const EXTRA = {
-  batwings: () => wingPair(`<path d="M80 110 L48 70 L44 92 L32 90 L36 112 L27 120 L48 128 L80 140 Z" fill="#6d28d9" ${S}/><path d="M78 116 L48 74 M78 124 L38 104 M78 132 L34 120" stroke="${INK}" stroke-width="2" opacity=".5"/>`),
-  fairywings: () => wingPair(`<path d="M82 112 Q40 64 32 96 Q28 120 82 126 Z" fill="#bae6fd" fill-opacity=".85" ${S}/><path d="M82 130 Q40 136 46 160 Q56 172 84 142 Z" fill="#fbcfe8" fill-opacity=".85" ${S}/>`),
-  birdwings: () => wingPair(`<path d="M82 108 Q50 92 28 104 Q40 108 30 118 Q44 120 36 130 Q52 130 46 140 Q66 140 82 138 Z" fill="#fde68a" ${S}/><path d="M78 116 Q56 112 42 116 M78 126 Q60 124 48 130" fill="none" stroke="#d97706" stroke-width="2.5"/>`),
-  dragontail: () => `<path d="M90 184 Q50 196 40 170 Q34 150 52 140" fill="none" stroke="${INK}" stroke-width="15" stroke-linecap="round"/><path d="M90 184 Q50 196 40 170 Q34 150 52 140" fill="none" stroke="#22c55e" stroke-width="9" stroke-linecap="round"/>`
-    + `<path d="M46 146 L58 124 L64 146 Z" fill="#22c55e" ${S}/><path d="M42 170 L28 164 L40 158 Z M60 190 L54 202 L68 194 Z" fill="#facc15" ${S} stroke-width="2"/>`,
-  fluffytail: () => `<g fill="#fff" ${S} stroke-width="2.5"><circle cx="66" cy="178" r="13"/><circle cx="56" cy="170" r="10"/><circle cx="58" cy="186" r="9"/><circle cx="70" cy="166" r="8"/></g>`,
+  batwings: (fill, mv) => wingPair(`<path d="M80 110 L48 70 L44 92 L32 90 L36 112 L27 120 L48 128 L80 140 Z" fill="#6d28d9" ${S}/><path d="M78 116 L48 74 M78 124 L38 104 M78 132 L34 120" stroke="${INK}" stroke-width="2" opacity=".5"/>`, mv),
+  fairywings: (fill, mv) => wingPair(`<path d="M82 112 Q40 64 32 96 Q28 120 82 126 Z" fill="#bae6fd" fill-opacity=".85" ${S}/><path d="M82 130 Q40 136 46 160 Q56 172 84 142 Z" fill="#fbcfe8" fill-opacity=".85" ${S}/>`, mv),
+  birdwings: (fill, mv) => wingPair(`<path d="M82 108 Q50 92 28 104 Q40 108 30 118 Q44 120 36 130 Q52 130 46 140 Q66 140 82 138 Z" fill="#fde68a" ${S}/><path d="M78 116 Q56 112 42 116 M78 126 Q60 124 48 130" fill="none" stroke="#d97706" stroke-width="2.5"/>`, mv),
+  dragontail: (fill, mv) => moved(`<path d="M90 184 Q50 196 40 170 Q34 150 52 140" fill="none" stroke="${INK}" stroke-width="15" stroke-linecap="round"/><path d="M90 184 Q50 196 40 170 Q34 150 52 140" fill="none" stroke="#22c55e" stroke-width="9" stroke-linecap="round"/>`
+    + `<path d="M46 146 L58 124 L64 146 Z" fill="#22c55e" ${S}/><path d="M42 170 L28 164 L40 158 Z M60 190 L54 202 L68 194 Z" fill="#facc15" ${S} stroke-width="2"/>`, swing(90, 184, 0, 7, 1.6), mv),
+  fluffytail: (fill, mv) => moved(`<g fill="#fff" ${S} stroke-width="2.5"><circle cx="66" cy="178" r="13"/><circle cx="56" cy="170" r="10"/><circle cx="58" cy="186" r="9"/><circle cx="70" cy="166" r="8"/></g>`, swing(78, 178, 0, 10, 0.6), mv),
   fur: (fill) => furFringe(fill),
 };
 
@@ -196,17 +200,18 @@ const pom = (x, y, c) => `<g fill="${c}" stroke="${INK}" stroke-width="2">${Arra
 const bubble = (x, y, r, begin) => `<circle cx="${x}" cy="${y}" r="${r}"><animate attributeName="cy" values="${y + 34};${y}" dur="2.4s" begin="${begin}s" repeatCount="indefinite"/>`
   + `<animate attributeName="r" values="2;${r};${r};0" keyTimes="0;.3;.9;1" dur="2.4s" begin="${begin}s" repeatCount="indefinite"/></circle>`;
 // A music note that floats up out of the trumpet's bell and shrinks away.
-const note = (begin) => `<g><g transform="translate(214 116)"><g><ellipse cx="0" cy="0" rx="6" ry="4.5" fill="${INK}"/><path d="M5.5 0 V-17 L13 -14" fill="none" stroke="${INK}" stroke-width="2.5"/>`
+// at (x, y), drifting by (dx, dy) as it rises.
+const note = (begin, x = 196, y = 112, dx = -14, dy = -42) => `<g><g transform="translate(${x} ${y})"><g><ellipse cx="0" cy="0" rx="6" ry="4.5" fill="${INK}"/><path d="M5.5 0 V-17 L13 -14" fill="none" stroke="${INK}" stroke-width="2.5"/>`
   + `<animateTransform attributeName="transform" type="scale" values="1;1;0" keyTimes="0;.7;1" dur="1.6s" begin="${begin}s" repeatCount="indefinite"/></g></g>`
-  + `<animateTransform attributeName="transform" type="translate" values="0 0;12 -40" dur="1.6s" begin="${begin}s" repeatCount="indefinite"/></g>`;
+  + `<animateTransform attributeName="transform" type="translate" values="0 0;${dx} ${dy}" dur="1.6s" begin="${begin}s" repeatCount="indefinite"/></g>`;
 const PROP_BACK = {
   flag: (mv) => `<path d="M176 146 V46" ${S}/>` + moved(`<path d="M176 48 Q190 42 204 52 Q190 60 176 74 Z" fill="#3b82f6" ${S}/><path d="M186 54 l2 5 5 0 -4 3 2 5 -5 -3 -4 3 2 -5 -4 -3 5 0 Z" fill="#fff"/>`,
     swing(176, 60, 0, 9, 0.9), mv),
   baton: (mv) => moved(`<path d="M178 150 L190 50" stroke="#e5e7eb" stroke-width="7" stroke-linecap="round"/><path d="M178 150 L190 50" fill="none" ${S} stroke-width="1.5"/><circle cx="191" cy="44" r="10" fill="#facc15" ${S}/><path d="M190 56 Q200 66 194 78" fill="none" stroke="#dc2626" stroke-width="3.5"/>`,
-    swing(178, 150, 0, 24, 1.1), mv),
+    `<animateTransform attributeName="transform" type="rotate" values="-28 178 150;4 178 150;-28 178 150" dur="1.1s" repeatCount="indefinite"/>`, mv),
   balloons: (mv) => moved(`<path d="M176 146 L188 66 M176 146 L202 82 M176 146 L174 80" stroke="${INK}" stroke-width="1.5" fill="none"/>`
     + `<ellipse cx="188" cy="54" rx="12" ry="15" fill="#ef4444" ${S}/><ellipse cx="203" cy="72" rx="12" ry="15" fill="#22c55e" ${S}/><ellipse cx="173" cy="70" rx="12" ry="15" fill="#3b82f6" ${S}/>`,
-  swing(176, 146, 0, 6, 2.2), mv),
+  `<animateTransform attributeName="transform" type="rotate" values="-8 176 146;0 176 146;-8 176 146" dur="2.2s" repeatCount="indefinite"/>`, mv), // sways toward the monster, never past the edge
   bubbles: (mv) => `<path d="M176 146 L192 100" stroke="#a16207" stroke-width="4" stroke-linecap="round"/><circle cx="195" cy="91" r="10" fill="none" stroke="#a16207" stroke-width="3"/>`
     + `<g fill="#bae6fd" fill-opacity=".45" stroke="#38bdf8" stroke-width="2">${mv ? bubble(204, 66, 8, 0) + bubble(190, 54, 6, 0.8) + bubble(206, 44, 5, 1.6)
       : '<circle cx="204" cy="66" r="8"/><circle cx="188" cy="54" r="6"/><circle cx="206" cy="44" r="5"/>'}</g>`,
@@ -215,11 +220,13 @@ const PROP_BACK = {
     + moved('<path d="M182 108 Q202 108 204 92 Q206 78 212 70" fill="none" stroke="#22c55e" stroke-width="4"/>', swing(182, 108, 0.25, 8, 0.8), mv)
     + moved('<path d="M182 108 Q192 122 208 116" fill="none" stroke="#facc15" stroke-width="4"/>', swing(182, 108, 0.5, 12, 0.8), mv),
 };
+// A drumstick stroke: up, then down onto the drum (dir 1 = the left hand's stick, -1 = the mirrored right one).
+const stroke = (x, y, dir, begin) => `<animateTransform attributeName="transform" type="rotate" values="${-10 * dir} ${x} ${y};${8 * dir} ${x} ${y};${-10 * dir} ${x} ${y}" keyTimes="0;.35;1" dur="0.6s" begin="${begin}s" repeatCount="indefinite"/>`;
 const PROP = {
   pompoms: (mv) => moved(pom(64, 146, '#ec4899'), swing(66, 146, 0, 14, 0.5), mv) + moved(pom(176, 146, '#facc15'), swing(174, 146, 0.25, 14, 0.5), mv),
   drum: (mv) => `<rect x="94" y="150" width="52" height="34" rx="4" fill="#ef4444" ${S}/><ellipse cx="120" cy="150" rx="26" ry="7" fill="#f8fafc" ${S}/><path d="M96 158 L120 180 L144 158" fill="none" stroke="#facc15" stroke-width="3"/>`
-    + moved(`<path d="M66 146 L104 138" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="104" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, swing(66, 146, 0, 9, 0.5), mv)
-    + moved(`<path d="M174 146 L136 138" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="136" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, swing(174, 146, 0.25, 9, 0.5), mv),
+    + moved(`<path d="M66 146 L104 138" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="104" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, stroke(66, 146, 1, 0), mv)
+    + moved(`<path d="M174 146 L136 138" stroke="#a16207" stroke-width="5" stroke-linecap="round"/><circle cx="136" cy="138" r="4" fill="#fde68a" ${S} stroke-width="2"/>`, stroke(174, 146, -1, 0.3), mv),
   trumpet: (mv) => `<path d="M176 144 L200 132" stroke="#eab308" stroke-width="7" stroke-linecap="round"/><path d="M196 126 L212 116 L214 144 L198 138 Z" fill="#facc15" ${S}/><rect x="182" y="130" width="5" height="10" fill="#a16207"/><rect x="189" y="126" width="5" height="10" fill="#a16207"/>`
     + (mv ? note(0) + note(0.8) : ''),
 };
@@ -274,20 +281,20 @@ const RIDES = {
   car: { lift: 0, back: () => '', front: (mv) => `<path d="M10 178 Q20 152 64 152 H180 Q220 152 230 178 V216 H10 Z" fill="#06b6d4" ${S}/><path d="M176 152 L164 134" ${S} stroke-width="4"/><rect x="214" y="168" width="12" height="10" rx="3" fill="#fde047"/><path d="M110 166 V206" stroke="${INK}" stroke-width="2" opacity=".5"/>` + wheel(54, 218, 15, mv) + wheel(186, 218, 15, mv) },
   firetruck: { lift: 6, back: () => `<path d="M20 120 L220 98" stroke="#9ca3af" stroke-width="10"/><path d="M20 120 L220 98" stroke="#e5e7eb" stroke-width="5" stroke-dasharray="4 10"/>`,
     front: (mv) => `<rect x="10" y="162" width="220" height="44" rx="6" fill="#dc2626" ${S}/><rect x="182" y="140" width="44" height="30" rx="5" fill="#dc2626" ${S}/><rect x="190" y="146" width="28" height="16" rx="3" fill="#bfdbfe" stroke="${INK}" stroke-width="2"/><circle cx="204" cy="136" r="6" fill="#60a5fa" ${S}/><rect x="20" y="178" width="150" height="6" fill="#facc15"/>` + wheel(48, 208, 15, mv) + wheel(196, 208, 15, mv) },
-  band: { lift: 0, shift: 14, scale: 0.92, side: true, walk: true, back: (mv) => {
+  band: { lift: 0, shift: 10, scale: 0.92, side: true, walk: true, back: (mv) => {
     // The monster leads at the front right; the band follows on the left in two lines: the far line (smaller,
     // higher, further away) behind the monster, the near line (bigger) in front of it.
     return [18, 52, 86].map((x, i) => bandMember(x, 180, 0.95, i, mv)).join('');
-  }, front: (mv) => [26, 72, 118].map((x, i) => bandMember(x, 230, 1.25, i + 1, mv)).join('') }, // the near line passes in front of the monster
-  balloon: { lift: 30, scale: 0.95, side: true, shine: true, bob: true,
+  }, front: (mv) => [26, 72, 118].map((x, i) => bandMember(x, 230, 1.25, i + 1, mv)).join('') // the near line passes in front of the monster
+    + (mv ? note(0.2, 100, 150, 8, -44) + note(1, 60, 156, 10, -40) + note(0.6, 46, 106, 8, -36) : '') }, // music from the band's horns
+  balloon: { lift: 24, scale: 0.95, side: true, shine: true, bob: true,
     // Handlers on both sides: the far ones (smaller, higher) are drawn first, so the balloon hides part of them.
-    back: (mv) => [76, 166].map((x, i) => rope(x + 7, 166, x + 7 + (120 - x) * 0.25, 160, mv) + handler(x, 204, 0.75, i, mv)).join(''),
-    front: (mv) => [40, 140, 206].map((x, i) => rope(x + 10, 214, x + 10 + (120 - x) * 0.4, 166, mv) + handler(x, 238, 1.05, i + 1, mv)).join('') },
-  unicycle: { lift: 20, side: true, back: () => '', front: (mv) => `<path d="M120 178 V189" ${S} stroke-width="6"/><ellipse cx="120" cy="178" rx="16" ry="5" fill="#ef4444" ${S}/>`
-    + `<circle cx="120" cy="214" r="24" fill="none" stroke="${INK}" stroke-width="6"/>`
-    + `<circle cx="120" cy="214" r="21" fill="#fef3c7"/>`
-    + `<g><path d="M120 194 V234 M100 214 H140" stroke="${INK}" stroke-width="3.5" stroke-linecap="round"/><circle cx="120" cy="191.5" r="3.5" fill="#ef4444"/>${mv ? spin(120, 214, 24) : ''}</g>`
-    + `<circle cx="120" cy="214" r="4.5" fill="${INK}"/>` },
+    back: (mv) => [76, 166].map((x, i) => rope(x + 7, 166, x + 7 + (120 - x) * 0.25, 166, mv) + handler(x, 204, 0.75, i, mv)).join(''),
+    front: (mv) => [40, 140, 206].map((x, i) => rope(x + 10, 210, x + 10 + (120 - x) * 0.4, 172, mv) + handler(x, 233, 1.05, i + 1, mv)).join('') },
+  unicycle: { lift: 20, side: true, back: () => '', front: (mv) => `<path d="M120 178 V188" ${S} stroke-width="6"/><ellipse cx="120" cy="178" rx="16" ry="5" fill="#ef4444" ${S}/>`
+    + `<circle cx="120" cy="211" r="22" fill="none" stroke="${INK}" stroke-width="6"/><circle cx="120" cy="211" r="19" fill="#fef3c7"/>`
+    + `<g><path d="M120 193 V229 M102 211 H138" stroke="${INK}" stroke-width="3.5" stroke-linecap="round"/><circle cx="120" cy="195" r="3.5" fill="#ef4444"/>${mv ? spin(120, 211, 22) : ''}</g>`
+    + `<circle cx="120" cy="211" r="4.5" fill="${INK}"/>` },
 };
 // The float's scalloped skirt.
 function scallops() {
@@ -326,7 +333,7 @@ export function scene(monster, items = {}, { moving = false, blink = moving } = 
   const shine = ride && ride.shine ? '<ellipse cx="84" cy="116" rx="6" ry="15" transform="rotate(12 84 116)" fill="#fff" opacity=".55"/>' : '';
   let outfit = OUTFIT[items.outfit] || '';
   if (side && items.outfit === 'shades') outfit = `<g transform="translate(143 0) scale(0.78 1) translate(-120 0)">${outfit}</g>`;
-  const extra = EXTRA[items.extra] ? EXTRA[items.extra](fillOf(monster)) : '';
+  const extra = EXTRA[items.extra] ? EXTRA[items.extra](fillOf(monster), mv) : '';
   const body = extra + (OUTFIT_BACK[items.outfit] || '') + (PROP_BACK[items.prop] ? PROP_BACK[items.prop](mv) : '') + monsterSvg(monster, { side, walk: ride && ride.walk, mv, blink }) + shine
     + outfit + (PROP[items.prop] ? PROP[items.prop](mv) : '');
   const dx = ride && ride.shift ? ride.shift : 0;

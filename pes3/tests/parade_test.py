@@ -233,6 +233,32 @@ try:
               and "<animate" not in p2.locator(".pd-road").inner_html())
         ctx2.close()
 
+        # ---- nothing is cut off at the picture's edges, even mid-animation (pixels, so outlines count too):
+        # every ride x prop, with wide wings + the tallest hat and with a tail + top hat, at 6 moments.
+        import base64
+        EDGE = """async (b64) => { const img = await createImageBitmap(await (await fetch('data:image/png;base64,' + b64)).blob());
+          const c = new OffscreenCanvas(img.width, img.height), g = c.getContext('2d'); g.drawImage(img, 0, 0);
+          const d = g.getImageData(0, 0, img.width, img.height).data, W = img.width, H = img.height; let lo = 255;
+          const at = (x, y) => { const i = (y * W + x) * 4; lo = Math.min(lo, (d[i] + d[i + 1] + d[i + 2]) / 3); };
+          for (let x = 0; x < W; x++) { at(x, 0); at(x, H - 1); } for (let y = 0; y < H; y++) { at(0, y); at(W - 1, y); }
+          return lo; }"""  # darkest pixel on the picture's border (255 = white = nothing drawn there)
+        ctx3 = b.new_context(viewport={"width": 240, "height": 290}, service_workers="block")
+        p3 = ctx3.new_page(); p3.goto(URL)
+        p3.evaluate("async () => { window.A = await import('./js/games/parade/art.js'); document.body.innerHTML = '<div id=h></div>'; document.body.style.cssText = 'margin:0;background:#fff'; }")
+        rides = [None] + p3.evaluate("A.ITEMS.ride.map(r => r.id)"); props = [None] + p3.evaluate("A.ITEMS.prop.map(r => r.id)")
+        cut = []
+        for r in rides:
+            for pr in props:
+                for ex, out in [("batwings", "party"), ("dragontail", "tophat")]:
+                    p3.evaluate("""(a) => { h.innerHTML = A.scene({ color: 'green', eyes: 2, top: 'antennae', mouth: 'smile', pattern: 'none' },
+                        { ride: a[0], prop: a[1], extra: a[2], outfit: a[3] }, { moving: true });
+                      const s = h.firstChild; s.style.cssText = 'width:240px;height:290px;display:block'; s.pauseAnimations(); }""", [r, pr, ex, out])
+                    for t in (0, 0.4, 0.8, 1.2, 1.6, 2.0):
+                        p3.evaluate(f"h.firstChild.setCurrentTime({t})")
+                        if p3.evaluate(EDGE, base64.b64encode(p3.screenshot()).decode()) < 235: cut.append(f"{r}/{pr}/{ex}/{out}@{t}s"); break
+        check(f"art: nothing touches the picture's edges while moving ({len(rides) * len(props) * 2} combinations x 6 moments)", not cut, ", ".join(cut[:5]))
+        ctx3.close()
+
         check("no console/page errors", not errors, "; ".join(errors[:3]))
         b.close()
 finally:
