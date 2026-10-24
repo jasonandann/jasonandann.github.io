@@ -4,7 +4,8 @@
 // most one food, running out of food means a stop to find more, shops never refuse, and every trip ends well.
 // All story words live in the story files; this file is the engine. Each story's trip is saved as she goes.
 import { el, scope, speak, celebrate, textInput, addSpecialPlant } from '../util.js';
-import { LEVELS, savedLevel, saveLevel } from '../math.js';
+import { LEVELS, savedLevel, saveLevel, levelChoice } from '../math.js';
+import { choice, openOptions, optionsButton } from '../options.js';
 import { problems, ask } from '../challenge.js';
 import { STORIES } from './quests/index.js';
 
@@ -88,6 +89,7 @@ export function mount(root, entries, api) {
   const settings = { mode: canSpell ? (readJSON(MODE_KEY, 'both') || 'both') : 'math', level: savedLevel() };
   if (!['spelling', 'math', 'both'].includes(settings.mode)) settings.mode = 'both';
   let sc = scope();
+  let pop = null; // open options pop-up
   let story = null;
   let st = null; // the trip: {v:2, i, leg, atStop, ways, food, money, token, kind, seen, order}
   let next = null; // question maker
@@ -108,22 +110,22 @@ export function mount(root, entries, api) {
     return bits.join(' ');
   };
 
-  const seg = (label, key, opts, onPick, redraw) =>
-    el('div', { class: 'seg' },
-      el('p', { class: 'label' }, label),
-      el('div', { class: 'row' },
-        opts.map(([val, text]) =>
-          el('button', {
-            class: 'btn' + (settings[key] === val ? ' primary' : ''), type: 'button', 'aria-pressed': String(settings[key] === val),
-            onclick: () => { settings[key] = val; onPick(val); redraw(); },
-          }, text),
-        ),
-      ),
-    );
-  const questionSegs = (redraw) => [
-    canSpell ? seg('Questions', 'mode', [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']], (m) => writeJSON(MODE_KEY, m), redraw) : null,
-    settings.mode !== 'spelling' ? seg('Math', 'level', LEVELS.map((l) => [l.id, l.name]), saveLevel, redraw) : null,
-  ];
+  // Questions + math level are grown-up options behind ⚙️ (Jason 2026-10-24), shown as a one-line summary.
+  const MODES = [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']];
+  const summary = () => [canSpell ? MODES.find(([m]) => m === settings.mode)[1] : null,
+    settings.mode !== 'spelling' ? LEVELS.find((l) => l.id === settings.level).name : null].filter(Boolean).join(' · ');
+  const questionOptions = (redraw) => optionsButton({
+    summary: summary(),
+    onOpen: () => {
+      pop = openOptions({
+        onClose: redraw,
+        body: (again) => [
+          canSpell ? choice('Questions', settings.mode, MODES, (m) => { settings.mode = m; writeJSON(MODE_KEY, m); again(); }) : null,
+          settings.mode !== 'spelling' ? levelChoice(settings.level, (v) => { settings.level = v; saveLevel(v); again(); }) : null,
+        ],
+      });
+    },
+  });
 
   // ----- picking a story -----
   function setup() {
@@ -133,7 +135,7 @@ export function mount(root, entries, api) {
       el('div', { class: 'zt-setup qt-setup' },
         el('h2', {}, '🗺️ Study Quest'),
         el('p', { class: 'prompt' }, 'Pick an adventure! Answer questions along the way to help.'),
-        ...questionSegs(setup),
+        questionOptions(setup),
         el('div', { class: 'qt-picks' }, STORIES.map((s) => {
           const found = loadFound(s.id).length;
           return el('button', { class: 'qt-pick', type: 'button', 'data-story': s.id, onclick: () => storyScreen(s) },
@@ -158,7 +160,7 @@ export function mount(root, entries, api) {
       el('div', { class: 'zt-setup qt-setup', 'data-story': s.id },
         el('h2', {}, `${s.icon} ${s.name}`),
         el('p', { class: 'prompt' }, s.blurb),
-        ...questionSegs(redraw),
+        questionOptions(redraw),
         found.length ? el('div', { class: 'seg' }, el('p', { class: 'label' }, s.collect.label),
           el('div', { class: 'qt-shelf' }, found.map((d) => el('span', { class: 'qt-pet' }, foundFace(s, d.kind), el('span', {}, d.name))))) : null,
         el('div', { class: 'row' },
@@ -390,5 +392,5 @@ export function mount(root, entries, api) {
   }
 
   setup();
-  return () => { sc.dispose(); };
+  return () => { sc.dispose(); if (pop) pop.dispose(); };
 }

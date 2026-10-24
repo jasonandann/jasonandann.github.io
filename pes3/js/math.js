@@ -1,5 +1,6 @@
-// Shared math helpers for the Math games: question generator, level picker, quiz loop.
+// Shared math helpers for the Math games: question generator, level option, quiz loop.
 import { el, shuffle, scope, finish, award } from './util.js';
+import { choice, openOptions, cornerGear } from './options.js';
 
 export const LEVELS = [
   { id: 'add', name: 'Add & subtract', blurb: 'within 100' },
@@ -57,33 +58,25 @@ export const nudge = () => pick(NUDGES);
 
 export function savedLevel() {
   try { const v = localStorage.getItem(LEVEL_KEY); if (LEVELS.some((l) => l.id === v)) return v; } catch { /* ignore */ }
-  return 't10';
+  return 'add'; // Jason 2026-10-24: start on add & subtract until the PES topics land (issue #7)
 }
 
 export function saveLevel(id) {
   try { localStorage.setItem(LEVEL_KEY, id); } catch { /* ignore */ }
 }
 
-// Level chooser shown at the start of each math game; remembers the last choice.
-export function pickLevel(root, title, onPick) {
-  const cur = savedLevel();
-  root.replaceChildren(
-    el('div', { class: 'setup' },
-      el('h2', {}, title),
-      el('p', { class: 'prompt' }, 'What would you like to practice?'),
-      el('div', { class: 'levels' },
-        LEVELS.map((l) =>
-          el('button', {
-            class: 'btn big' + (l.id === cur ? ' primary' : ''), type: 'button',
-            onclick: () => {
-              saveLevel(l.id);
-              onPick(l.id);
-            },
-          }, l.name),
-        ),
-      ),
-    ),
-  );
+// The math games have no start screen (Jason 2026-10-24): they start at the saved level, and a ⚙️ in the
+// corner opens the level choice. Changing it calls onChange(level) when the pop-up closes.
+export const levelChoice = (current, onPick) => choice('Math', current, LEVELS.map((l) => [l.id, l.name]), onPick);
+export function levelGear(onChange, onLeave) {
+  return cornerGear(() => {
+    const before = savedLevel();
+    const pop = openOptions({
+      body: (redraw) => [levelChoice(savedLevel(), (v) => { saveLevel(v); redraw(); })],
+      onClose: () => { if (savedLevel() !== before) onChange(savedLevel()); },
+    });
+    if (onLeave) onLeave(() => pop.dispose());
+  });
 }
 
 // Runs `count` questions. drawQ({q, i, count, choices, later, onLeave, done}) renders one question
@@ -100,7 +93,7 @@ export function quiz(root, api, title, count, drawQ) {
       if (!alive) return;
       if (i >= qs.length) return finish(root, api, () => start(level));
       const q = qs[i];
-      root.replaceChildren();
+      root.replaceChildren(levelGear(start, sc.onLeave));
       drawQ({
         q, i, count: qs.length, choices: choices(q), later: sc.later, onLeave: sc.onLeave,
         done: () => { award(); i++; show(); },
@@ -108,6 +101,6 @@ export function quiz(root, api, title, count, drawQ) {
     };
     show();
   }
-  pickLevel(root, title, start);
+  start(savedLevel());
   return () => { alive = false; sc.dispose(); };
 }

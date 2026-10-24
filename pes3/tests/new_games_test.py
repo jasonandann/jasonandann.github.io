@@ -171,9 +171,11 @@ try:
         home()
 
         # ---- Math quiz games
-        def play_math(name, selector, count, text_sel=".mq", prefix="Times tables 2–5"):
+        def set_level(name):  # the ⚙️ in the corner of a math game (no level screen any more)
+            tap(".opt-gear"); page.wait_for_selector(".opt-panel")
+            tap(f".opt-panel button:has-text('{name}')"); tap(".opt-panel .opt-done")
+        def play_math(name, selector, count, text_sel=".mq"):
             open_game(name)
-            tap(f"button:has-text('{prefix}')")
             wrong_done = False
             for i in range(count):
                 page.wait_for_selector(text_sel, timeout=5000)
@@ -191,6 +193,15 @@ try:
             page.screenshot(path=f"{SHOTS}/{name.replace(' ', '_')}.png")
             home()
 
+        # no level screen: straight into Add & subtract (the default), ⚙️ changes it and restarts
+        open_game("Number Mountain")
+        txt = page.locator(".mq").first.inner_text()
+        check("math: starts at once on Add & subtract (default)", page.locator(".levels").count() == 0 and ("+" in txt or "−" in txt), txt)
+        set_level("Times tables 2–5")
+        txt = page.locator(".mq").first.inner_text()
+        check("math: ⚙️ level change restarts with that level", "×" in txt and "1 of" in page.locator(".prompt").first.inner_text(), txt)
+        home()
+
         g0 = gp()
         play_math("Number Mountain", ".ans", 10)
         play_math("Number Maze", ".door-n", 8)
@@ -198,16 +209,19 @@ try:
         play_math("Number Cascade", ".cc", 10)
         check("math games award garden points (38 questions)", gp() - g0 == 38, f"{gp() - g0}")
 
-        # level picker remembered
-        open_game("Number Mountain")
-        check("level choice remembered", page.locator(".levels .btn.primary").inner_text() == "Times tables 2–5")
-        tap("button:has-text('Add & subtract')")
+        # level remembered across games
+        open_game("Number Maze")
+        check("level choice remembered (Times tables 2–5 in another game)", "×" in page.locator(".mq").first.inner_text())
+        tap(".opt-gear")
+        check("⚙️ shows the saved level highlighted", page.locator(".opt-panel .btn.primary:has-text('Times tables 2–5')").count() == 1)
+        tap(".opt-panel button:has-text('Add & subtract')"); tap(".opt-panel .opt-done")
         txt = page.locator(".mq").first.inner_text()
         check("add/subtract level produces + or −", "+" in txt or "−" in txt, txt)
+        set_level("Times tables 2–5")
         home()
 
         # ---- Puzzle Pieces
-        open_game("Puzzle Pieces"); tap("button:has-text('Times tables 2–5')")
+        open_game("Puzzle Pieces")
         for i in range(9):
             page.locator(".pz-piece:not(.shown)").first.tap()
             ans = evalmath(page.locator(".mq").first.inner_text())
@@ -260,7 +274,6 @@ try:
         page.set_viewport_size({"width": 390, "height": 760})
         for name in ["Spell Catcher", "Word Volcano", "Wordal", "Number Cascade", "Spot Match", "My Garden"]:
             open_game(name)
-            if "Number" in name: tap("button:has-text('Times tables 2–5')")
             over = page.evaluate("document.documentElement.scrollWidth > innerWidth")
             check(f"{name}: no horizontal overflow at 390px", not over)
             page.screenshot(path=f"{SHOTS}/phone_{name.replace(' ', '_')}.png")

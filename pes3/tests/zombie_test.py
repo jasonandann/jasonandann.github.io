@@ -49,7 +49,7 @@ try:
         check("setup shows only players / questions / More options / Start",
               page.locator(".zt-setup .btn.primary").all_inner_texts() == ["1 player", "Spelling", "Start!"] and page.locator(".zt-setup .zt-more").count() == 1,
               str(page.locator(".zt-setup .btn.primary").all_inner_texts()))
-        check("default options summary", page.locator(".zt-summary").inner_text() == "3 zombies · jumps 7–9 · second chance on", page.locator(".zt-summary").inner_text())
+        check("default options summary", page.locator(".opt-summary").inner_text() == "3 zombies · jumps 7–9 · second chance on", page.locator(".opt-summary").inner_text())
         tap(".zt-more"); page.wait_for_selector(".zt-options")
         check("options pop-up defaults: 3 zombies / 7–9 / it stays / second chance on",
               page.locator(".zt-options .btn.primary").all_inner_texts() == ["3", "7–9", "It stays", "On", "Done"],
@@ -187,7 +187,7 @@ try:
         page.locator(".zt-options .btn").get_by_text("4", exact=True).tap()
         tap(".zt-options .btn:has-text('4–6')"); tap(".zt-options .btn:has-text('Off')")
         tap(".zt-options .btn:has-text('Done')")
-        check("summary reflects chosen options", page.locator(".zt-summary").inner_text() == "4 zombies · jumps 4–6 · second chance off", page.locator(".zt-summary").inner_text())
+        check("summary reflects chosen options", page.locator(".opt-summary").inner_text() == "4 zombies · jumps 4–6 · second chance off", page.locator(".opt-summary").inner_text())
         check("players/questions kept after closing options", page.locator(".zt-setup .btn.primary").all_inner_texts() == ["2 players", "Math", "Start!"])
         check("options remembered", json.loads(page.evaluate("localStorage.getItem('spelling-games.zombie.options')")) == {"zombies": 4, "jump": "4-6", "fade": False, "second": False})
         tap(".zt-setup .btn:has-text('Start!')"); page.wait_for_selector(".zt-board")

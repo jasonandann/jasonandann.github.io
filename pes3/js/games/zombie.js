@@ -1,6 +1,7 @@
 // Zombie Trail: a board-game race. Roll a die, answer a problem.
 // Right = move ahead by the roll. Wrong = move back by the roll.
 // Shortcut squares (🚀) jump you ahead; zombie squares (🧟) send you back.
+import { choice, openOptions, optionsButton } from '../options.js';
 import { el, chooseWords, hearBar, speakSentence, cheer, retry, logRound, celebrate, keyboard, listenKeys, extraChars, scope, opKind } from '../util.js';
 
 const COLS = 6;
@@ -121,7 +122,7 @@ export function mount(root, entries, api) {
   const sc = scope();
   const { later } = sc;
   let offKeys = null;
-  let overlay = null;
+  let more = null; // the open options pop-up
   const settings = { players: 1, mode: 'spelling', ...loadOptions() };
   const textExtras = extraChars(entries);
   const bag = [];
@@ -158,39 +159,26 @@ export function mount(root, entries, api) {
         el('p', { class: 'prompt' }, 'Roll the die and answer a question. Right: move ahead. Wrong: move back. Find shortcuts and dodge the zombies!'),
         seg('Players', 'players', [[1, '1 player'], [2, '2 players']], setup),
         seg('Questions', 'mode', [['spelling', 'Spelling'], ['math', 'Math'], ['both', 'Both']], setup),
-        el('div', { class: 'seg' },
-          el('button', { class: 'btn zt-more', type: 'button', onclick: openOptions }, '⚙️ More options'),
-          el('p', { class: 'label zt-summary' }, summary()),
-        ),
+        optionsButton({ label: '⚙️ More options', cls: 'zt-more', summary: summary(), onOpen: openMore }),
         el('button', { class: 'btn primary big', type: 'button', onclick: start }, 'Start!'),
       ),
     );
   }
 
-  function closeOptions() {
-    if (!overlay) return;
-    overlay.remove();
-    overlay = null;
-    document.removeEventListener('keydown', onEsc);
-    setup();
-  }
-  function onEsc(e) { if (e.key === 'Escape') closeOptions(); }
-  function openOptions() {
-    const redraw = () => { saveOptions(settings); fill(); };
-    const panel = el('div', { class: 'panel zt-options' });
-    const fill = () => panel.replaceChildren(
-      el('h2', {}, '⚙️ More options'),
-      seg('Zombies', 'zombies', ZOMBIE_COUNTS.map((n) => [n, String(n)]), redraw),
-      seg('Jump size (squares a 🚀 rocket or 🧟 zombie moves you)', 'jump', JUMPS.map(([a, b]) => [`${a}-${b}`, `${a}–${b}`]), redraw),
-      seg('After a zombie is hit', 'fade', [[false, 'It stays'], [true, 'It fades away']], redraw),
-      seg('Second chance (try once more before moving back)', 'second', [[true, 'On'], [false, 'Off']], redraw),
-      el('button', { class: 'btn primary big', type: 'button', onclick: closeOptions }, 'Done'),
-    );
-    fill();
-    overlay = el('div', { class: 'overlay', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'More options',
-      onclick: (e) => { if (e.target === overlay) closeOptions(); } }, panel);
-    document.addEventListener('keydown', onEsc);
-    document.body.append(overlay);
+  function openMore() {
+    more = openOptions({
+      title: '⚙️ More options',
+      onClose: setup,
+      body: (redraw) => {
+        const pick = (key) => (v) => { settings[key] = v; saveOptions(settings); redraw(); };
+        return [
+          choice('Zombies', settings.zombies, ZOMBIE_COUNTS.map((n) => [n, String(n)]), pick('zombies')),
+          choice('Jump size (squares a 🚀 rocket or 🧟 zombie moves you)', settings.jump, JUMPS.map(([a, b]) => [`${a}-${b}`, `${a}–${b}`]), pick('jump')),
+          choice('After a zombie is hit', settings.fade, [[false, 'It stays'], [true, 'It fades away']], pick('fade')),
+          choice('Second chance (try once more before moving back)', settings.second, [[true, 'On'], [false, 'Off']], pick('second')),
+        ];
+      },
+    });
   }
 
   function start() {
@@ -445,6 +433,6 @@ export function mount(root, entries, api) {
   return () => {
     sc.dispose();
     if (offKeys) offKeys();
-    if (overlay) { overlay.remove(); document.removeEventListener('keydown', onEsc); }
+    if (more) more.dispose();
   };
 }
