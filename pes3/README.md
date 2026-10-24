@@ -46,7 +46,7 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Fun**, **Rewards**.
 
 **Coding**: Robot Course, Turtle Draw and Code Studio (below). All three share one engine in `js/code/`.
 
-**Fun**: Zombie Trail (below), Battle Buddies and Dragon Egg Quest (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
+**Fun**: Zombie Trail (below), Battle Buddies and Study Quest (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games), Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 
 **Rewards**: My Garden. Every finished question in any game (right first time or not) is one point; every 4 points grows a flower, and butterflies and bees arrive later. It only grows, never shrinks, and shows no numbers. Stored in `localStorage` (`spelling-games.garden.v1`); the parent panel's "Erase history" does not touch it.
 
@@ -65,7 +65,7 @@ Add `#<name>` to the address, e.g. `https://jasonandann.net/pes3/#robot`. The pa
 | Memory Match | `#memory` | | | Turtle Draw | `#turtle` |
 | Baffle | `#baffle` | | | Code Studio | `#studio` |
 | Word Search | `#search` | | | Spot Match | `#spot` |
-| Wordal | `#wordal` | | | Dragon Egg Quest | `#quest` |
+| Wordal | `#wordal` | | | Study Quest | `#quest` |
 | Listen & Type | `#listen` | | | | |
 
 The new spelling and math games are original vanilla-JS re-implementations of the mechanics in [Spellbound](https://github.com/benSlaughter/spellbound) (MIT per its README); none of its code was copied. Differences from Spellbound, chosen for a child who discourages easily: no timers, no best scores, no unlock gating, no lives.
@@ -131,14 +131,26 @@ Two buddies face each other, each with a row of hearts (3, 5 or 7). Players take
 - Spelling answers count in the hidden progress (hers only, never the computer's); every answer of hers is a garden point. Grown-ups panel **Erase history** also clears the computer's estimate. Options are remembered on the device (`spelling-games.battle.options`); estimate `spelling-games.battle.skill.v1`.
 - Hearts and a winner are new for this site (the other games avoid anything that looks like losing). The copy stays gentle ("No sparkle this time", "Robo wins this time! That was a close one. Rematch?"), and with Just right she should win most games. Watch how she takes a loss; Easy is there if needed.
 
-### Dragon Egg Quest
+### Study Quest
 
-An Oregon Trail-style journey: carry a dragon egg from Willow Village to Dragon Mountain with Pip the pony. The trail map shows the stops: Willow Village (shop) → Whispering Woods → Rushing River → a fork (🌉 Troll Bridge, short, or 🌼 Sunny Meadow, long and restful) → Market Town (shop) → Crystal Caves → a fork (🏔️ Windy Pass, short, or 🦉 Owl Tower, long) → Dragon Mountain, where the egg hatches and she names the baby dragon (device keyboard). Her dragons line up on the setup screen.
+Oregon Trail-style journeys. Pick one of eight stories; each has a trail map, food and money (in the story's own words), random events, forks (short and harder, or long and gentle), a crossing with three ways over (1 question, 2 questions, or pay), shops with money word problems at her math level, and a finale where she names what she found (or just collects it). Everything she brings home lines up on that story's screen.
 
-- Each trail step eats a 🍎 snack and may bring an event (berries, rain, a lost horseshoe, a faded sign, a cheeky squirrel, a wizard…); most events ask a question (Spelling / Math / Both), and a right answer turns out a bit better. The river has three ways across (wade: 1 question, raft: 2, ferry: 4 🪙). Shops ask a money word problem for her math level (change, totals, "how many can you buy").
-- Nothing is ever lost for good: a missed answer costs at most one snack, running out of snacks means a stop to find food, a shop never refuses her, and every trip ends with the egg hatching. About 15–20 questions per trip.
-- The trip is saved as she goes (`spelling-games.quest.save.v1`): **Continue the quest** next time. Dragons: `spelling-games.quest.dragons.v1`. **🔊 Read to me** reads each scene aloud.
-- All story text is in `js/games/quest-story.js` (stops, events, prices); edit freely.
+| Story | She… | Collects |
+|---|---|---|
+| 🥚 Dragon Egg Quest | rides Pip the pony to take a dragon egg home to Dragon Mountain | named baby dragons |
+| ⛵ Island Voyage | sails a lost baby sea turtle across the islands to Turtle Cove | named turtles |
+| 📖 Lost Library Pages | finds the magic storybook's 5 pages around town; spelling questions show her list sentence with the word missing | story titles she names |
+| 🏮 Moonlight Lantern | walks a night trail to bring a Moonstone from Star Peak (the gentlest one) | lantern colours |
+| 🌱 Seed Ark | gathers 4 rare seeds to regrow the frozen Great Garden | a named special plant, which **also appears in My Garden** |
+| 🐎 Pony Express | rides the mail from St. Joseph, Missouri to Sacramento in 1860 (real landmarks, light history) | rider nicknames |
+| ⏳ Time Machine | finds 6 gears in the dinosaur age, the Ice Age, ancient Egypt, castles, Kitty Hawk 1903 and the Moon 1969, **in a new order every trip** (the next stops stay ❓) | souvenirs |
+| 🚀 Space Rescue | flies past the planets in their real order to rescue a little alien near Neptune | named alien friends |
+
+- Each step eats one food and may bring an event; most events ask a question (Spelling / Math / Both), and a right answer turns out a bit better.
+- Nothing is ever lost for good: a missed answer costs at most one food, running out of food means a stop to find more, a shop never refuses her, and every trip ends well. About 15–20 questions per trip.
+- Each story's trip is saved as she goes (**Continue the quest**; the picker shows "▶ On the way"). **🔊 Read to me** reads each scene aloud.
+- Stories are data: one file each in `js/games/quests/` (the shape is described at the top of `js/games/quests/index.js`). To add a story, copy one, edit the words and add it to `STORIES`; `tests/quest_test.py` checks every story and plays each one to the end. The history and science facts were checked against the sources listed in each file.
+- Keys: `spelling-games.quest.<story>.save.v2`, `.quest.<story>.found.v1`, `.quest.mode`; Seed Ark's plants `spelling-games.garden.special.v1`. The first version's Dragon Egg save and dragons move over automatically.
 
 ### Zombie Trail
 
@@ -159,7 +171,7 @@ The on-screen keyboard avoids iPad autocorrect and predictive text. A physical k
 
 ## Hidden progress (grown-ups only)
 
-Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, Zombie Trail, Lily Pad River, Battle Buddies and Dragon Egg Quest record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Code Studio, Spot Match, Simon Says, and math questions in the mixed games do not record anything (Battle Buddies keeps its own hidden estimate, above). In Wordal, "first try" means solved within the first two guesses.
+Spelling questions in Jumble, Fill, Listen & Type, Spell Catcher, Word Volcano, Wordal, Look-Cover-Write-Check, Zombie Trail, Lily Pad River, Battle Buddies and Study Quest record, per word, whether she got it on the first try or needed help. Memory Match, Word Search, Baffle (its own stats, above), the math games, Robot Course, Turtle Draw, Code Studio, Spot Match, Simon Says, and math questions in the mixed games do not record anything (Battle Buddies keeps its own hidden estimate, above). In Wordal, "first try" means solved within the first two guesses.
 
 Open the panel from the home screen by either:
 - tapping the **"Spelling Time" title 5 times within 3 seconds**, or
@@ -264,9 +276,9 @@ js/passcode.js       passcode hashing, wrong-try waits, recovery code
 js/parent-lock.js    passcode screens in front of the panel
 js/offline.js        registers sw.js, update checks, reload on the home menu
 js/math.js           math question generator, level picker, quiz loop
-js/challenge.js      one question with an answer box (Battle Buddies, Dragon Egg Quest)
+js/challenge.js      one question with an answer box (Battle Buddies, Study Quest)
 js/mistakes.js       believable misspellings and math slips
-js/games/*.js        one file per game (mathquiz.js holds 5 math games; robot-levels.js = Robot Course maps; quest-story.js = Dragon Egg Quest's story; battle-bot.js = the computer player)
+js/games/*.js        one file per game (mathquiz.js holds 5 math games; robot-levels.js = Robot Course maps; quests/ = Study Quest's stories; battle-bot.js = the computer player)
 js/code/             shared coding engine (program walker/runner, step chips, turn words, beeps)
 audio/               optional recordings + manifest.json + pronunciations.txt
 dict/words.txt       real-word list for Baffle (generated; see tools/make_dictionary.py)
