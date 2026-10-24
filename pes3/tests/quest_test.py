@@ -91,7 +91,7 @@ try:
             page.wait_for_selector(".qt-setup")
 
         page.goto(URL); page.wait_for_selector(".mcard"); time.sleep(0.5)
-        check("menu: Dragon Egg Quest is in the Fun section", page.locator(".sect", has_text="Fun").locator(".mcard", has_text="Dragon Egg Quest").count() == 1)
+        check("menu: Dragon Egg Quest is in the Adventures section", page.locator(".sect", has_text="Adventures").locator(".mcard", has_text="Dragon Egg Quest").count() == 1)
 
         # ---- shop sums match their stories, and never need more coins than she could have
         shop = page.evaluate("""async () => { const m = await import('/js/games/quest.js'); const out = [];
