@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 
+# bypass_csp: Playwright's string wait_for_function/evaluate helpers need eval, which the page's CSP forbids; tests/csp_test.py is the suite that runs under the enforced policy.
 SITE = str(Path(__file__).resolve().parent.parent)
 PORT = 8777
 URL = f"http://localhost:{PORT}/"
@@ -37,7 +38,7 @@ try:
         b = p.chromium.launch()
 
         def new_page(init=INIT):
-            ctx = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True, service_workers="block")
+            ctx = b.new_context(bypass_csp=True, viewport={"width": 1024, "height": 768}, has_touch=True, service_workers="block")
             ctx.add_init_script(init)
             ctx.route(URL + "words.txt", lambda r: r.fulfill(path=FIXTURE))
             ctx.route("**/audio/manifest.json", lambda r: r.fulfill(status=404))
@@ -278,7 +279,7 @@ try:
 
         # ---------- http -> https for real host names only ----------
         index = Path(SITE, "index.html").read_text()
-        ctx3 = b.new_context(service_workers="block")
+        ctx3 = b.new_context(bypass_csp=True, service_workers="block")
         ctx3.route("http://games.example.com/**", lambda r: r.fulfill(body=index, content_type="text/html") if urlparse(r.request.url).path == "/pes3/" else r.fulfill(status=404))
         ctx3.route("https://games.example.com/**", lambda r: r.fulfill(body="<p id=secure>secure</p>", content_type="text/html"))
         ctx3.route("http://192.168.1.20:8000/**", lambda r: r.fulfill(body=index, content_type="text/html") if urlparse(r.request.url).path == "/pes3/" else r.fulfill(status=404))

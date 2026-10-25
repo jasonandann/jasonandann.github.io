@@ -7,6 +7,7 @@ import os, re, subprocess, sys, tempfile, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
+# bypass_csp: Playwright's string wait_for_function/evaluate helpers need eval, which the page's CSP forbids; tests/csp_test.py is the suite that runs under the enforced policy.
 SITE = str(Path(__file__).resolve().parent.parent)
 PORT = 8783
 URL = f"http://localhost:{PORT}/"
@@ -242,7 +243,7 @@ try:
           const at = (x, y) => { const i = (y * W + x) * 4; lo = Math.min(lo, (d[i] + d[i + 1] + d[i + 2]) / 3); };
           for (let x = 0; x < W; x++) { at(x, 0); at(x, H - 1); } for (let y = 0; y < H; y++) { at(0, y); at(W - 1, y); }
           return lo; }"""  # darkest pixel on the picture's border (255 = white = nothing drawn there)
-        ctx3 = b.new_context(viewport={"width": 240, "height": 290}, service_workers="block")
+        ctx3 = b.new_context(bypass_csp=True, viewport={"width": 240, "height": 290}, service_workers="block")
         p3 = ctx3.new_page(); p3.goto(URL)
         p3.evaluate("async () => { window.A = await import('./js/games/parade/art.js'); document.body.innerHTML = '<div id=h></div>'; document.body.style.cssText = 'margin:0;background:#fff'; }")
         rides = [None] + p3.evaluate("A.ITEMS.ride.map(r => r.id)"); props = [None] + p3.evaluate("A.ITEMS.prop.map(r => r.id)")

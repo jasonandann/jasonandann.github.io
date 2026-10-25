@@ -7,6 +7,7 @@ import os, re, subprocess, sys, tempfile, time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
+# bypass_csp: Playwright's string wait_for_function/evaluate helpers need eval, which the page's CSP forbids; tests/csp_test.py is the suite that runs under the enforced policy.
 SITE = str(Path(__file__).resolve().parent.parent)
 PORT = 8780
 URL = f"http://localhost:{PORT}/"
@@ -40,7 +41,7 @@ errors = []
 try:
     with sync_playwright() as p:
         b = p.chromium.launch()
-        ctx = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True, service_workers="block")
+        ctx = b.new_context(bypass_csp=True, viewport={"width": 1024, "height": 768}, has_touch=True, service_workers="block")
         ctx.add_init_script(INIT)
         ctx.route(URL + "words.txt", lambda r: r.fulfill(path=FIXTURE))
         ctx.route("**/audio/manifest.json", lambda r: r.fulfill(status=404))
