@@ -7,6 +7,7 @@ import { LEVELS, savedLevel, saveLevel } from '../math.js';
 import { problems, ask } from '../challenge.js';
 import { choice, openOptions, optionsButton } from '../options.js';
 import { SLOTS, ITEMS, SLOT_NAMES, randomMonster, scene } from './parade/art.js';
+import { loadSaved, addSaved, removeSaved, parseFile, download } from './parade/saved.js';
 
 const OPTS_KEY = 'spelling-games.parade.options';
 const FAST_KEY = 'spelling-games.parade.fast'; // '1' = short pauses (tests)
@@ -74,8 +75,84 @@ export function mount(root, entries, api) {
         el('p', { class: 'prompt' }, 'The monsters are getting ready for the big parade! Answer questions to help them pick something extra, something to wear, something to hold and a way to ride.'),
         optionsButton({ summary: summary(), onOpen: openMore }),
         el('button', { class: 'btn primary big pd-start', type: 'button', onclick: start }, 'Start!'),
+        el('button', { class: 'btn pd-mine', type: 'button', onclick: mine }, '📂 My parades'),
       ),
     );
+  }
+
+  // Saved parades: play one again, export it as a file, delete it, or bring one in from a file.
+  function mine(msgText = '') {
+    sc.dispose();
+    sc = scope();
+    const list = loadSaved();
+    const note = el('div', { class: 'msg', 'aria-live': 'polite' }, typeof msgText === 'string' ? msgText : '');
+    const file = el('input', { type: 'file', accept: '.json,application/json', class: 'pd-file', hidden: true, onchange: async () => {
+      const f = file.files[0];
+      if (!f) return;
+      const p = parseFile(await f.text());
+      if (!p) { note.textContent = 'That file isn’t a parade.'; return; }
+      note.textContent = addSaved(p) ? '' : 'Couldn’t save it here.';
+      if (!note.textContent) mine(`Added “${p.name}”!`);
+    } });
+    root.replaceChildren(
+      el('div', { class: 'zt-setup pd-setup pd-mine-list' },
+        el('h2', {}, '📂 My parades'),
+        list.length ? null : el('p', { class: 'prompt' }, 'No saved parades yet. Finish a parade, then tap Save.'),
+        list.map((p, i) => el('div', { class: 'pd-item', 'data-i': String(i) },
+          el('span', { class: 'pd-item-name' }, p.name, el('small', {}, ` · ${p.monsters.length} monsters`)),
+          el('button', { class: 'btn primary pd-play', type: 'button', onclick: () => finale(p.monsters, { saved: true }) }, '▶ Play'),
+          el('button', { class: 'btn pd-item-export', type: 'button', onclick: () => download(p) }, '⬇'),
+          el('button', { class: 'btn pd-del', type: 'button', 'aria-label': `Delete ${p.name}`, onclick: () => {
+            if (confirm(`Delete “${p.name}”?`)) { removeSaved(i); mine(); }
+          } }, '🗑'))),
+        note,
+        el('div', { class: 'row' },
+          el('button', { class: 'btn pd-import', type: 'button', onclick: () => file.click() }, '⬆ Import a file'), file,
+          el('button', { class: 'btn pd-back', type: 'button', onclick: setup }, 'Back'))),
+    );
+  }
+
+  function finale(list, { saved = false } = {}) {
+    sc.dispose();
+    sc = scope();
+    const parade = { name: '', made: Date.now(), monsters: list.map((r) => ({ name: r.name, monster: r.monster, items: r.items })) };
+    const note = el('div', { class: 'msg pd-saved', 'aria-live': 'polite' });
+    const nameBox = textInput({ max: 30, placeholder: 'Name this parade', label: 'Parade name', capitalize: 'words' });
+    // Left to right, the first monster ready leads: it is rightmost in the row, so it appears first.
+    const moving = !still();
+    const marchers = [...list].reverse().map((r) => el('div', { class: 'pd-marcher' },
+      art(scene(r.monster, r.items, { moving }), 'pd-big'), el('span', { class: 'pd-name' }, r.name)));
+    const road = el('div', { class: 'pd-road' }, el('div', { class: 'pd-row' }, marchers));
+    root.replaceChildren(
+      el('div', { class: 'pd-parade' },
+        el('h2', {}, '🎉 Hooray! The parade is here!'),
+        el('div', { class: 'pd-crowd', 'aria-hidden': 'true' }, '🙋 👏 🧒 🎈 👧 👏 🙌 🧑 🎈 👦 👏 🙋'),
+        road,
+        saved ? null : el('div', { class: 'row pd-save-row' }, nameBox,
+          el('button', { class: 'btn pd-save', type: 'button', onclick: () => {
+            parade.name = nameBox.value.trim() || `Parade of ${list.length}`;
+            note.textContent = addSaved(parade) ? `Saved “${parade.name}”! Find it in My parades.` : 'Couldn’t save it here. Try Export instead.';
+          } }, '💾 Save'),
+          el('button', { class: 'btn pd-export', type: 'button', onclick: () => {
+            parade.name = nameBox.value.trim() || `Parade of ${list.length}`;
+            download(parade);
+          } }, '⬇ Export')),
+        note,
+        el('div', { class: 'row' },
+          el('button', { class: 'btn primary big pd-again', type: 'button', onclick: saved ? setup : start }, saved ? 'Back' : 'New parade'),
+          el('button', { class: 'btn big', type: 'button', onclick: api.home }, 'Home'))),
+    );
+    celebrate(root);
+    const row = road.firstChild;
+    if (still() || !row.animate) { road.classList.add('still'); return; }
+    // Roll in from off the left edge and out past the right edge, again and again.
+    const go = () => {
+      const w = road.clientWidth;
+      const anim = row.animate([{ transform: `translateX(-${row.scrollWidth}px)` }, { transform: `translateX(${w}px)` }],
+        { duration: ms(4000 + 2500 * list.length), iterations: Infinity, easing: 'linear' });
+      sc.onLeave(() => anim.cancel());
+    };
+    requestAnimationFrame(go);
   }
 
   function start() {
@@ -176,41 +253,10 @@ export function mount(root, entries, api) {
       const last = ready.length >= settings.count;
       panel.replaceChildren(
         el('p', { class: 'prompt' }, `${cur.name} is ready for the parade! 🎉`),
-        el('button', { class: 'btn primary big pd-next', type: 'button', onclick: last ? finale : newMonster },
+        el('button', { class: 'btn primary big pd-next', type: 'button', onclick: last ? () => finale(ready) : newMonster },
           last ? '🎺 Start the parade!' : '➜ Next monster'),
       );
       if (!last) celebrate(root);
-    }
-
-    function finale() {
-      cur = null;
-      sc.dispose();
-      sc = scope();
-      // Left to right, the first monster ready leads: it is rightmost in the row, so it appears first.
-      const moving = !still();
-      const marchers = [...ready].reverse().map((r) => el('div', { class: 'pd-marcher' },
-        art(scene(r.monster, r.items, { moving }), 'pd-big'), el('span', { class: 'pd-name' }, r.name)));
-      const road = el('div', { class: 'pd-road' }, el('div', { class: 'pd-row' }, marchers));
-      root.replaceChildren(
-        el('div', { class: 'pd-parade' },
-          el('h2', {}, '🎉 Hooray! The parade is here!'),
-          el('div', { class: 'pd-crowd', 'aria-hidden': 'true' }, '🙋 👏 🧒 🎈 👧 👏 🙌 🧑 🎈 👦 👏 🙋'),
-          road,
-          el('div', { class: 'row' },
-            el('button', { class: 'btn primary big pd-again', type: 'button', onclick: start }, 'New parade'),
-            el('button', { class: 'btn big', type: 'button', onclick: api.home }, 'Home'))),
-      );
-      celebrate(root);
-      const row = road.firstChild;
-      if (still() || !row.animate) { road.classList.add('still'); return; }
-      // Roll in from off the left edge and out past the right edge, again and again.
-      const go = () => {
-        const w = road.clientWidth;
-        const anim = row.animate([{ transform: `translateX(-${row.scrollWidth}px)` }, { transform: `translateX(${w}px)` }],
-          { duration: ms(4000 + 2500 * ready.length), iterations: Infinity, easing: 'linear' });
-        sc.onLeave(() => anim.cancel());
-      };
-      requestAnimationFrame(go);
     }
 
     newMonster();

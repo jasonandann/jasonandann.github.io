@@ -1098,3 +1098,10 @@ button.rb-cell:active { background: #dcfce7; }
   .pd-mini svg { width: 40px; }
 }
 @media (prefers-reduced-motion: reduce) { .pd-stage.pop { animation: none; } }
+.pd-save-row { align-items: center; }
+.pd-save-row .text-in { width: min(100%, 220px); }
+.pd-saved:empty { display: none; }
+.pd-mine-list { gap: 8px; }
+.pd-item { display: flex; align-items: center; gap: 6px; width: min(100%, 520px); padding: 6px 8px; border-radius: 12px; background: var(--card); border: 2px solid var(--soft); }
+.pd-item-name { flex: 1; min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-item-name small { font-weight: 400; opacity: .7; }
