@@ -95,7 +95,7 @@ CDP touch drags in tests (`Input.dispatchTouchEvent`) must rest ~150 ms before `
 Tests start their own `http.server` (ports 8765/8766/8768/8769/8770/8771/8772/8773/8774/8775/8776/8777/8778 wordsearch/8779 quest/8780 battle/8781 cave/8782 guesswhat/8783 parade), stub speechSynthesis, write screenshots to the OS temp dir `spelling-shots`.
 
 ## Status / verified
-Passing: all sixteen suites above on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
+Passing: all eighteen suites above (2026-10-25, after the cave_test and sw_test flake fixes) on desktop Chromium with touch emulation; layouts checked at 1024x768 (no scroll), 1024x660 and 390x760 (small overflow in Wordal on phone, Puzzle/Explorer at 660).
 
 ## Not verified / caveats
 - Monster Parade (2026-10-24): never tried with her or on an iPad; art approved by Jason through proof sheets, front and side (2026-10-24; Skip names left to Claude). Unchecked: SVG rendering and the WAAPI parade loop on Safari, SMIL animation on Safari, game length (4 questions per monster, 16 for the default 4), whether 3 choices is enough.
@@ -125,4 +125,4 @@ Kids' spelling-game projects to mine for game ideas. The last two state no licen
 - [Spellbound Maze](https://github.com/metros98/SpellboundMaze) (metros98): walk a maze and collect letters in order to spell the word; Easy = only the needed letters, Medium +2 decoys, Hard +5; maze themes (forest, ocean, candy, space, sunset, castle); per-player profiles, word lists, voices; parent stats (accuracy, most-missed words, weekly reset). React/TypeScript/Vite + canvas (plus a legacy vanilla JS version). Ideas not yet here: a letter-collecting maze (closest existing: Number Maze, Spell Catcher), decoy-count difficulty, themes.
 
 ## Working style for this repo
-Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all sixteen suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.
+Keep files small, no build tooling; test new games with Playwright (use JS `click()` on moving targets such as falling letters/bubbles); keep copy encouraging; run all eighteen suites before delivering. Git commits (if made): follow Jason's instructions; none requested so far.
