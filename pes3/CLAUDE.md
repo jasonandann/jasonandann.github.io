@@ -1,5 +1,7 @@
 # CLAUDE.md — Spelling Time (project context for Claude Code)
 
+> **Parked branch (2026-10-25):** this is `claude/baffle-lookahead-paths`, a look-ahead experiment Jason chose not to merge. Read `docs/lookahead-experiments.md` first: what was tried, why it was dropped, the data, the TEST ONLY code to remove, and how to resume. Analysis scripts: `tools/lookahead/`.
+
 ## Goal
 Static games site for Jason's Grade-3 daughter: spelling (weekly `words.txt`), math, fun, and a garden reward. Hosted on GitHub Pages at his domain. Targets: iPad (Safari) + touch Chromebook. **She discourages easily**: no visible scores/timers/streaks/"wrong"/lives; progress is hidden (parent panel only); rewards are positive-only.
 
