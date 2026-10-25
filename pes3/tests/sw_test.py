@@ -9,6 +9,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
+# bypass_csp: Playwright's string wait_for_function/evaluate helpers need eval, which the page's CSP forbids; tests/csp_test.py is the suite that runs under the enforced policy.
 SITE = Path(__file__).resolve().parent.parent
 PORT = 8771
 URL = f"http://localhost:{PORT}/pes3/"
@@ -139,7 +140,7 @@ errors = []
 try:
     with sync_playwright() as p:
         b = p.chromium.launch()
-        ctx = b.new_context(viewport={"width": 1024, "height": 768}, has_touch=True)
+        ctx = b.new_context(bypass_csp=True, viewport={"width": 1024, "height": 768}, has_touch=True)
         ctx.add_init_script(FAKE_TTS)
         page = ctx.new_page()
         page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))

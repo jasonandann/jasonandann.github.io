@@ -7,6 +7,7 @@ export function el(tag, attrs = {}, ...kids) {
   for (const [k, v] of Object.entries(attrs || {})) {
     if (v == null || v === false) continue;
     if (k === 'class') node.className = v;
+    else if (k === 'style') node.style.cssText = v; // not setAttribute: the CSP (style-src) blocks inline style attributes
     else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
     else node.setAttribute(k, v === true ? '' : v);
   }
