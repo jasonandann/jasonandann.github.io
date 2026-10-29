@@ -257,8 +257,10 @@ The site saves an offline copy of itself (every game, the dictionary, the record
 - **Updates (words, games, fixes):** just push. The app checks when it starts and whenever it comes back to the front (switching back to it on the iPad counts). If anything changed, the new files are downloaded in the background and the app reloads **on the home menu**. A game in progress is never interrupted: the update waits until she taps Home. No notice is shown.
 - **Offline:** she gets the last copy that was saved (last week's list if this week's never arrived). The update check fails silently.
 - **Grown-ups panel > App updates:** shows how many files are saved and when. **Check for updates** checks now and reloads (use after a code push if you don't want to wait). **Reset offline copy** deletes the saved files and downloads them again; progress, Baffle stats and the garden are kept (they live in `localStorage`, not in the offline copy). Prefer these over deleting the Home Screen icon or clearing website data, which can erase her progress.
-- **How it decides something changed:** GitHub Pages ETags are `"<deploy time>-<file size>"` in hex, so every push changes every ETag, even for untouched files. The quick check asks for `words.txt` (compares the text) and `js/app.js` (compares the ETag); if either moved, or the last full check is over 6 hours old, every saved file is compared by size and content, and only real changes trigger a reload.
-- **Avoiding a half-updated app:** a push can land while the app is checking, and the CDN can briefly hand out an old copy of a file. A new copy is used only if all its code and text files carry the same deploy time (within 20 s); otherwise the app keeps its current copy and tries again a few seconds later, then at the next check. The grown-ups panel shows the last result. This relies on GitHub's current ETag format (not documented by GitHub); see CLAUDE.md for the assumptions.
+- **How it decides something changed:** the site publishes `version.json`, a list of every file with its SHA-256 (made by `python3 tools/make_manifest.py`, which the host's build runs on each deploy; it is not committed). The quick check asks for `words.txt` (compares the text) and `version.json` (compares its version); if either moved, or the last full check is over 6 hours old, every saved file is compared with the list. Only files whose fingerprint changed are downloaded, plus three small ones that are always fetched and held against the list (`index.html`, `js/app.js`, `words.txt`), and only real changes trigger a reload. No HTTP headers (ETag and so on) are read.
+- **Without `version.json`** (not built, or a host that doesn't run the build) the app still updates: it compares files byte by byte, downloads a changed file twice and accepts it only if both reads agree, and skips big data files whose size is unchanged. It is slower and less exact, and the grown-ups panel says "the site has no version.json".
+- **If `version.json` is out of date** (a deploy skipped the build): when a file the app always fetches (`index.html`, `js/app.js`, `words.txt`) doesn't match it, the list is ignored for that check and files are compared byte by byte, and the panel says "version.json is out of date: rebuild it". A change to some *other* file in a deploy that skipped the build isn't noticed until the build next runs, so don't skip it.
+- **Avoiding a half-updated app:** a push can land while the app is checking, and the CDN can briefly hand out an old copy of a file. A new copy is used only if every file it contains matches `version.json` and `version.json` didn't change while the files were downloading; otherwise the app keeps its current copy and tries again a few seconds later, then at the next check. The grown-ups panel shows the last result and, if some files didn't match, which. This does not depend on any host's header format.
 - **Self-repair:** a small script in `index.html` (outside the app's code) asks for a full re-check and reloads if the app has not started within 10 seconds or hits a script error while starting. After start-up, a script error also triggers a full re-check (applied on the home menu). Details in issue #13.
 
 ### Turning the offline copy off
@@ -277,7 +279,7 @@ Leave that file in place. **Don't just delete `sw.js` or revert the change:** a 
 Service workers only run over https or on `localhost`, so test on the Mac itself (an iPad pointed at the Mac's address over plain http gets no offline copy). Use the bundled server, not `python3 -m http.server`: it sends GitHub Pages-style ETags, which the update check relies on (with plain `http.server` updates are never applied).
 
 ```
-python3 tools/serve.py          # serves the whole repository; open http://localhost:8000/pes3/
+python3 tools/serve.py          # serves the whole repository (and builds version.json on the fly); open http://localhost:8000/pes3/
 ```
 
 1. **First load:** open the page in Chrome (or Safari). In Chrome, DevTools > Application shows the service worker and, under Cache storage, a `pes3-c1-…` cache. Type `parent` on the home screen: App updates should say "Offline copy: N files".
@@ -341,7 +343,8 @@ tools/check_words.py optional list checker
 tools/make_audio.py  optional macOS audio generator
 tools/make_dictionary.py + blocklist.txt   rebuilds dict/words.txt
 tools/make_sounds.py rebuilds dict/sounds.txt (run make_dictionary.py first if both change)
-tools/serve.py       local server that behaves like GitHub Pages (for trying the offline copy)
+tools/serve.py       local server that behaves like a static host and builds version.json (for trying the offline copy)
+tools/make_manifest.py  writes version.json (file fingerprints for the update check); run by the host's build
 tools/sw-off.js      kill switch: copy over sw.js to turn the offline copy off everywhere
 ```
 

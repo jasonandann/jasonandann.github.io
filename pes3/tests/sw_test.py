@@ -1,15 +1,19 @@
 """Offline copy + update checks (issue #13): sw.js and js/offline.js.
 
 Serves a temporary copy of the site laid out like the real one (/pes3/, /images/) from a server that
-mimics GitHub Pages: ETag = "<hex mtime>-<hex size>", 304 on If-None-Match, Cache-Control max-age=600.
-A "deploy" rewrites files and re-stamps every file's mtime, like Pages does. "Offline" = server stopped.
+mimics a static host: ETag = "<hex mtime>-<hex size>", 304 on If-None-Match, Cache-Control max-age=600 (the app
+must not depend on them: one section serves no ETags at all), plus /pes3/version.json built from the files
+(tools/make_manifest.py), which the tests can take away, break or freeze (MAN). A "deploy" rewrites files and
+re-stamps every file's mtime. "Offline" = server stopped.
 """
-import io, os, shutil, sys, tempfile, threading, time
+import io, json, os, shutil, sys, tempfile, threading, time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 SITE = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(SITE / "tools"))
+from make_manifest import build as build_manifest, dumps as dump_manifest
 PORT = 8771
 URL = f"http://localhost:{PORT}/pes3/"
 SHOTS = os.path.join(tempfile.gettempdir(), "spelling-shots")
@@ -29,7 +33,7 @@ def check(name, cond, detail=""):
 # ---- temporary copy of the site
 ROOT = Path(tempfile.mkdtemp(prefix="pes3-sw-"))
 APP = ROOT / "pes3"
-shutil.copytree(SITE, APP, ignore=shutil.ignore_patterns("tests", "tools", "review", "__pycache__", ".*"))
+shutil.copytree(SITE, APP, ignore=shutil.ignore_patterns("tests", "tools", "review", "__pycache__", ".*", "version.json"))
 shutil.copy(SITE / "tests" / "fixtures" / "words.txt", APP / "words.txt")
 (ROOT / "images").mkdir()
 shutil.copy(SITE.parent / "images" / "pes-logo.png", ROOT / "images" / "pes-logo.png")
@@ -52,7 +56,8 @@ def deploy(changes=None):
 deploy()
 
 SLOW = {}  # path -> seconds to wait before answering (lets a "deploy" land in the middle of a check)
-ETAGS = {"mode": "pages"}  # "pages" = "<hex mtime>-<hex size>" like GitHub Pages; "hash" = content hash (format change)
+ETAGS = {"mode": "pages"}  # "pages" = "<hex mtime>-<hex size>"; "none" = no ETag or Cache-Control header at all
+MAN = {"mode": "live", "frozen": b""}  # version.json: "live" = built from the files now, "off" = 404, "bad" = not JSON, "frozen" = an old copy
 STALE = {}  # path -> (bytes, etag): keep serving an old copy, like a CDN server that missed the purge
 BROKEN = set()  # paths whose requests get no response at all (connection closed): a failed fetch while online
 
@@ -71,6 +76,14 @@ class Pages(SimpleHTTPRequestHandler):
         if self.command == "GET":  # only downloads are slow, so the HEAD probes around a round stay quick
             time.sleep(SLOW.get(self.path.split("?")[0], 0))
         self._etag = None
+        if self.path.split("?")[0] == "/pes3/version.json" and MAN["mode"] != "off":
+            body = {"live": lambda: dump_manifest(build_manifest(APP)).encode(), "bad": lambda: b"<html>not json</html>",
+                    "frozen": lambda: MAN["frozen"]}[MAN["mode"]]()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            return io.BytesIO(body)
         if self.path.split("?")[0] in BROKEN:
             self.close_connection = True
             return None
@@ -90,9 +103,8 @@ class Pages(SimpleHTTPRequestHandler):
             path = os.path.join(path, "index.html")
         if os.path.isfile(path):
             st = os.stat(path)
-            if ETAGS["mode"] == "hash":
-                import hashlib
-                self._etag = '"' + hashlib.sha1(open(path, "rb").read()).hexdigest() + '"'
+            if ETAGS["mode"] == "none":
+                self._etag = None
             else:
                 self._etag = f'"{int(st.st_mtime):x}-{st.st_size:x}"'
             if self.headers.get("If-None-Match", "").replace("W/", "") == self._etag:
@@ -154,6 +166,16 @@ try:
             page.wait_for_selector(".mcard")
             page.wait_for_function("!!navigator.serviceWorker.controller")
             page.evaluate(SW_ASK, {"type": "warm", "urls": []})
+        def launch_checked(timeout=20):  # the page's own check after this load has finished (it is posted after settle()'s warm)
+            end = time.time() + timeout
+            while time.time() < end:
+                try:
+                    if page.evaluate("async () => { const s = await (await import('./js/offline.js')).offlineStatus(); return !!(s && s.last && s.last.at > performance.timeOrigin); }"):
+                        return True
+                except Exception:
+                    pass  # the page reloaded under us
+                time.sleep(0.2)
+            return False
         def hold():  # sit in a game, so an update announced by the worker waits for Home instead of reloading
             page.locator(".mcard", has_text="See the Words").first.tap()
             page.wait_for_selector("#back:not([hidden])")
@@ -200,6 +222,7 @@ try:
         check("manifest: standalone, scoped to /pes3/, 192+512 icons",
               mf["display"] == "standalone" and mf["scope"] == "./" and {i["sizes"] for i in mf["icons"]} == {"192x192", "512x512"}, str(mf))
         gen0 = c["live"]
+        settle()  # the launch check also fetches what the first copy lacks and remembers version.json: let it finish before going offline
 
         # ---- offline: opens from the saved copy, every game opens, no errors from the check
         stop()
@@ -248,11 +271,13 @@ try:
         start()
         deploy()
         mark()
-        r = off("o.checkForUpdates(false)")
-        check("no-change deploy: full compare finds nothing to update", r == {"updated": False, "result": "same"} and marked(), str(r))
-        tag_cached = page.evaluate(f"async () => (await (await caches.open('{gen0}')).match('js/app.js')).headers.get('etag')")
-        tag_server = page.evaluate("fetch('http://localhost:%d/pes3/js/app.js?x', { method: 'HEAD' }).then(r => r.headers.get('etag'))" % PORT)
-        check("no-change deploy: app.js's new ETag stored in place", tag_cached == tag_server, f"{tag_cached} vs {tag_server}")
+        r0 = off("o.checkForUpdates(false)")  # every file has a new time stamp, but the manifest (content hashes) is the same
+        r = off("o.checkForUpdates(true)")
+        check("no-change deploy: quick probe sees nothing, full compare finds nothing to update",
+              r0 == {"updated": False, "result": "quiet"} and r == {"updated": False, "result": "same"} and marked(), f"{r0} {r}")
+        man_cached = page.evaluate(f"async () => (await (await caches.open('{gen0}')).match('__manifest__')).json().then(m => m.v)")
+        man_server = page.evaluate("fetch('version.json').then(r => r.json()).then(m => m.v)")
+        check("no-change deploy: the site's version (version.json) is remembered with the copy", man_cached == man_server, f"{man_cached} vs {man_server}")
         check("no-change deploy: same cache generation", page.evaluate(CACHED)["live"] == gen0)
 
         # ---- weekly list pushed while on the home menu: coming back to the app reloads with the new list
@@ -300,7 +325,9 @@ try:
             SLOW.clear()
             a_txt = page.evaluate("fetch('js/app.js').then(r => r.text())")
             s_txt = page.evaluate("fetch('js/games/simon.js').then(r => r.text())")
-            check(f"deploy during a check ({slow} late): one consistent version", r.get("updated") is True and a_txt.startswith("// B") and s_txt.rstrip().endswith("// B"),
+            # (a check the worker started by itself, e.g. after a file was fetched on first use, may have swapped B in first:
+            # then ours finds nothing left to do. Either way the copy in use must be one version.)
+            check(f"deploy during a check ({slow} late): one consistent version", r.get("result") in ("swapped", "same") and a_txt.startswith("// B") and s_txt.rstrip().endswith("// B"),
                   f"{r} app={a_txt[:5]!r} simon={s_txt.rstrip()[-5:]!r}")
             deploy({"js/app.js": app0, "js/games/simon.js": simon0})
             page.evaluate(SW_ASK, {"type": "check", "full": True})
@@ -320,6 +347,8 @@ try:
         a_txt = page.evaluate("fetch('js/app.js').then(r => r.text())")
         check("stale CDN file: set is mixed, current copy kept", r == {"updated": False, "result": "mixed"} and not a_txt.startswith("// C"), f"{r} {a_txt[:5]!r}")
         check("stale CDN file: retried before giving up (~9 s of waits)", time.time() - t0 > 8, f"{time.time() - t0:.1f} s")
+        lastf = page.evaluate(SW_ASK, {"type": "status"})["last"]
+        check("stale CDN file: the panel's status names the file that doesn't match version.json", lastf.get("files") == ["js/games/simon.js"], str(lastf))
         STALE.clear()
         r = page.evaluate(SW_ASK, {"type": "check", "full": True})
         s_txt = page.evaluate("fetch('js/games/simon.js').then(r => r.text())")
@@ -331,8 +360,9 @@ try:
 
         # ---- one file's request fails while online (issue #24): 'error' naming the file, current copy kept, panel says so
         before_list = listname()
+        simon_txt0 = (APP / "js/games/simon.js").read_text()
         BROKEN.add("/pes3/js/games/simon.js")
-        deploy({"words.txt": fixture.replace("Week of Oct 26", "Week of Broken")})
+        deploy({"words.txt": fixture.replace("Week of Oct 26", "Week of Broken"), "js/games/simon.js": simon_txt0 + "\n// broken-test\n"})
         r = page.evaluate(SW_ASK, {"type": "check", "full": True})
         check("broken file: result 'error' naming the file, no update", r.get("result") == "error" and r.get("updated") is False
               and "js/games/simon.js" in r.get("error", ""), str(r))
@@ -347,7 +377,7 @@ try:
         page.screenshot(path=f"{SHOTS}/sw_check_error.png")
         page.keyboard.press("Escape")
         BROKEN.clear()
-        deploy({"words.txt": fixture.replace("Week of Oct 26", "Week of Nov 9")})
+        deploy({"words.txt": fixture.replace("Week of Oct 26", "Week of Nov 9"), "js/games/simon.js": simon_txt0})
         page.evaluate(SW_ASK, {"type": "check", "full": True})
         relaunch()
         settle()
@@ -373,11 +403,18 @@ try:
         start()
         settle()
 
-        STAMPS = """async () => { const k = (await caches.keys()).filter(n => n.startsWith('pes3-c1-')).sort().pop();
-            const c = await caches.open(k); const out = [];
-            for (const r of await c.keys()) { if (/__complete__|\\/dict\\/|\\.(m4a|png)$/.test(r.url)) continue;  // same split as BIG in sw.js
-              const m = /"([0-9a-f]+)-/.exec((await c.match(r)).headers.get('etag') || ''); out.push(m ? parseInt(m[1], 16) : null); }
-            return out; }"""
+        SET_VS_MANIFEST = """async () => {
+            const man = await (await fetch('version.json')).json();
+            const k = await (async () => { for (const n of (await caches.keys()).filter(n => n.startsWith('pes3-c1-')).sort().reverse()) if (await (await caches.open(n)).match('__complete__')) return n; })();
+            const c = await caches.open(k); const base = new URL('./', location.href).href; const bad = []; let n = 0;
+            for (const r of await c.keys()) {
+              const rel = r.url.startsWith(base) && !r.url.includes('?') ? (r.url.slice(base.length) || 'index.html') : null;
+              if (!rel || !man.files[rel]) continue;
+              const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', await (await c.match(r)).arrayBuffer()))].map(b => b.toString(16).padStart(2, '0')).join('');
+              n++; if (h !== man.files[rel]) bad.push(rel);
+            }
+            const mine = await (await c.match('__manifest__')).json();
+            return { n, bad, same: mine.v === man.v }; }"""
         status = lambda: page.evaluate(SW_ASK, {"type": "status"})
 
         # ---- a file fetched outside a check (first use of a new file) makes the worker re-check the whole set
@@ -387,9 +424,9 @@ try:
         page.wait_for_function("1", timeout=1000)
         time.sleep(6)
         st = status()
-        stamps = page.evaluate(STAMPS)
+        sv = page.evaluate(SET_VS_MANIFEST)
         check("runtime addition: worker re-checked the whole set by itself", st["last"]["at"] > before and st["last"]["full"], str(st["last"]))
-        check("runtime addition: every code/text file now from one deploy", None not in stamps and max(stamps) - min(stamps) <= 20 and max(stamps) == stamp[0], f"{min(stamps)}..{max(stamps)} vs {stamp[0]}")
+        check("runtime addition: every file in the copy matches version.json, which is the one remembered", sv["n"] > 90 and not sv["bad"] and sv["same"], str(sv))
 
         # ---- a quick probe becomes a full check when the last full one is over 6 hours old
         page.evaluate("localStorage.setItem('spelling-games.offline.fullcheck', String(Date.now() - 7 * 3600 * 1000))")
@@ -441,15 +478,85 @@ try:
         check("watchdog: back online, the next launch repairs it", page.locator(".mcard").count() == 29)
         settle()
 
-        # ---- if GitHub ever changes the ETag format: fall back to "app.js unchanged before and after the round"
-        ETAGS["mode"] = "hash"
+        # ---- no ETag or Cache-Control headers at all: nothing depends on them
+        ETAGS["mode"] = "none"
         hold()
         r = page.evaluate(SW_ASK, {"type": "check", "full": False})
-        check("hash ETags: probe can't read them, so it compares everything; nothing new", r == {"updated": False, "result": "same"}, str(r))
+        check("no ETags: quick probe sees nothing new", r == {"updated": False, "result": "quiet"}, str(r))
+        r = page.evaluate(SW_ASK, {"type": "check", "full": True})
+        check("no ETags: full compare finds nothing new", r == {"updated": False, "result": "same"}, str(r))
         page.locator("#back").click()
         race("js/games/simon.js")
         race("js/app.js")
         ETAGS["mode"] = "pages"
+        settle()
+
+        # ---- no usable version.json (not built, or the host answered with a page): compare bytes, still one version at a time
+        for mode, label in (("off", "missing"), ("bad", "not JSON")):
+            MAN["mode"] = mode
+            settle(); hold()
+            r = page.evaluate(SW_ASK, {"type": "check", "full": False})
+            check(f"version.json {label}: the quick probe can't tell, so every file is compared; nothing new",
+                  r == {"updated": False, "result": "same", "note": "no-manifest"}, str(r))
+            page.locator("#back").click()
+        MAN["mode"] = "off"
+        settle(); hold()
+        simon = (APP / "js/games/simon.js").read_text()
+        deploy({"js/games/simon.js": simon + "\n// nm\n"})
+        r = page.evaluate(SW_ASK, {"type": "check", "full": True})
+        txt = page.evaluate("fetch('js/games/simon.js').then(r => r.text())")
+        check("no version.json: a changed file is found and swapped in", r == {"updated": True, "result": "swapped", "note": "no-manifest"} and txt.rstrip().endswith("// nm"), f"{r} {txt[-12:]!r}")
+        page.locator("#back").click()
+        relaunch()
+        race("js/games/simon.js")
+        race("js/app.js")
+        MAN["mode"] = "live"
+        relaunch()
+        settle()
+
+        # ---- an old-layout copy (no remembered version.json) is brought up to date without a reload
+        launch_checked()
+        gen_before = page.evaluate(CACHED)["live"]
+        page.evaluate("""async () => { const k = await (async () => { for (const n of (await caches.keys()).filter(n => n.startsWith('pes3-c1-')).sort().reverse()) if (await (await caches.open(n)).match('__complete__')) return n; })();
+            await (await caches.open(k)).delete('__manifest__'); }""")
+        r = page.evaluate(SW_ASK, {"type": "check", "full": False})
+        sv = page.evaluate(SET_VS_MANIFEST)
+        check("old copy without a remembered version.json: compared once, then remembered", r == {"updated": False, "result": "same"} and sv["same"] and not sv["bad"], f"{r} {sv}")
+
+        # ---- a listed file the copy doesn't have (this week's recording, a new module) is fetched into it, no reload
+        page.evaluate("""async () => { const k = await (async () => { for (const n of (await caches.keys()).filter(n => n.startsWith('pes3-c1-')).sort().reverse()) if (await (await caches.open(n)).match('__complete__')) return n; })();
+            await (await caches.open(k)).delete('audio/puppy.m4a'); }""")
+        r = page.evaluate(SW_ASK, {"type": "check", "full": True})
+        c = page.evaluate(CACHED)
+        check("missing listed file: fetched into the copy in use, no new generation", r == {"updated": False, "result": "same"}
+              and c["live"] == gen_before and any(u.endswith("audio/puppy.m4a") for u in c["urls"]), f"{r} {c['live']} vs {gen_before}")
+
+        # ---- a version.json that is out of date (the build didn't run): found out at once, bytes decide, the panel says so
+        settle(); hold()
+        MAN["frozen"] = dump_manifest(build_manifest(APP)).encode()
+        MAN["mode"] = "frozen"
+        r = page.evaluate(SW_ASK, {"type": "check", "full": True})
+        check("out-of-date version.json, nothing deployed yet: copy and site agree", r == {"updated": False, "result": "same"}, str(r))
+        app_now = (APP / "js/app.js").read_text()
+        deploy({"js/app.js": app_now + "\n// stale\n"})
+        t0 = time.time()
+        r = page.evaluate(SW_ASK, {"type": "check", "full": True})
+        txt = page.evaluate("fetch('js/app.js').then(r => r.text())")
+        check("out-of-date version.json: a changed canary file (app.js) still arrives, with no 9 s of retries",
+              r == {"updated": True, "result": "swapped", "note": "stale-manifest"} and txt.rstrip().endswith("// stale") and time.time() - t0 < 8, f"{r} {time.time() - t0:.1f} s")
+        r = page.evaluate(SW_ASK, {"type": "check", "full": True})
+        check("out-of-date version.json: the next check says the same, nothing new", r == {"updated": False, "result": "same", "note": "stale-manifest"}, str(r))
+        page.locator("#back").click()
+        page.wait_for_selector(".mcard")
+        page.keyboard.type("parent"); unlock()
+        page.wait_for_function("document.querySelector('.offline-status') && document.querySelector('.offline-status').textContent.includes('Last check')", timeout=5000)
+        st = page.locator(".offline-status").inner_text()
+        check("out-of-date version.json: the panel tells the grown-up to rebuild it", "version.json" in st and "out of date" in st, st)
+        page.keyboard.press("Escape")
+        MAN["mode"] = "live"
+        r = page.evaluate(SW_ASK, {"type": "check", "full": True})
+        check("version.json caught up: back to normal, no note", r == {"updated": False, "result": "same"}, str(r))
+        relaunch()
         settle()
 
         # ---- parent panel: status, Check for updates, Reset offline copy (keeps localStorage)

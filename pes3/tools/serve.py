@@ -4,20 +4,27 @@
     python3 tools/serve.py --port 8080
 
 Serves the repository root (so /pes3/ and /images/ work as on the real site) with Pages-style headers:
-ETag "<hex deploy time>-<hex size>", 304 on If-None-Match, Cache-Control: max-age=600.
-"Deploy time" = the newest modification time of any file in the repository, so saving any file looks
-like a new deploy to every file, as on Pages. Plain `python3 -m http.server` sends no ETags, so the
-app can't tell whether a set of files is from one deploy and never applies an update.
+ETag "<hex deploy time>-<hex size>", 304 on If-None-Match, Cache-Control: max-age=600. The app does not
+read ETags; they are only here to look like the real host.
+/pes3/version.json is built on the fly from the files (tools/make_manifest.py), as the host's build would,
+so edits show up as updates. Plain `python3 -m http.server` has no version.json: the app then compares
+file bytes (slower, same result).
 Stop it with Ctrl-C to simulate being offline. Only listens on localhost.
 """
 import argparse
+import io
 import os
+import sys
 import time
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]  # repository root (parent of pes3/)
+SITE = Path(__file__).resolve().parent.parent  # the folder with index.html (pes3/)
+ROOT = SITE.parent  # repository root
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from make_manifest import build, dumps  # noqa: E402
+_manifest = {}
 _deploy = {"at": 0.0, "time": 0}
 
 
@@ -37,9 +44,25 @@ def deploy_time():
     return _deploy["time"]
 
 
+def manifest_bytes():
+    """version.json as the host's build would make it (tools/make_manifest.py), rebuilt when any file changes."""
+    stamp = deploy_time()
+    if _manifest.get("stamp") != stamp:
+        _manifest.update(stamp=stamp, body=dumps(build(SITE)).encode())
+    return _manifest["body"]
+
+
 class Pages(SimpleHTTPRequestHandler):
     def send_head(self):
         self._etag = None
+        if self.path.split("?")[0] == f"/{SITE.name}/version.json":
+            body = manifest_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "max-age=600")
+            self.end_headers()
+            return io.BytesIO(body)
         path = self.translate_path(self.path)
         if os.path.isdir(path):
             path = os.path.join(path, "index.html")

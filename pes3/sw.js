@@ -5,24 +5,26 @@
 //
 // Updates: the page asks for a "check" on launch (full) and when the app comes back to the front (probe).
 // Changed files go into a new cache generation that replaces the old one only once it is complete, and only
-// if every code/text file in it comes from the same deploy (see consistent()). The page reloads on the home menu.
+// if the whole set matches one version of the site. The page reloads on the home menu.
 //
-// GitHub Pages ETags are "<hex deploy time>-<hex size>" (measured 2026-10-22): every deploy changes every ETag,
-// even for unchanged files, and the time part can differ by a second between files. So sizes and bytes decide
-// whether a file changed, a file's ETag is only compared with its own stored ETag, and the time parts of a whole
-// set say whether the set is from one deploy.
+// Knowing what changed and that the set is from one deploy: the site publishes version.json (tools/make_manifest.py,
+// run by the host's build): {v, files: {path: sha256}}. A copy is used only if every file's bytes match that manifest
+// and the manifest did not change during the round. No HTTP header (ETag, Last-Modified) is read.
+// Without a usable manifest (missing, malformed) the worker compares bytes instead: a changed file must read the
+// same twice, big data files are skipped when their Content-Length is unchanged. If the manifest is stale (the
+// bytes are not what it says, yet it is the same version we already hold) it is ignored the same way.
 
 const PREFIX = 'pes3-c1-'; // cache generations are PREFIX + timestamp; bump "c1" only if this layout changes
 const DONE = '__complete__'; // written last: a generation without it is unfinished
-const BIG = /\/dict\/|\.(m4a|png)$/; // data (recordings, dictionary, images): checked by size first, downloaded only if it moved
-const TAG = /^(?:W\/)?"([0-9a-f]+)-([0-9a-f]+)"$/; // nginx-style ETag: hex mtime - hex size
-// One deploy stamps its files within about a second of each other (one sample: 1 s); deploys are 30+ s apart
-// (36 s and 41 s from merge to stamp in two samples). Files more than WINDOW seconds apart = mixed deploys.
-const WINDOW = 20;
+const MAN = '__manifest__'; // the version.json this generation was checked against (absent = none)
+const BIG = /\/dict\/|\.(m4a|png)$/; // data (recordings, dictionary, images): without a manifest, skipped when the size is unchanged
+// Small files that are always downloaded and held against the manifest, even when our copy matches it. They are what
+// changes in nearly every release (the weekly list, the entry page, the app), so a stale manifest shows up here.
+const CANARY = new Set(['index.html', 'js/app.js', 'words.txt']);
 const RETRY_MS = [3000, 6000]; // waits before the 2nd and 3rd round when a set is mixed (mid-deploy, CDN catching up)
 
 const abs = (u) => new URL(u, self.registration.scope).href;
-const isDone = (req) => req.url.endsWith('/' + DONE);
+const isMeta = (req) => req.url.endsWith('/' + DONE) || req.url.endsWith('/' + MAN);
 // Stored and served copies say "no-cache", so the browser always comes back to this worker. With GitHub's
 // max-age=600, Chrome reused a still-fresh in-memory module on reload and skipped the worker, so an update
 // would not have shown for up to 10 minutes (seen in tests/sw_test.py).
@@ -31,11 +33,37 @@ function keep(res) {
   headers.set('Cache-Control', 'no-cache');
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
-const tagPart = (tag, i) => { const m = TAG.exec(tag || ''); return m ? parseInt(m[i], 16) : null; };
-const timeOf = (tag) => tagPart(tag, 1);
-const sizeOf = (tag) => tagPart(tag, 2);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const etagOf = (res) => res.headers.get('etag');
+
+// Path of a URL inside the scope ('' = the start page = index.html); null for other origins and query strings.
+function relOf(url) {
+  const u = new URL(url);
+  const scope = new URL(self.registration.scope);
+  if (u.origin !== scope.origin || u.search || !u.pathname.startsWith(scope.pathname)) return null;
+  return u.pathname.slice(scope.pathname.length) || 'index.html';
+}
+async function sha256(buf) {
+  const d = await self.crypto.subtle.digest('SHA-256', buf);
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+const HEX64 = /^[0-9a-f]{64}$/;
+function validManifest(m) {
+  if (!m || typeof m.v !== 'string' || !m.files || typeof m.files !== 'object') return null;
+  return Object.values(m.files).every((h) => HEX64.test(h)) ? m : null;
+}
+// The site's current manifest, or null if it has none (404, not JSON, wrong shape). A network failure throws.
+async function fetchManifest() {
+  const u = abs('version.json');
+  const res = await naming(u, fetch(u, { cache: 'no-store' }));
+  if (res.status !== 200) return null;
+  try { return validManifest(await res.json()); } catch { return null; }
+}
+async function readManifest(cache) {
+  const r = await cache.match(MAN);
+  if (!r) return null;
+  try { return validManifest(await r.json()); } catch { return null; }
+}
+const putManifest = (cache, m) => (m ? cache.put(MAN, new Response(JSON.stringify(m))) : cache.delete(MAN));
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil((async () => {
@@ -69,6 +97,7 @@ async function newName() {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  if (relOf(req.url) === 'version.json') return; // the manifest always comes from the network, never from this cache
   e.respondWith(serve(req, e));
 });
 
@@ -152,7 +181,7 @@ async function warm(urls) {
   const cache = await caches.open(name);
   let added = 0;
   await Promise.all([...new Set(urls.map(abs))].map(async (u) => {
-    if (u === abs('sw.js') || (await cache.match(u))) return;
+    if (u === abs('sw.js') || u === abs('version.json') || (await cache.match(u))) return;
     try {
       const res = await fetch(u, { cache: 'no-cache' });
       if (res.status === 200 && !res.redirected) { await cache.put(u, keep(res)); added++; }
@@ -166,29 +195,33 @@ async function warm(urls) {
 }
 
 /* ---------- update check ---------- */
-let last = null; // { at, full, result } of the latest check, shown in the parent panel
+let last = null; // { at, full, result, note?, files?, error? } of the latest check, shown in the parent panel
 
 // result: 'quiet' (probe saw nothing) | 'same' (compared everything, nothing changed) | 'swapped' (new copy in use)
-//       | 'mixed' (the site's files were from different deploys every round; the current copy is kept)
+//       | 'mixed' (the site's files did not agree with each other or with its manifest every round; the current copy is kept)
 //       | 'offline' (the browser says there is no network) | 'error' (anything else failed; `error` says what)
+// note: 'no-manifest' (compared bytes, the site has no usable version.json) | 'stale-manifest' (the site's version.json
+//       does not describe its files, so it was ignored); files: the paths that disagreed with the manifest.
 // A failed check never changes the copy in use; the next check tries again. navigator.onLine is only a hint:
 // true doesn't mean the site answers, so a failure while "online" is an 'error', not 'offline' (issue #24).
 async function check(full) {
-  let result = 'quiet';
+  let out = { result: 'quiet' };
   let error = null;
   try {
     for (let round = 0; round <= RETRY_MS.length; round++) {
       if (round) await sleep(RETRY_MS[round - 1]);
-      result = await checkOnce(full || round > 0);
-      if (result !== 'mixed') break;
+      out = await checkOnce(full || round > 0, false);
+      if (out.result !== 'mixed') break;
+      if (out.stale) { out = await checkOnce(true, true); break; } // a manifest that is wrong for good: waiting won't fix it
     }
   } catch (err) {
-    if (self.navigator.onLine === false) result = 'offline';
-    else { result = 'error'; error = String(err && err.message || err); }
+    if (self.navigator.onLine === false) out = { result: 'offline' };
+    else { out = { result: 'error' }; error = String(err && err.message || err); }
   }
-  last = { at: Date.now(), full: full || result !== 'quiet', result, ...(error && { error }) };
+  const { result, note, files } = out;
+  last = { at: Date.now(), full: full || result !== 'quiet', result, ...(note && { note }), ...(files && { files }), ...(error && { error }) };
   if (result === 'swapped') await broadcast();
-  return { updated: result === 'swapped', result, ...(error && { error }) };
+  return { updated: result === 'swapped', result, ...(note && { note }), ...(error && { error }) };
 }
 
 // A failed request or body read during a check names its file ("Failed to fetch (…/js/games/simon.js)").
@@ -197,77 +230,104 @@ const naming = (url, p) => p.catch((err) => {
   throw Object.assign(new Error(`${String(err && err.message || err)} (${url})`), { named: true });
 });
 
-// One round. Any failure throws (the current copy is kept).
-async function checkOnce(full) {
+// One round. Any failure throws (the current copy is kept). `trust`: ignore the site's manifest (it is stale).
+// Returns { result, note?, files?, stale? }.
+async function checkOnce(full, trust) {
   const name = await getLive();
-  if (!name) return 'quiet';
+  if (!name) return { result: 'quiet' };
   const cache = await caches.open(name);
-  if (!full && !(await probe(cache))) return 'quiet';
+  const oldMan = await readManifest(cache);
+  const m1 = await fetchManifest();
+  if (!full && !(await probe(cache, oldMan, m1))) return { result: 'quiet' };
 
-  const marker = () => naming(abs('js/app.js'), fetch(abs('js/app.js'), { method: 'HEAD', cache: 'no-store' })).then(etagOf);
-  const before = await marker();
-  const keys = (await cache.keys()).filter((r) => !isDone(r));
-  const seen = await Promise.all(keys.map(async (req) => ({ req, ...(await naming(req.url, fresher(req.url, await cache.match(req)))) })));
-  const after = await marker();
+  const man = trust ? null : m1;
+  const keys = (await cache.keys()).filter((r) => !isMeta(r));
+  const seen = await Promise.all(keys.map(async (req) => ({ req, ...(await naming(req.url, fresher(req, await cache.match(req), man))) })));
+  if (man) { // listed files this copy doesn't have yet (a new game module, this week's recordings): fetch and check them too
+    const have = new Set(keys.map((r) => relOf(r.url)));
+    for (const rel of Object.keys(man.files)) {
+      if (have.has(rel) || rel === 'index.html') continue; // (a host may redirect index.html to ./)
+      const req = new Request(abs(rel));
+      seen.push({ req, ...(await naming(req.url, fresher(req, null, man))) });
+    }
+  }
+  if (!man) { // no manifest to prove a set is one version: every changed file must read the same twice
+    for (const s of seen) {
+      if (s.state !== 'changed') continue;
+      const again = await naming(s.req.url, fetch(s.req.url, { cache: 'no-cache' }));
+      if (again.status !== 200 || !(await naming(s.req.url, same(again, s.res.clone())))) { s.state = 'off'; s.rel = relOf(s.req.url); }
+    }
+  }
 
-  // Only text/code files can break each other; recordings and the dictionary are data.
-  const tags = seen.filter((s) => !BIG.test(s.req.url) && s.state !== 'gone').map((s) => s.tag);
-  if (!consistent(tags, before, after)) return 'mixed';
+  if (man) { // the manifest must not have moved during the round
+    const m2 = await fetchManifest();
+    if (!m2 || m2.v !== man.v) return { result: 'mixed' };
+  }
+  const off = seen.filter((s) => s.state === 'off');
+  if (off.length) {
+    // Same version as the copy we hold, yet the site's bytes are not what it says: the manifest is stale, not mid-deploy.
+    const stale = !!(man && oldMan && oldMan.v === man.v);
+    return { result: 'mixed', stale, files: off.map((s) => s.rel) };
+  }
 
+  const note = trust ? 'stale-manifest' : man ? undefined : 'no-manifest';
   if (!seen.some((s) => s.state === 'changed' || s.state === 'gone')) {
-    // Same bytes from a newer deploy: store them in place so the next probe compares against the new ETags.
-    for (const s of seen) if (s.state === 'same' && s.res) await cache.put(s.req, s.res);
-    return 'same';
+    // Nothing the app is running changes. Files it didn't have yet join the copy in use (no reload for those).
+    for (const s of seen) if (s.state === 'added') await cache.put(s.req, s.res);
+    await putManifest(cache, m1);
+    return { result: 'same', note };
   }
   const nextName = await newName();
   const next = await caches.open(nextName);
   for (const s of seen) if (s.state !== 'gone') await next.put(s.req, s.res || (await cache.match(s.req)));
+  await putManifest(next, m1);
   await next.put(DONE, new Response(String(Date.now())));
   await promote(nextName);
-  return 'swapped';
+  return { result: 'swapped', note };
 }
 
-// Is this set of files from one deploy? Each ETag carries its file's deploy time, so this holds whatever order
-// the files arrived in, and whichever CDN server sent each one. If the ETags can't be read (GitHub changed the
-// format), fall back to: js/app.js had the same ETag before and after the whole round.
-function consistent(tags, before, after) {
-  const times = tags.map(timeOf);
-  if (times.length && times.every((t) => t !== null)) return Math.max(...times) - Math.min(...times) <= WINDOW;
-  return !!before && before === after;
-}
-
-async function probe(cache) {
+// Is there anything new? words.txt is read every time (it is the file that changes weekly, and a stale manifest can't hide it);
+// the manifest's version says whether anything else changed. No manifest to compare: not sure, so check everything.
+async function probe(cache, oldMan, m1) {
   const w = abs('words.txt');
-  const a = abs('js/app.js');
-  const [oldW, oldA] = await Promise.all([cache.match(w), cache.match(a)]);
-  if (!oldW || !oldA) return true;
-  const [resW, head] = await Promise.all([naming(w, fetch(w, { cache: 'no-cache' })), naming(a, fetch(a, { method: 'HEAD', cache: 'no-store' }))]);
+  const oldW = await cache.match(w);
+  if (!oldW) return true;
+  const resW = await naming(w, fetch(w, { cache: 'no-cache' }));
   if (resW.status === 200 && !(await naming(w, same(resW, oldW)))) return true;
-  const before = etagOf(oldA);
-  const now = etagOf(head);
-  if (!TAG.test(before || '') || !TAG.test(now || '')) return true; // unknown ETag scheme: check everything
-  return before !== now;
+  return !(m1 && oldMan && m1.v === oldMan.v);
 }
 
-// What the site has now for one cached file:
-//   { state: 'same' | 'changed' | 'gone' | 'kept', res?: Response to store, tag: ETag of the version that would be kept }
-// 'kept' = the site answered with an error: keep the cached copy (its old ETag then makes the set look mixed).
-async function fresher(url, old) {
-  if (BIG.test(url)) {
+// What the site has now for one cached file (`old` is null for a listed file we don't have yet):
+//   { state: 'same' | 'changed' | 'added' | 'gone' | 'off', res?: Response to store, rel?: path (for 'off') }
+// 'off' = could not get a copy that agrees with the manifest (wrong bytes or an error answer): the set is not one version.
+async function fresher(req, old, man) {
+  const url = req.url;
+  const rel = relOf(url);
+  const want = man && rel !== null ? man.files[rel] : undefined;
+  if (want) {
+    const oldHash = old ? await sha256(await old.clone().arrayBuffer()) : null;
+    if (oldHash === want && !CANARY.has(rel)) return { state: 'same' }; // the manifest says it is unchanged: nothing to download
+    const got = await fetch(url, { cache: 'no-cache' });
+    if (got.status !== 200 || got.redirected) return { state: 'off', rel };
+    const res = keep(got);
+    const now = await sha256(await res.clone().arrayBuffer());
+    if (now !== want) return { state: 'off', rel };
+    return { state: !old ? 'added' : now === oldHash ? 'same' : 'changed', res };
+  }
+  // Not in the manifest (or no manifest): compare bytes.
+  if (BIG.test(url) && old) {
     const head = await fetch(url, { method: 'HEAD', cache: 'no-store' });
     if (head.status === 404) return { state: 'gone' };
-    if (!head.ok) return { state: 'kept', tag: etagOf(old) };
-    const before = etagOf(old);
-    const now = etagOf(head);
-    if (!before || !now || before === now) return { state: 'same', tag: before }; // nothing to go on, or identical
-    const size = sizeOf(before);
-    if (size !== null && size === sizeOf(now)) return { state: 'same', tag: before }; // same size: same recording/list
+    if (!head.ok) return { state: 'off', rel };
+    const len = Number(head.headers.get('content-length'));
+    if (len && len === (await old.clone().arrayBuffer()).byteLength) return { state: 'same' }; // same size: same recording/list
   }
   const got = await fetch(url, { cache: 'no-cache' });
-  if (got.status === 404) return { state: 'gone' };
-  if (got.status !== 200) return { state: 'kept', tag: etagOf(old) };
+  if (got.status === 404) return { state: old ? 'gone' : 'off', rel };
+  if (got.status !== 200) return { state: 'off', rel };
   const res = keep(got);
-  return { state: (await same(res.clone(), old)) ? 'same' : 'changed', res, tag: etagOf(res) };
+  if (!old) return { state: 'added', res };
+  return { state: (await same(res.clone(), old)) ? 'same' : 'changed', res };
 }
 
 async function same(a, b) {
@@ -283,5 +343,5 @@ async function status() {
   const name = await getLive();
   if (!name) return { files: 0, last };
   const keys = await (await caches.open(name)).keys();
-  return { files: keys.filter((r) => !isDone(r)).length, since: Number(name.slice(PREFIX.length)), last };
+  return { files: keys.filter((r) => !isMeta(r)).length, since: Number(name.slice(PREFIX.length)), last };
 }

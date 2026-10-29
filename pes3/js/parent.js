@@ -81,7 +81,10 @@ function showPanel(entries, opts = {}) {
     offline: 'no internet',
   };
   // 'error' = the check failed although the browser said it was online (a server or app problem, issue #24).
-  const lastText = (l) => l.result === 'error' ? `couldn’t finish (${l.error || 'unknown error'})` : LAST[l.result] || l.result;
+  // note: the site has no usable version.json (checked by comparing files), or its version.json is out of date.
+  const NOTE = { 'no-manifest': ' (the site has no version.json, so files were compared one by one)', 'stale-manifest': ' (the site’s version.json is out of date: rebuild it)' };
+  const lastText = (l) => l.result === 'error' ? `couldn’t finish (${l.error || 'unknown error'})`
+    : (LAST[l.result] || l.result) + (l.result === 'mixed' && l.files && l.files.length ? ` (not matching version.json: ${l.files.slice(0, 3).join(', ')})` : NOTE[l.note] || '');
   offlineStatus().then((st) => {
     const last = st && st.last ? ` Last check ${new Date(st.last.at).toLocaleTimeString()}: ${lastText(st.last)}.` : '';
     offNote.textContent = !st ? 'No offline copy in this browser (needs https and service worker support).'
