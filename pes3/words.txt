@@ -1,25 +1,221 @@
 # For test on Wednesday October 28, 2026
 # One word per line. Add " | example sentence" if you want it read aloud with the word.
 # Lines starting with # are ignored (the first one above is shown as the list name).
-puppy
-puppies
-penny
-pennies
-study
-studies
-carry
-carries
-butterfly
-butterflies
-lady
-ladies
-bunny
-bunnies
-dry
-dries
-hurry
-hurries
-marry
-marries
-along
-put
+
+artist
+target
+party
+gargle
+startle
+junkyard
+# depart (T on end is almost inaudible)
+# marble (sounds too much like marvel)
+backyard
+postcard
+garden
+carpet
+recharge
+discard
+marvel
+ballpark
+barnyard
+farmland
+# ark (K on end is inaudible)
+marsh
+car
+# smart (T on end is almost inaudible)
+hard
+# spark (K on end is inaudible)
+march
+farm
+sharp
+# art
+# part
+bar
+# shark
+arch
+tar
+harsh
+# start
+far
+large
+star
+starch
+barn
+yarn
+# harp
+arm
+lard
+scar
+# tart
+card
+# cart
+# park
+# scarf
+jar
+yard
+trade
+probably
+spend
+even
+didn't
+does
+stream
+passed
+dollars
+side
+early
+low
+equal
+caught
+terror
+power
+serve
+capital
+cattle
+team
+single
+radio
+scale
+below
+coal
+shown
+# float
+doe
+boast
+# boat
+bowl
+slow
+# throat
+moan
+cloak
+soak
+toad
+flow
+roast
+grown
+coast
+poach
+snow
+glow
+toe
+groan
+roam
+coach
+flown
+grow
+toast
+tow
+throw
+woe
+aloe
+foe
+flowing
+railroad
+rowboat
+floating
+rowing
+pillow
+coastline
+rainbow
+steamboat
+groaning
+growing
+snowing
+loading
+window
+oatmeal
+roadside
+floated
+throwing
+crossroad
+yellow
+follow
+roasting
+raincoat
+loaded
+blowing
+lifeboat
+boating
+# always (mispronounced)
+almost
+again
+against
+load
+coat
+most
+goat
+tie
+pie
+lies
+right
+might
+bright
+sight
+fight
+night
+light
+lie
+ties
+main
+# wait
+# paint
+say
+tray
+clay
+maintain
+pain
+chain
+day
+pay
+play
+today
+very
+other
+another
+verb
+fern
+stern
+perch
+never
+after
+her
+per
+# perk
+nerve
+swerve
+nothing
+# fork
+# sort
+storm
+core
+score
+shore
+# fort
+# port
+sport
+sore
+more
+
+# puppy
+# puppies
+# penny
+# pennies
+# study
+# studies
+# carry
+# carries
+# butterfly
+# butterflies
+# lady
+# ladies
+# bunny
+# bunnies
+# dry
+# dries
+# hurry
+# hurries
+# marry
+# marries
+# along
+# put
