@@ -36,10 +36,16 @@ shutil.copy(SITE.parent / "images" / "pes-logo.png", ROOT / "images" / "pes-logo
 
 stamp = [1_790_000_000]
 def deploy(changes=None):
-    """Write changed files, then give every file a new mtime (= new ETag), like a GitHub Pages deploy."""
-    for rel, text in (changes or {}).items():
-        (APP / rel).write_text(text)
+    """Write changed files, then give every file a new mtime (= new ETag), like a GitHub Pages deploy.
+    Each changed file appears whole and already stamped (written aside, then renamed in): a request that lands
+    mid-write once got an empty file with a real-clock Last-Modified, later than every fake stamp, so the test
+    server answered If-Modified-Since with 304 from then on and every check stayed 'mixed'."""
     stamp[0] += 100
+    for rel, text in (changes or {}).items():
+        tmp = APP / (rel + ".deploying")
+        tmp.write_text(text)
+        os.utime(tmp, (stamp[0], stamp[0]))
+        os.replace(tmp, APP / rel)
     for p in ROOT.rglob("*"):
         if p.is_file():
             os.utime(p, (stamp[0], stamp[0]))
@@ -296,9 +302,7 @@ try:
             s_txt = page.evaluate("fetch('js/games/simon.js').then(r => r.text())")
             check(f"deploy during a check ({slow} late): one consistent version", r.get("updated") is True and a_txt.startswith("// B") and s_txt.rstrip().endswith("// B"),
                   f"{r} app={a_txt[:5]!r} simon={s_txt.rstrip()[-5:]!r}")
-            (APP / "js/app.js").write_text(app0)
-            (APP / "js/games/simon.js").write_text(simon0)
-            deploy()
+            deploy({"js/app.js": app0, "js/games/simon.js": simon0})
             page.evaluate(SW_ASK, {"type": "check", "full": True})
             relaunch()
         race("js/games/simon.js")
@@ -320,9 +324,7 @@ try:
         r = page.evaluate(SW_ASK, {"type": "check", "full": True})
         s_txt = page.evaluate("fetch('js/games/simon.js').then(r => r.text())")
         check("stale CDN file: once the CDN catches up, the new copy goes in", r.get("updated") is True and s_txt.rstrip().endswith("// C"), str(r))
-        (APP / "js/app.js").write_text(app0)
-        (APP / "js/games/simon.js").write_text(simon0)
-        deploy()
+        deploy({"js/app.js": app0, "js/games/simon.js": simon0})
         page.evaluate(SW_ASK, {"type": "check", "full": True})
         relaunch()
         settle()
@@ -345,8 +347,7 @@ try:
         page.screenshot(path=f"{SHOTS}/sw_check_error.png")
         page.keyboard.press("Escape")
         BROKEN.clear()
-        (APP / "words.txt").write_text(fixture.replace("Week of Oct 26", "Week of Nov 9"))
-        deploy()
+        deploy({"words.txt": fixture.replace("Week of Oct 26", "Week of Nov 9")})
         page.evaluate(SW_ASK, {"type": "check", "full": True})
         relaunch()
         settle()
