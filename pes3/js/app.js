@@ -19,6 +19,7 @@ import * as puzzle from './games/puzzle.js';
 import * as explorer from './games/explorer.js';
 import * as spotmatch from './games/spotmatch.js';
 import * as simon from './games/simon.js';
+import * as merge from './games/merge.js';
 import * as garden from './games/garden.js';
 import * as river from './games/river.js';
 import * as robot from './games/robot.js';
@@ -74,6 +75,7 @@ const SECTIONS = [
   { title: '🧠 Brain Games', games: [
     { icon: '👁️', id: 'spot', name: 'Spot Match', blurb: 'Find the matching picture', mod: spotmatch },
     { icon: '🎵', id: 'simon', name: 'Simon Says', blurb: 'Copy the pattern', mod: simon },
+    { icon: '🔢', id: 'merge', name: 'Merge Makers', blurb: 'Merge numbers to reach the goal', mod: merge },
   ] },
   { title: '🌱 Rewards', games: [
     { icon: '🌻', id: 'garden', name: 'My Garden', blurb: 'See what you have grown', mod: garden },

@@ -1098,3 +1098,17 @@ button.rb-cell:active { background: #dcfce7; }
   .pd-mini svg { width: 40px; }
 }
 @media (prefers-reduced-motion: reduce) { .pd-stage.pop { animation: none; } }
+
+/* ---------- Merge Makers ---------- */
+.mg-board { display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 6px; width: min(94vw, 420px); margin: 8px auto; padding: 8px; background: #eef0fb; border-radius: 16px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.mg-cell { aspect-ratio: 1; background: #fff; border: 2px dashed var(--soft); border-radius: 12px; display: flex; }
+.mg-cell.want { border-color: var(--warm); background: #fffbeb; }
+.mg-tile { flex: 1; min-width: 44px; min-height: 44px; margin: 0; padding: 0; border: 3px solid hsl(var(--h) 55% 40%); border-radius: 12px; background: hsl(var(--h) 75% 85%); color: hsl(var(--h) 60% 20%); font: 800 1.35rem/1 inherit; touch-action: none; cursor: grab; }
+.mg-tile.sel { outline: 4px solid var(--warm); }
+.mg-tile.goal { background: hsl(var(--h) 85% 72%); box-shadow: 0 0 0 3px #fde68a; }
+.mg-tile.drag { position: relative; z-index: 5; pointer-events: none; box-shadow: 0 8px 16px rgba(0,0,0,.25); }
+.mg-tile.pop { animation: mg-pop .3s ease-out; }
+@keyframes mg-pop { 0% { transform: scale(.4); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.mg-goal { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.1rem; }
+.mg-num { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 44px; border: 3px solid hsl(var(--h) 55% 40%); border-radius: 12px; background: hsl(var(--h) 85% 72%); color: hsl(var(--h) 60% 20%); font-weight: 800; font-size: 1.35rem; box-shadow: 0 0 0 3px #fde68a; }
+.mg-crate:disabled { opacity: .5; }
