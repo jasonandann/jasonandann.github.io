@@ -1,0 +1,13 @@
+# Vocab fixture
+brave | adjective | ready to face danger without fear | The brave knight met the dragon.
+curious | adj. | wanting to know about something
+enormous | adjective | very, very big
+gather | verb | to bring together into one place | We gathered leaves into a pile. | Bees gather nectar from flowers. | | This line never uses the word.
+examine | v | to look at closely
+habitat | noun | the natural home of a plant or animal
+journey | noun | a trip from one place to another | The journey took all day.
+quickly | adverb | in a fast way | It has no form of the word in it.
+gently | adverb | in a soft and careful way
+predict | to say what will happen before it happens
+shelter | noun
+Brave | noun | a duplicate that is ignored

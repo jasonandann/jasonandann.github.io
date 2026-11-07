@@ -2,6 +2,7 @@
 // or by typing "parent" on the home screen. Nothing on the child-facing screens links here.
 // A passcode (issue #32) is set the first time (or "Don't use a passcode") and asked for every time it opens.
 import { el, getProgress, clearProgress, isLetters, abcAllowed, setAbcAllowed } from './util.js';
+import { vocabProgress, clearVocabProgress } from './vocab.js';
 import { offlineStatus, updateNow, resetOffline } from './offline.js';
 import { lookaheadMode, setLookaheadMode, getStats, clearStats, isFluent, fluentCount, fluentNeeded, getFluency, setFluency } from './games/baffle.js';
 import { clearSkill } from './games/battle-bot.js';
@@ -48,6 +49,9 @@ function showPanel(entries, opts = {}) {
       const s = p.words[e.word] || { c: 0, m: 0 };
       return { word: e.word, c: s.c, m: s.m };
     })
+    .sort((a, b) => b.m - a.m || (b.m + b.c) - (a.m + a.c) || a.word.localeCompare(b.word));
+  // Vocabulary games keep their own counts (vocab.txt words), listed most-missed first.
+  const vocabRows = Object.entries(vocabProgress().words).map(([word, s]) => ({ word, c: s.c, m: s.m }))
     .sort((a, b) => b.m - a.m || (b.m + b.c) - (a.m + a.c) || a.word.localeCompare(b.word));
   const days = Object.entries(p.days).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 14);
   const focus = rows.filter((r) => r.m > 0 && r.m >= r.c).map((r) => r.word);
@@ -115,6 +119,14 @@ function showPanel(entries, opts = {}) {
           el('tr', {}, el('td', {}, r.word), el('td', {}, r.c + r.m), el('td', {}, r.c), el('td', { class: r.m > r.c ? 'flag' : '' }, r.m)),
         )),
       ),
+      el('h3', {}, 'Vocabulary'),
+      vocabRows.length
+        ? el('table', { class: 'vocab-table' },
+          el('thead', {}, el('tr', {}, ['Word', 'Questions', 'First try', 'Needed help'].map((h) => el('th', {}, h)))),
+          el('tbody', {}, vocabRows.map((r) =>
+            el('tr', {}, el('td', {}, r.word), el('td', {}, r.c + r.m), el('td', {}, r.c), el('td', { class: r.m > r.c ? 'flag' : '' }, r.m)),
+          )))
+        : el('p', {}, 'No vocabulary games played yet.'),
       el('h3', {}, 'Baffle look-ahead'),
       el('p', { class: 'small' }, 'Lights up letters that can still make one of this week’s words. ' + lookNote),
       el('div', { class: 'row' }, modeBtn('auto', 'Auto'), modeBtn('on', 'Always on'), modeBtn('off', 'Off')),
@@ -174,7 +186,7 @@ function showPanel(entries, opts = {}) {
         el('button', {
           class: 'btn', type: 'button',
           onclick: () => {
-            if (confirm('Erase all saved practice history on this device?')) { clearProgress(); clearStats(); clearSkill(); reopen(); }
+            if (confirm('Erase all saved practice history on this device?')) { clearProgress(); clearVocabProgress(); clearStats(); clearSkill(); reopen(); }
           },
         }, 'Erase history'),
       ),

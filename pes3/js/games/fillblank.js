@@ -1,83 +1,86 @@
-// Fill the Blanks: some letters are missing; tap the right letters on the keyboard.
-import { el, shuffle, rounds, hearBar, speakWord, cheer, logRound, celebrate, keyboard, listenKeys } from '../util.js';
+// Fill the Blanks, one game in three menu sections (the questions come from js/blanks.js):
+//   mount      Spelling: missing letters of 10 list words
+//   vocab      Vocabulary: the missing word in 10 sentences (tiles; ⚙️ Options can switch to typing)
+//   math       Math: a missing number or sign in 10 sums, at the saved math level (⚙️ = level, like the math games)
+// Each question ends with a Next tap, so the next one can be read aloud on iOS.
+import { el, scope, finish, celebrate, chooseWords } from '../util.js';
+import { blank, mathPuzzle } from '../blanks.js';
+import { chooseVocab, canBlank } from '../vocab.js';
+import { savedLevel, levelGear } from '../math.js';
+import { choice, openOptions, cornerGear } from '../options.js';
+
+const COUNT = 10;
+
+// pick() -> items for one game; build(item, {later, onLeave, done}) -> the question; gear(sc, play) -> corner ⚙️ or null.
+function run(root, api, { pick, build, gear }) {
+  let sc = scope();
+  function play() {
+    const items = pick();
+    let i = 0;
+    const show = () => {
+      sc.dispose();
+      sc = scope();
+      if (i >= items.length) return finish(root, api, play);
+      const item = items[i++];
+      const nextBtn = el('button', { class: 'btn primary big fb-next', type: 'button', hidden: true, onclick: show }, i < items.length ? 'Next ➜' : 'Finish');
+      const q = build(item, { later: sc.later, onLeave: sc.onLeave, done: () => { nextBtn.hidden = false; celebrate(root); } });
+      root.replaceChildren(...[gear && gear(sc, play), q, nextBtn, el('p', { class: 'label' }, `${i} of ${items.length}`)].filter(Boolean));
+    };
+    show();
+  }
+  play();
+  return () => sc.dispose();
+}
 
 export function mount(root, entries, api) {
-  return rounds(root, entries, api, ({ entry, next, later, onLeave }) => {
-    const word = entry.word;
-    const chars = [...word];
-    const letterIdx = chars.map((c, i) => (/[a-z]/.test(c) ? i : -1)).filter((i) => i >= 0);
-    const count = Math.max(1, Math.min(Math.max(1, letterIdx.length - 1), Math.round(letterIdx.length * 0.4)));
-    const blanks = new Set(shuffle(letterIdx).slice(0, count));
-    const state = chars.map((c, i) => (blanks.has(i) ? '' : c));
-    const blankMiss = {};
-    const hinted = new Set();
-    let misses = 0;
-    let done = false;
-
-    const nextBlank = () => {
-      const i = chars.findIndex((_, k) => blanks.has(k) && state[k] === '');
-      return i < 0 ? null : i;
-    };
-    let sel = nextBlank();
-
-    const msg = el('div', { class: 'msg', 'aria-live': 'polite' });
-    const row = el('div', { class: 'slots' });
-    const nextBtn = el('button', { class: 'btn primary big', type: 'button', hidden: true, onclick: next }, 'Next ➜');
-
-    function draw() {
-      row.replaceChildren(
-        ...chars.map((c, i) => {
-          if (!blanks.has(i)) return el('div', { class: 'tile fixed' }, c);
-          const cls = 'tile slot' + (state[i] ? ' filled' : '') + (i === sel ? ' sel' : '') + (hinted.has(i) ? ' hint' : '');
-          return el('button', { class: cls, type: 'button', onclick: () => { if (!done && !state[i]) { sel = i; draw(); } } }, state[i]);
-        }),
-      );
-    }
-    function complete() {
-      done = true;
-      logRound(word, misses === 0);
-      row.classList.add('good');
-      msg.textContent = cheer('spell');
-      nextBtn.hidden = false;
-      celebrate(root);
-    }
-    function shake() {
-      row.classList.remove('shake');
-      void row.offsetWidth; // restart the animation
-      row.classList.add('shake');
-      later(() => row.classList.remove('shake'), 450);
-    }
-    function press(ch) {
-      if (done || sel == null) return;
-      if (ch === chars[sel]) {
-        state[sel] = ch;
-        sel = nextBlank();
-        msg.textContent = '';
-        draw();
-        if (sel == null) complete();
-        return;
-      }
-      misses++;
-      blankMiss[sel] = (blankMiss[sel] || 0) + 1;
-      shake();
-      if (blankMiss[sel] >= 3) {
-        state[sel] = chars[sel];
-        hinted.add(sel);
-        msg.textContent = `That one is “${chars[sel]}”.`;
-        sel = nextBlank();
-        draw();
-        if (sel == null) complete();
-      } else {
-        msg.textContent = 'Try a different letter.';
-      }
-    }
-
-    onLeave(listenKeys({ onKey: press }));
-    root.append(
-      el('p', { class: 'prompt' }, 'Which letters are missing?'),
-      hearBar(entry), row, msg, keyboard({ onKey: press }), nextBtn,
-    );
-    draw();
-    speakWord(entry);
+  return run(root, api, {
+    pick: () => chooseWords(entries, COUNT),
+    build: (entry, o) => blank({ kind: 'spell', entry, entries, ...o }),
   });
 }
+
+const VOPT_KEY = 'spelling-games.vblanks.options';
+export const INPUTS = [['tiles', 'Pick the word'], ['type', 'Type the word']];
+export function vocabInput() {
+  try { const v = JSON.parse(localStorage.getItem(VOPT_KEY)).input; return INPUTS.some(([k]) => k === v) ? v : 'tiles'; } catch { return 'tiles'; }
+}
+function setVocabInput(v) { try { localStorage.setItem(VOPT_KEY, JSON.stringify({ input: v })); } catch { /* ignore */ } }
+// The vocab input row, shared with Bridge Builder's options.
+export const inputChoice = (redraw) => choice('Vocabulary answers', vocabInput(), INPUTS, (v) => { setVocabInput(v); redraw(); });
+
+export const vocab = {
+  mount(root, entries, api) {
+    const usable = entries.filter(canBlank);
+    if (usable.length < 2) {
+      root.replaceChildren(el('p', { class: 'note' }, 'Fill the Blanks needs at least 2 words with a meaning or a sentence that uses the word in vocab.txt.'));
+      return;
+    }
+    return run(root, api, {
+      pick: () => chooseVocab(usable, COUNT),
+      build: (entry, o) => blank({ kind: 'vocab', entry, entries: usable, input: vocabInput(), ...o }),
+      gear: (sc, play) => cornerGear(() => {
+        const before = vocabInput();
+        const pop = openOptions({ title: '⚙️ Fill the Blanks', body: (redraw) => [inputChoice(redraw)], onClose: () => { if (vocabInput() !== before) play(); } });
+        sc.onLeave(pop.dispose);
+      }),
+    });
+  },
+};
+
+export const math = {
+  mount(root, _e, api) {
+    return run(root, api, {
+      pick: () => {
+        const seen = new Set(), out = [];
+        for (let g = 0; out.length < COUNT && g < 400; g++) {
+          const p = mathPuzzle(savedLevel());
+          const key = `${p.a}${p.op}${p.b}${p.hide}`;
+          if (!seen.has(key)) { seen.add(key); out.push(p); }
+        }
+        return out;
+      },
+      build: (puzzle, o) => blank({ kind: 'math', puzzle, ...o }),
+      gear: (sc, play) => levelGear(play, sc.onLeave),
+    });
+  },
+};

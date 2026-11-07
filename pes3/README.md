@@ -22,9 +22,27 @@ friend
 - ` | sentence` is optional. If present it is read aloud with the word ("word. sentence. word.") in Listen & Type and the study list.
 - Words with apostrophes or hyphens work in Listen & Type, Fill the Blanks, Memory, and Look-Cover-Write-Check. Word Jumble and Word Search skip them (letters only). Word Search also skips words longer than 14 letters.
 
+### `vocab.txt` format (Vocabulary games)
+
+Edit, commit and push it the same way as `words.txt` (`git add vocab.txt && git commit -m "Vocab ..." && git push`).
+
+```
+# Science words           <- first comment line = the list name
+habitat | noun | the natural home of a plant or animal | The pond is a habitat for frogs.
+gather | v. | to bring things together into one place | We gathered leaves into a pile. | Bees gather nectar from flowers.
+predict | to say what will happen before it happens      <- no part of speech, no sentence
+shelter | noun                                           <- no meaning
+curious | | wanting to know about something | The curious kitten sniffed every box.   <- empty part = skipped
+```
+
+- `word | part of speech | meaning | sentence | sentence | …`; everything after the word is optional (leave a part empty to skip it). Any number of example sentences: Fill the Blanks picks one at random each time (never the same one twice in a row for a word). With only two parts, the second counts as a part of speech if it is one (noun, verb, adjective, adverb, pronoun, preposition, conjunction, interjection, or n. / v. / adj. / adv. / pron. / prep. / conj. / interj.), otherwise as the meaning.
+- Duplicates are ignored. If `vocab.txt` is missing, the spelling games still work and the vocabulary games say to add words.
+- Match the Meaning uses only words with a meaning. Word Wise asks meaning questions about words with a meaning and part-of-speech questions about words with one.
+- The sentences are for Fill the Blanks: the word is left out. Each should contain the word or a form starting with it (gather → gathered) or with it minus a final y/e (study → studies). A sentence without the word is skipped; a word with no usable sentence gets the clue "___ means “<meaning>”" instead.
+
 ## Games
 
-Home screen sections: **Spelling**, **Math**, **Coding**, **Adventures** (games that ask spelling, math or both), **Brain Games** (no spelling or math), **Rewards**.
+Home screen sections: **Spelling**, **Vocabulary**, **Math**, **Coding**, **Adventures** (games that ask spelling, math or both), **Brain Games** (no spelling or math), **Rewards**.
 
 **Spelling** (use `words.txt`; each finished word is recorded in the hidden progress)
 
@@ -32,7 +50,7 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Adventures** (games 
 |---|---|
 | Word Jumble | Hears the word, taps shuffled letters into order |
 | Listen & Type | Hears the word (and sentence), types it. Closest to the real test |
-| Fill the Blanks | Taps the missing letters on an on-screen keyboard |
+| Fill the Blanks | Taps the missing letters on an on-screen keyboard (the same game also has a Vocabulary and a Math card, below) |
 | Spell Catcher | Letters drift down like rain; tap them in spelling order (they loop, never lost) |
 | Word Volcano | Letters are rocks on a volcano; tap in order. Lava rises as she gets letters right |
 | Wordal | Wordle-style: six tries to spell the word she hears. Grey/yellow/green, no dictionary check |
@@ -43,11 +61,19 @@ Home screen sections: **Spelling**, **Math**, **Coding**, **Adventures** (games 
 | Guess What | Guess Who? with the list: asks yes/no questions about how the hidden word *sounds* and puts down the words that don't fit (see below) |
 | See the Words | Study list; tap a word to hear it |
 
-**Math** (grade-3 style; levels: add/subtract within 100, times tables 2-5, 2-10, or times and division). The games start straight away at the remembered level (Add & subtract until one is chosen); the ⚙️ in the top corner changes it and starts again. Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces. Lily Pad River (under Adventures) can also do math. Not recorded in the hidden progress.
+**Vocabulary** (use `vocab.txt`; each answered word is recorded in a separate hidden vocabulary progress, shown in the grown-ups panel)
+
+| Game | What she does |
+|---|---|
+| Match the Meaning | 2–3 words and their meanings on one screen; drags each meaning onto its word, or each word onto its meaning (taking turns by board; ⚙️ can fix one way). Tapping a card reads it aloud, then tapping its partner places it. A wrong drop slides back; after 2 slips the right partner glows. 4 boards (up to 12 words) |
+| Fill the Blanks | 10 sentences with the vocab word missing (one of its sentences in `vocab.txt`, else "___ means …"); taps the word from 4 tiles (other words of the same part of speech first). ⚙️ can switch to typing it (a miss hints the first letter; a second shows the word). The sentence is read aloud with "blank", and again once filled |
+| Word Wise | 10 multiple-choice questions, mixed: pick the meaning of a word (wrong choices are meanings of the same part of speech when there are any), pick the part of speech (noun / verb / adjective / adverb), or pick the word for a meaning. ⚙️ can pick one kind. After the right answer the whole entry is shown, then Next |
+
+**Math** (grade-3 style; levels: add/subtract within 100, times tables 2-5, 2-10, or times and division). The games start straight away at the remembered level (Add & subtract until one is chosen); the ⚙️ in the top corner changes it and starts again. Number Bubbles, Number Cascade, Times Table Explorer (explore / practice / patterns), Number Maze, Number Mountain, Puzzle Pieces, Fill the Blanks (one part of a sum is missing: a number in it about half the time (7 × __ = 56), the sign about a third (7 __ 8 = 56; + − only at Add & subtract, any sign that makes it true counts), the answer the rest; number pad, second try, then the answer is shown). Lily Pad River (under Adventures) can also do math. Not recorded in the hidden progress.
 
 **Coding**: Robot Course, Turtle Draw and Code Studio (below). All three share one engine in `js/code/`.
 
-**Adventures**: Zombie Trail (below), Battle Buddies, Study Quest, Monster Parade and Crystal Cave (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games).
+**Adventures**: Bridge Builder (pick an animal (dog, cat, turtle, elephant, T. rex, goat), who walks across facing the way it goes; each filled blank (spelling, vocabulary or math, from the same Fill the Blanks questions) lays a plank across the river, canyon, lava or clouds and the critter hops on; 4 planks per bridge, then it walks across; the last bridge reaches a castle. A blank whose answer had to be shown lays no plank ("Let's try another one!"). ⚙️ Options: questions Mix (default; takes turns between the subjects that have words) / Spelling / Vocabulary / Math, how many bridges to cross 2/3/4 (default 3, 4 planks each), math level, vocabulary answers), Zombie Trail (below), Battle Buddies, Study Quest, Monster Parade and Crystal Cave (below), Lily Pad River (lily pads with answers float down a river; tap the right one and the frog hops on. Spelling, math or both: for spelling she hears the word and picks the correct spelling from look-alike misspellings such as *bunnys* / *bunnyes*, plus two other words from the list. Each wrong answer is on the river once, and a wrong pad just sinks a little; pads loop forever, so nothing is missed. Spelling answers count in the hidden progress like the spelling games).
 
 **Brain Games**: Spot Match (find the one picture on both cards, no timer), Simon Says (copy the colour pattern; a slip just replays the pattern).
 
@@ -70,7 +96,11 @@ Add `#<name>` to the address, e.g. `https://jasonandann.net/pes3/#robot`. The pa
 | Word Search | `#search` | | | Spot Match | `#spot` |
 | Wordal | `#wordal` | | | Study Quest | `#quest` |
 | Listen & Type | `#listen` | | | Crystal Cave | `#cave` |
-| Guess What | `#guess` | | | Monster Parade | `#parade` |
+| Guess What | `#guess` | Fill the Blanks | `#mblanks` | Monster Parade | `#parade` |
+| **Vocabulary** | | | | Bridge Builder | `#bridge` |
+| Match the Meaning | `#vmatch` | | | | |
+| Fill the Blanks | `#vblanks` | | | | |
+| Word Wise | `#vquiz` | | | | |
 
 The new spelling and math games are original vanilla-JS re-implementations of the mechanics in [Spellbound](https://github.com/benSlaughter/spellbound) (MIT per its README); none of its code was copied. Differences from Spellbound, chosen for a child who discourages easily: no timers, no best scores, no unlock gating, no lives.
 
@@ -298,7 +328,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/parent_test.py`, `python3 tests/battle_test.py`, `python3 tests/quest_test.py`, `python3 tests/cave_test.py`, `python3 tests/wordsearch_test.py`, `python3 tests/guesswhat_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word list (`tests/fixtures/words.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
+Automated browser tests (optional): `pip install playwright && playwright install chromium`, then `python3 tests/smoke_test.py`, `python3 tests/zombie_test.py`, `python3 tests/new_games_test.py`, `python3 tests/baffle_test.py`, `python3 tests/river_test.py`, `python3 tests/robot_test.py`, `python3 tests/turtle_test.py`, `python3 tests/studio_test.py`, `python3 tests/deeplink_test.py`, `python3 tests/keyboard_test.py`, `python3 tests/parent_test.py`, `python3 tests/battle_test.py`, `python3 tests/quest_test.py`, `python3 tests/cave_test.py`, `python3 tests/wordsearch_test.py`, `python3 tests/guesswhat_test.py`, `python3 tests/vocab_test.py`, `python3 tests/blanks_test.py`, `python3 tests/sw_test.py` (offline copy and updates; serves a temporary copy of the site that imitates GitHub Pages). The tests use their own word lists (`tests/fixtures/words.txt`, `tests/fixtures/vocab.txt`), so editing `words.txt` never breaks them. See `CLAUDE.md`.
 
 ## Publish with GitHub Pages
 
@@ -313,6 +343,7 @@ The page includes `noindex` so search engines are asked not to list it. That is 
 ```
 index.html           page shell
 words.txt            the weekly list (the only file you normally edit)
+vocab.txt            vocabulary list for the Vocabulary games (word | part of speech | meaning | sentences...)
 css/style.css
 js/app.js            menu + routing + hidden parent triggers
 js/util.js           parsing, speech, on-screen keyboard, progress, round runner

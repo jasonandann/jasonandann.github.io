@@ -1,0 +1,19 @@
+# Vocabulary practice
+# One word per line:  word | part of speech | meaning | sentence | another sentence | ...
+# Everything after the word is optional ("word | meaning" works too; leave a part empty to skip it: "word | | meaning | sentence").
+# Add as many sentences as you like; Fill the Blanks picks one each time. Each should use the word (or a form of it:
+# gathered, studies); one that doesn't is skipped.
+# Parts of speech: noun, verb, adjective, adverb (n., v., adj., adv. are fine too).
+# Lines starting with # are ignored (the first one above is the list name).
+brave | adjective | ready to face danger or pain without showing fear | The brave firefighter ran into the smoky house.
+curious | adjective | wanting to learn or know about something | The curious kitten sniffed every box.
+enormous | adjective | very, very big | An enormous whale swam past our boat.
+fragile | adjective | easily broken or hurt | Carry the fragile glass with two hands.
+gather | verb | to bring things or people together into one place | We gather leaves into a big pile.
+examine | verb | to look at something closely and carefully | The doctor will examine your sore arm.
+predict | verb | to say what you think will happen before it happens | Can you predict what will happen next in the story?
+habitat | noun | the natural home of a plant or animal | The pond is a habitat for frogs and fish.
+journey | noun | a trip from one place to another | Our journey to Grandma's house took all day.
+shelter | noun | a place that keeps you safe from weather or danger | We found shelter under a tree when it rained.
+quickly | adverb | in a fast way | The rabbit hopped quickly into its hole.
+gently | adverb | in a soft and careful way | Pet the puppy gently.

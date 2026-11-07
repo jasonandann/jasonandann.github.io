@@ -117,7 +117,7 @@ def stop():
 
 def expected_urls():
     import json
-    rel = ["", "index.html", "manifest.webmanifest", "words.txt", "audio/manifest.json", "dict/words.txt", "css/style.css"]
+    rel = ["", "index.html", "manifest.webmanifest", "words.txt", "vocab.txt", "audio/manifest.json", "dict/words.txt", "css/style.css"]
     rel += [str(p.relative_to(APP)) for p in sorted((APP / "js").rglob("*.js"))]
     rel += [str(p.relative_to(APP)) for p in sorted((APP / "icons").glob("*.png"))]
     m = json.loads((APP / "audio" / "manifest.json").read_text())
@@ -188,7 +188,7 @@ try:
 
         # ---- first visit online: worker installs, takes over, and saves everything
         page.goto(URL)
-        check("menu shows 29 cards", page.locator(".mcard").count() == 29)
+        check("menu shows 34 cards", page.locator(".mcard").count() == 34)
         want = expected_urls()
         c = wait_cached(len(want) - 1)  # (+1 for "./" vs index.html both cached; "" is the directory URL)
         missing = [u for u in want if u not in c["urls"]]
@@ -204,7 +204,8 @@ try:
         # ---- offline: opens from the saved copy, every game opens, no errors from the check
         stop()
         relaunch()
-        check("offline: menu loads", page.locator(".mcard").count() == 29)
+        page.wait_for_selector(".mcard", timeout=10000)  # the menu draws once words.txt arrives, which can be just after 'load'
+        check("offline: menu loads", page.locator(".mcard").count() == 34)
         check("offline: last list shown", "Week of Oct 26" in listname(), listname())
         names = page.locator(".mcard .name").all_inner_texts()
         failed = []
@@ -417,7 +418,7 @@ try:
         break_copy("import { nope } from './util.js';\n" + app_now)
         relaunch()
         page.wait_for_function("window.__started === true && !!document.querySelector('.mcard')", timeout=20000)
-        check("watchdog: copy with a missing import repairs itself and starts", page.locator(".mcard").count() == 29)
+        check("watchdog: copy with a missing import repairs itself and starts", page.locator(".mcard").count() == 34)
         broken_errs = errors[n_err:]
         del errors[n_err:]
         check("watchdog: (the broken load did raise the import error)", any("nope" in e for e in broken_errs), "; ".join(broken_errs[:2]))
@@ -438,7 +439,7 @@ try:
         start()
         relaunch()
         page.wait_for_function("window.__started === true && !!document.querySelector('.mcard')", timeout=25000)
-        check("watchdog: back online, the next launch repairs it", page.locator(".mcard").count() == 29)
+        check("watchdog: back online, the next launch repairs it", page.locator(".mcard").count() == 34)
         settle()
 
         # ---- if GitHub ever changes the ETag format: fall back to "app.js unchanged before and after the round"
@@ -498,7 +499,7 @@ try:
             time.sleep(4)
             g = wait_gone()
             check(f"kill switch launch {n + 1}: app works from the site, no reload, stays off",
-                  marked() and page.locator(".mcard").count() == 29 and g == {"caches": 0, "regs": 0}, str(g))
+                  marked() and page.locator(".mcard").count() == 34 and g == {"caches": 0, "regs": 0}, str(g))
         b.close()
 finally:
     try:

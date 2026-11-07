@@ -1,4 +1,5 @@
 import { el, loadWords } from './util.js';
+import { loadVocab } from './vocab.js';
 import { openParent } from './parent.js';
 import { gameOn } from './settings.js';
 import { initOffline, checkForUpdates, reloadIfPending } from './offline.js';
@@ -29,11 +30,15 @@ import * as quest from './games/quest.js';
 import * as guesswhat from './games/guesswhat.js';
 import * as cave from './games/cave.js';
 import * as parade from './games/parade.js';
+import * as vocabmatch from './games/vocabmatch.js';
+import * as vocabquiz from './games/vocabquiz.js';
+import * as bridge from './games/bridge.js';
 
 // id: deep-link name (index.html#robot opens Robot Course); keep them stable once shared. Also the key for the
 // grown-ups panel's games on/off list (issue #33). off: true = hidden until a grown-up turns it on (a new game
 // still being tested).
-// needsWords: game uses words.txt (spelling). Sections appear in this order on the home screen.
+// needsWords: game uses words.txt (spelling). vocab: the section's games get vocab.txt's entries {word, pos, def}
+// instead of words.txt's. Sections appear in this order on the home screen.
 const SECTIONS = [
   { title: '✏️ Spelling', needsWords: true, games: [
     { icon: '📖', id: 'words', name: 'See the Words', blurb: 'Tap a word to hear it', mod: words },
@@ -49,6 +54,11 @@ const SECTIONS = [
     { icon: '👂', id: 'listen', name: 'Listen & Type', blurb: 'Hear it, then spell it', mod: typeit },
     { icon: '❓', id: 'guess', name: 'Guess What', blurb: 'Find the word by its sounds', mod: guesswhat },
   ] },
+  { title: '📚 Vocabulary', vocab: true, games: [
+    { icon: '🧲', id: 'vmatch', name: 'Match the Meaning', blurb: 'Drag each word to what it means', mod: vocabmatch },
+    { icon: '📝', id: 'vblanks', name: 'Fill the Blanks', blurb: 'Find the missing word', mod: fillblank.vocab },
+    { icon: '🦉', id: 'vquiz', name: 'Word Wise', blurb: 'Pick the meaning, word or part of speech', mod: vocabquiz },
+  ] },
   { title: '➗ Math', games: [
     { icon: '🫧', id: 'bubbles', name: 'Number Bubbles', blurb: 'Pop the right answer', mod: mq.bubbles },
     { icon: '🔢', id: 'cascade', name: 'Number Cascade', blurb: 'Find it on the board', mod: mq.cascade },
@@ -56,6 +66,7 @@ const SECTIONS = [
     { icon: '🚪', id: 'maze', name: 'Number Maze', blurb: 'Pick the right door', mod: mq.maze },
     { icon: '⛰️', id: 'mountain', name: 'Number Mountain', blurb: 'Climb to the top', mod: mq.mountain },
     { icon: '🧩', id: 'puzzle', name: 'Puzzle Pieces', blurb: 'Uncover the picture', mod: puzzle },
+    { icon: '🔣', id: 'mblanks', name: 'Fill the Blanks', blurb: 'Find the missing number or sign', mod: fillblank.math },
   ] },
   { title: '💻 Coding', games: [
     { icon: '🤖', id: 'robot', name: 'Robot Course', blurb: 'Plan a path, press go', mod: robot },
@@ -68,6 +79,7 @@ const SECTIONS = [
     { icon: '🐸', id: 'river', name: 'Lily Pad River', blurb: 'Hop on the right answer', mod: river },
     { icon: '🛡️', id: 'battle', name: 'Battle Buddies', blurb: 'Answer to send a sparkle', mod: battle },
     { icon: '🗺️', id: 'quest', name: 'Study Quest', blurb: 'Pick an adventure', mod: quest },
+    { icon: '🌉', id: 'bridge', name: 'Bridge Builder', blurb: 'Fill the gaps to cross', mod: bridge },
     { icon: '🎈', id: 'parade', name: 'Monster Parade', blurb: 'Get the monsters ready for the parade', mod: parade },
     { icon: '💎', id: 'cave', name: 'Crystal Cave', blurb: 'Explore with your team', off: true, mod: cave }, // being tested (#61)
   ] },
@@ -85,6 +97,8 @@ const backBtn = document.getElementById('back');
 const titleEl = document.getElementById('title');
 
 let data = { title: '', words: [] };
+let vocab = null; // vocab.txt {title, words}; null until loaded (the menu doesn't wait for it)
+const vocabLoad = loadVocab('vocab.txt').then((v) => { vocab = v; return v; }); // never throws: no file = empty
 let cleanup = null;
 let inGame = false;
 
@@ -161,11 +175,21 @@ function open(game, sec) {
   const root = el('div', { class: 'game' });
   app.replaceChildren(root);
   // Mount synchronously inside the tap so text-to-speech is allowed on iOS.
+  if (sec.vocab) {
+    const mount = (v) => {
+      if (!v.words.length) return root.append(el('p', { class: 'note' }, 'Add some words to vocab.txt to play this one.'));
+      cleanup = game.mod.mount(root, v.words, { home }) || null;
+    };
+    if (vocab) return mount(vocab);
+    // Tapped before vocab.txt arrived (rare): mount when it does (speech then waits for her next tap).
+    vocabLoad.then((v) => { if (root.isConnected) mount(v); });
+    return;
+  }
   if ((game.needsWords || sec.needsWords) && !data.words.length) {
     root.append(el('p', { class: 'note' }, 'Add some words to words.txt to play this one.'));
     return;
   }
-  cleanup = game.mod.mount(root, data.words, { home }) || null;
+  cleanup = game.mod.mount(root, data.words, { home, vocab: vocab ? vocab.words : [] }) || null; // vocab: Bridge Builder
 }
 
 function showError(text, hint) {
